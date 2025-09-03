@@ -55,7 +55,7 @@ jobs:
       - name: Check Lambda version exists
         uses: chrispsheehan/just-aws-oidc-action@0.1.1
         env:
-          BUCKET: ${{ steps.get_bucket_name.outputs.bucket_lambda }}
+          BUCKET_NAME: ${{ steps.get_bucket_name.outputs.bucket_lambda }}
           VERSION: ${{ inputs.version }}
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
