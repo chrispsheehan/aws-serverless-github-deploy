@@ -24,7 +24,7 @@ permissions:
   contents: write
 
 env:
-  AWS_OIDC_ROLE_ARN: "arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/lambda-github-deploy-${{ inputs.environment }}-github-oidc-role"
+  AWS_OIDC_ROLE_ARN: "arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/aws-serverless-github-deploy-${{ inputs.environment }}-github-oidc-role"
   TF_VAR_deploy_version: ${{ inputs.version }}
 
 jobs:
