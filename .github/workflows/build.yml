@@ -1,0 +1,74 @@
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+      version:
+        required: true
+        type: string
+    outputs:
+      web_bucket:
+        description: "Bucket containing static website files"
+        value: ${{ jobs.infra.outputs.web_bucket_name }}
+      lambda_bucket:
+        description: "Bucket containing lambda zips"
+        value: ${{ jobs.infra.outputs.lambda_bucket_name }}
+
+concurrency: # only run one instance of workflow at any one time
+  group: ${{ github.workflow }}-${{inputs.environment}}
+  cancel-in-progress: false
+
+permissions:
+  id-token: write
+  contents: write
+
+env:
+  VERSION: ${{inputs.version }}
+  AWS_OIDC_ROLE_ARN: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/lambda-github-deploy-${{ inputs.environment }}-github-oidc-role"
+
+jobs:
+  infra:
+    runs-on: ubuntu-latest
+    outputs:
+      lambda_bucket_name: ${{ steps.get_bucket_name.outputs.bucket_lambda }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.version }}
+
+      - name: Deploy code buckets
+        uses: chrispsheehan/terragrunt-aws-oidc-action@0.3.0
+        id: code_action
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          tg_directory: infra/live/${{ inputs.environment }}/aws/code_bucket
+
+      - name: Get bucket name
+        id: get_bucket_name
+        env:
+          TG_OUTPUTS: ${{ steps.code_action.outputs.tg_outputs  }}
+        run: |
+          echo "bucket_lambda=$(echo $TG_OUTPUTS | jq -r '.bucket_lambda.value')" >> $GITHUB_OUTPUT
+
+  backend:
+    needs: infra
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.version }}
+
+      - uses: extractions/setup-just@v3
+
+      - name: Build Lambdas
+        shell: bash
+        run: just backend-build
+
+      - name: Upload Lambda zips
+        uses: chrispsheehan/just-aws-oidc-action@0.1.1
+        env:
+          BUCKET_NAME: ${{ needs.infra.outputs.lambda_bucket_name }}
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          just_action: backend-upload

@@ -1,0 +1,52 @@
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+      version:
+        required: true
+        type: string
+
+concurrency: # only run one instance of workflow at any one time
+  group: ${{ github.workflow }}-${{inputs.environment}}
+  cancel-in-progress: false
+
+permissions:
+  id-token: write
+  contents: write
+
+env:
+  TF_VAR_deploy_version: ${{ inputs.version }}
+  AWS_OIDC_ROLE_ARN: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/lambda-github-deploy-${{ inputs.environment }}-github-oidc-role"
+
+jobs:
+  oidc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.version }}
+
+      - uses: chrispsheehan/terragrunt-aws-oidc-action@0.3.0
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          tg_directory: infra/live/${{inputs.environment}}/aws/oidc
+
+  backend:
+    needs:
+      - oidc
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.version }}
+
+      - name: Check Lambda version exists
+        uses: chrispsheehan/just-aws-oidc-action@0.1.1
+        env:
+          BUCKET_NAME: ${{ vars.LAMBDA_S3_BUCKET }}
+          VERSION: ${{ inputs.version }}
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          just_action: check-version

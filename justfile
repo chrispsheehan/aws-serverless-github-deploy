@@ -1,0 +1,149 @@
+_default:
+    just --list
+
+
+PROJECT_DIR := justfile_directory()
+
+clean-terragrunt-cache:
+    @echo "Cleaning up .terraform directories in {{PROJECT_DIR}}..."
+    find {{PROJECT_DIR}} -type d -name ".terraform" -exec rm -rf {} +
+    @echo "Cleaning up .terraform.lock.hcl files in {{PROJECT_DIR}}..."
+    find {{PROJECT_DIR}} -type f -name ".terraform.lock.hcl" -exec rm -f {} +
+    @echo "Cleaning up .terragrunt-cache directories in {{PROJECT_DIR}}..."
+    find {{PROJECT_DIR}} -type d -name ".terragrunt-cache" -exec rm -rf {} +
+    @echo "Cleaning up terragrunt-debug.tfvars.json files in {{PROJECT_DIR}}..."
+    find {{PROJECT_DIR}} -type f -name "terragrunt-debug.tfvars.json" -exec rm -f {} +
+
+
+lambda-invoke:
+    #!/bin/bash
+    set -euo pipefail
+    if [[ -z "$LAMBDA_NAME" ]]; then
+        echo "Error: LAMBDA_NAME environment variable is not set."
+        exit 1
+    fi
+
+    OUTPUT_FILE=output.json
+    PAYLOAD="{}"
+    rm -f $OUTPUT_FILE
+    RESPONSE=$(aws lambda invoke --cli-read-timeout 300 --function-name $LAMBDA_NAME --region $AWS_REGION --payload "$PAYLOAD" $OUTPUT_FILE)
+    LAMBDA_RETURN_CODE=$(jq -r '.StatusCode' <<< "$RESPONSE")
+    if [ "$LAMBDA_RETURN_CODE" -eq 200 ]; then
+        echo "Lambda function invoked successfully."
+    else
+        echo "Lambda function failed with return code: $LAMBDA_RETURN_CODE"
+    fi
+    cat $OUTPUT_FILE
+    LAMBDA_STATUS_CODE=$(jq -r '.statusCode // empty' "$OUTPUT_FILE")
+
+    if [ "$LAMBDA_STATUS_CODE" = "200" ]; then
+        echo "✅ Lambda function completed successfully."
+        exit 0
+    else
+        echo "❌ Lambda function failed or returned non-200 status code: $LAMBDA_STATUS_CODE"
+        exit 1
+    fi
+
+
+git-tidy:
+    #!/usr/bin/env bash
+    git fetch --prune
+    for branch in $(git branch -vv | grep ': gone]' | awk '{print $1}'); do
+        git branch -d $branch
+    done
+
+
+branch name:
+    #!/usr/bin/env bash
+    git fetch origin
+    git checkout main
+    git pull origin
+    git branch --set-upstream-to=origin/main {{ name }}
+    git pull
+    git checkout -b {{ name }}
+    git push -u origin {{ name }}
+
+
+format:    
+    #!/usr/bin/env bash
+    terraform fmt -recursive
+    terragrunt hclfmt
+
+
+# Terragrunt operation on {{module}} containing terragrunt.hcl
+tg env module op:
+    #!/usr/bin/env bash
+    cd {{justfile_directory()}}/infra/live/{{env}}/{{module}} ; terragrunt {{op}}
+
+
+tg-all op:
+    #!/usr/bin/env bash
+    cd {{justfile_directory()}}/infra/live 
+    terragrunt run-all {{op}}
+
+
+check-version:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    FULL_BUCKET_NAME="$BUCKET_NAME/$VERSION/"
+
+    if ! aws s3api head-bucket --bucket "$BUCKET_NAME" >/dev/null 2>&1; then
+        echo "❌ The bucket '$BUCKET_NAME' does not exist or is inaccessible."
+        exit 1
+    fi
+
+    if ! aws s3 ls "$FULL_BUCKET_NAME" >/dev/null 2>&1; then
+        echo "❌ The subpath '$VERSION' does not exist in bucket '$BUCKET_NAME'."
+        exit 1
+    fi
+
+    FILES=$(aws s3 ls $FULL_BUCKET_NAME --recursive | wc -l | xargs)
+    if [ -n "$FILES" ]; then
+        echo "✅ $FILES file(s) found in $FULL_BUCKET_NAME"
+    else
+        echo "❌ No files found under $FULL_BUCKET_NAME"
+        exit 1
+    fi
+
+
+backend-upload:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    BACKEND_DIR="{{justfile_directory()}}/backend"
+
+    echo "📤 Uploading .zip files from $BACKEND_DIR to s3://$BUCKET_NAME/$VERSION/"
+
+    aws s3 cp "$BACKEND_DIR" "s3://$BUCKET_NAME/$VERSION/" \
+        --recursive \
+        --exclude "*" \
+        --include "*.zip" \
+        --storage-class STANDARD
+
+
+backend-build:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    python3 -m venv venv
+    source venv/bin/activate
+
+    BACKEND_DIR="{{justfile_directory()}}/backend"
+    BACKEND_BUILD_DIR="$BACKEND_DIR/build"
+
+    echo "🔄 Cleaning previous builds..."
+    rm -rf $BACKEND_BUILD_DIR
+
+    for dir in $(find "$BACKEND_DIR" -mindepth 1 -maxdepth 1 -type d); do
+        app_name=$(basename "$dir")
+        echo "📦 Building $app_name Lambda..."
+        mkdir -p "$BACKEND_BUILD_DIR/$app_name"
+        pip install --target "$BACKEND_BUILD_DIR/$app_name" -r "$dir/requirements.txt"
+        cp "$dir"/*.py "$BACKEND_BUILD_DIR/$app_name/"
+        (
+            cd "$BACKEND_BUILD_DIR/$app_name"
+            zip -r "../../$app_name.zip" . > /dev/null
+        )
+        echo "✅ Done: backend/$app_name.zip"
+    done

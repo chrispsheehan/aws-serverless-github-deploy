@@ -1,0 +1,50 @@
+name: Kill Environment
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Select environment"
+        required: true
+        type: choice
+        options:
+          - dev
+
+concurrency: # only run one instance of workflow at any one time
+  group: ${{ github.workflow }}-${{inputs.environment}}
+  cancel-in-progress: false
+
+permissions:
+  id-token: write
+  contents: write
+
+env:
+  TF_VAR_deploy_version: this
+  AWS_OIDC_ROLE_ARN: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/lambda-github-deploy-${{ inputs.environment }}-github-oidc-role"
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Destroy backend
+        uses: chrispsheehan/terragrunt-aws-oidc-action@0.3.0
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          tg_directory: infra/live/${{inputs.environment}}/aws/jobs
+          tg_action: destroy
+
+  build:
+    needs:
+      - backend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Destroy code
+        uses: chrispsheehan/terragrunt-aws-oidc-action@0.3.0
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          tg_directory: infra/live/${{inputs.environment}}/aws/code_bucket
+          tg_action: destroy
