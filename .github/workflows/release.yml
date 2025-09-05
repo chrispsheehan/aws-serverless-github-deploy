@@ -24,7 +24,7 @@ jobs:
           fetch-depth: 0
       - name: Get current tag
         id: get_tag
-        # this fails on first run when no tag exist - fix later
+        # this fails on first run when no tag exist - fix later 
         run: |
           CURRENT_TAG=$(git describe --tags --abbrev=0)
           echo "CURRENT_TAG=${CURRENT_TAG}" >> $GITHUB_OUTPUT
