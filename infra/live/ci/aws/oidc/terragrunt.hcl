@@ -7,12 +7,10 @@ locals {
     "s3:*",
     "iam:*"
   ]
-  deploy_tags = ["*"]
 }
 
 inputs = {
   allowed_role_actions = local.allowed_role_actions
-  deploy_tags          = local.deploy_tags
 }
 
 terraform {

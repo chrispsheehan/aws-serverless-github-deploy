@@ -1,6 +1,6 @@
 locals {
   log_retention_days = 14
-  deploy_branches    = ["*"]
+  deploy_branches    = ["main"]
 }
 
 inputs = {
