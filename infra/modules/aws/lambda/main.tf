@@ -10,5 +10,5 @@ resource "aws_lambda_function" "lambda" {
   runtime       = local.lambda_runtime
 
   s3_bucket = data.aws_s3_bucket.lambda_code.bucket
-  s3_key    = data.aws_s3_object.lambda_code_zip.key
+  s3_key    = local.lambda_code_zip_key
 }
