@@ -11,7 +11,7 @@ on:
           - dev
 
 concurrency: # only run one instance of workflow at any one time
-  group: ${{ github.workflow }}-${{inputs.environment}}
+  group: ${{ github.workflow }}-${{ inputs.environment }}
   cancel-in-progress: false
 
 permissions:
@@ -32,7 +32,7 @@ jobs:
         uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.0
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          tg_directory: infra/live/${{inputs.environment}}/aws/jobs
+          tg_directory: infra/live/${{ inputs.environment }}/aws/jobs
           tg_action: destroy
 
   build:
@@ -46,5 +46,5 @@ jobs:
         uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.0
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          tg_directory: infra/live/${{inputs.environment}}/aws/code_bucket
+          tg_directory: infra/live/${{ inputs.environment }}/aws/code_bucket
           tg_action: destroy
