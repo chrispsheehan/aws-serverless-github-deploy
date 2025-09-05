@@ -10,7 +10,6 @@ permissions:
 jobs:
   build:
     uses: ./.github/workflows/build.yml
-    secrets: inherit
     with:
       environment: dev
       version: ${{ github.sha }}
@@ -18,7 +17,6 @@ jobs:
   get:
     needs: build
     uses: ./.github/workflows/get_build.yml
-    secrets: inherit
     with:
       environment: dev
       version: ${{ github.sha }}
