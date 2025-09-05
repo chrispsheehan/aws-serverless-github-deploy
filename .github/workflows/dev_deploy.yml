@@ -26,8 +26,8 @@ jobs:
 
   # dev:
   #   uses: ./.github/workflows/deploy.yml
-  #   needs: build
+  #   needs: get
   #   secrets: inherit
   #   with:
   #     environment: dev
-  #     version: ${{ github.sha }}
+  #     version: ${{ needs.get.outputs. }}
