@@ -25,6 +25,11 @@ resource "aws_lambda_function" "lambda" {
   }
 }
 
+resource "aws_cloudwatch_log_group" "lambda_cloudwatch_group" {
+  name              = "/aws/lambda/${local.lambda_name}"
+  retention_in_days = var.log_retention_days
+}
+
 resource "aws_lambda_alias" "live" {
   name             = var.environment
   function_name    = aws_lambda_function.lambda.arn

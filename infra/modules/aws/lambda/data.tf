@@ -39,8 +39,8 @@ data "aws_iam_policy_document" "codedeploy_lambda" {
       "lambda:ListVersionsByFunction",
     ]
     resources = [
-      aws_lambda_function.fn.arn,
-      "${aws_lambda_function.fn.arn}:*",
+      aws_lambda_function.lambda.arn,
+      "${aws_lambda_function.lambda.arn}:*",
     ]
   }
 
@@ -49,5 +49,23 @@ data "aws_iam_policy_document" "codedeploy_lambda" {
     effect    = "Allow"
     actions   = ["cloudwatch:DescribeAlarms"]
     resources = ["*"]
+  }
+}
+
+data "aws_iam_policy_document" "lambda_iam_policy" {
+  statement {
+    sid = "AllowLambdaCloudwatchLogGroupPut"
+
+    actions = [
+      "logs:CreateLogStream",
+      "logs:PutLogEvents"
+    ]
+
+    effect = "Allow"
+
+    resources = [
+      "${aws_cloudwatch_log_group.lambda_cloudwatch_group.arn}",
+      "${aws_cloudwatch_log_group.lambda_cloudwatch_group.arn}:*"
+    ]
   }
 }
