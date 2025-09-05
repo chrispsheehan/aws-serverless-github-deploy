@@ -26,9 +26,6 @@ locals {
   # separate s3 version bucket when dev, otherwise ci
   s3_bucket_base = local.environment == "dev" ? "${local.base_reference}-${local.environment}" : "${local.base_reference}-ci"
   lambda_bucket  = "${local.s3_bucket_base}-lambda"
-
-  lambda_name     = local.environment == "prod" ? local.project_name : "${local.environment}-${local.project_name}"
-  lambda_api_name = "${local.lambda_name}-api"
 }
 
 terraform {
@@ -99,6 +96,5 @@ inputs = merge(
     state_bucket     = local.state_bucket
     state_lock_table = local.state_lock_table
     lambda_bucket    = local.lambda_bucket
-    lambda_api_name  = local.lambda_api_name
   }
 )

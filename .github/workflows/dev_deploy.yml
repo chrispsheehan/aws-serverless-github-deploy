@@ -14,18 +14,11 @@ jobs:
       environment: dev
       version: ${{ github.sha }}
 
-  get:
-    needs: build
-    uses: ./.github/workflows/get_build.yml
-    with:
-      environment: dev
-      version: ${{ github.sha }}
-
   dev:
     uses: ./.github/workflows/deploy.yml
-    needs: get
+    needs: build
     with:
       environment: dev
       infra_version: ${{ github.sha }}
-      lambda_bucket: ${{ needs.get.outputs.lambda_bucket }}
-      lambda_version: ${{ needs.get.outputs.lambda_version }}
+      lambda_bucket: ${{ needs.build.outputs.lambda_bucket }}
+      lambda_version: ${{ needs.build.outputs.lambda_version }}

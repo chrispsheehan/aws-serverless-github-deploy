@@ -4,7 +4,8 @@ locals {
     "s3:*",
     "iam:*",
     "lambda:*",
-    "logs:*"
+    "logs:*",
+    "apigateway:*"
   ]
 }
 
