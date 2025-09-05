@@ -21,11 +21,11 @@ jobs:
       environment: dev
       version: ${{ github.sha }}
 
-
-  # dev:
-  #   uses: ./.github/workflows/deploy.yml
-  #   needs: get
-  #   secrets: inherit
-  #   with:
-  #     environment: dev
-  #     version: ${{ needs.get.outputs. }}
+  dev:
+    uses: ./.github/workflows/deploy.yml
+    needs: get
+    with:
+      environment: dev
+      infra_version: ${{ github.sha }}
+      lambda_bucket: ${{ needs.get.outputs.lambda_bucket }}
+      lambda_version: ${{ needs.get.outputs.lambda_version }}
