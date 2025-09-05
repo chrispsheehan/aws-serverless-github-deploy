@@ -1,0 +1,24 @@
+name: Prod Deploy
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: write
+
+jobs:
+  get:
+    uses: ./.github/workflows/get_build.yml
+    with:
+      environment: ci
+      version: 0.4.0
+
+  dev:
+    uses: ./.github/workflows/deploy.yml
+    needs: get
+    with:
+      environment: dev
+      infra_version: 0.4.0
+      lambda_bucket: ${{ needs.get.outputs.lambda_bucket }}
+      lambda_version: ${{ needs.get.outputs.lambda_version }}
