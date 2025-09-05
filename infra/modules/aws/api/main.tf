@@ -5,6 +5,6 @@ module "lambda_api" {
   environment   = var.environment
   lambda_bucket = var.lambda_bucket
 
-  lambda_name = "api"
-  version     = var.version
+  lambda_name    = "api"
+  lambda_version = var.lambda_version
 }

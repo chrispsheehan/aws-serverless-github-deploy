@@ -3,5 +3,5 @@ locals {
 
   lambda_handler  = "${var.lambda_name}.lambda_handler"
   lambda_name     = "${var.environment}-${var.project_name}-${var.lambda_name}"
-  lambda_code_zip = "${var.version}/${var.lambda_name}.zip"
+  lambda_code_zip = "/${var.lambda_version}/${var.lambda_name}.zip"
 }

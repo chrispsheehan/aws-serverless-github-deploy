@@ -17,7 +17,7 @@ variable "lambda_bucket" {
 
 
 ### start of dynamic vars required for resources ###
-variable "version" {
+variable "lambda_version" {
   type        = string
   description = "Lambda code version to be deployed. Used in locating zip file keys"
 }
