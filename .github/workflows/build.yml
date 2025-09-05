@@ -8,12 +8,12 @@ on:
         required: true
         type: string
     outputs:
-      web_bucket:
-        description: "Bucket containing static website files"
-        value: ${{ jobs.infra.outputs.web_bucket_name }}
       lambda_bucket:
         description: "Bucket containing lambda zips"
         value: ${{ jobs.infra.outputs.lambda_bucket_name }}
+      lambda_version:
+        description: "Valid lambda version"
+        value: ${{ inputs.version }}
 
 concurrency: # only run one instance of workflow at any one time
   group: ${{ github.workflow }}-${{inputs.environment}}
