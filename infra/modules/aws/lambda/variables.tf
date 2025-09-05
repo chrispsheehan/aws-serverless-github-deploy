@@ -32,5 +32,5 @@ variable "lambda_version" {
 variable "log_retention_days" {
   type        = number
   description = "Number of days to hold logs"
-  default = 1
+  default     = 1
 }
