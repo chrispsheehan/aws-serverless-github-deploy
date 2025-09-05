@@ -16,7 +16,7 @@ on:
         value: ${{ inputs.version }}
 
 concurrency: # only run one instance of workflow at any one time
-  group: ${{ github.workflow }}-${{inputs.environment}}
+  group: ${{ github.workflow }}-${{ inputs.environment }}
   cancel-in-progress: false
 
 permissions:
@@ -48,7 +48,7 @@ jobs:
       - name: Get bucket names
         id: get_bucket_name
         env:
-          TG_OUTPUTS: ${{ steps.code_action.outputs.tg_outputs  }}
+          TG_OUTPUTS: ${{ steps.code_action.outputs.tg_outputs }}
         run: |
           echo "bucket_lambda=$(echo $TG_OUTPUTS | jq -r '.bucket_lambda.value')" >> $GITHUB_OUTPUT
 
