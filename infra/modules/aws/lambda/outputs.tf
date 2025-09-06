@@ -10,6 +10,10 @@ output "cloudwatch_log_group" {
   value = aws_cloudwatch_log_group.lambda_cloudwatch_group.name
 }
 
+output "lambda_zip_key" {
+  value = local.lambda_code_zip_key
+}
+
 output "code_deploy_app_name" {
   value = aws_codedeploy_app.app.name
 }

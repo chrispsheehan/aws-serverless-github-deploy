@@ -147,3 +147,40 @@ backend-build:
         )
         echo "✅ Done: backend/$app_name.zip"
     done
+
+lambda-deploy:
+    #!/usr/bin/env bash
+    DEPLOYMENT_ID=$(aws deploy create-deployment \
+        --application-name $CODE_DEPLOY_APP_NAME \
+        --deployment-group-name $CODE_DEPLOY_GROUP_NAME \
+        --deployment-config-name CodeDeployDefault.LambdaCanary10Percent5Minutes \
+        --s3-location bucket=$BUCKET_NAME,key=$LAMBDA_ZIP_KEY,bundleType=zip \
+        --query "deploymentId" --output text)
+
+    MAX_ATTEMPTS=40       # ~10 minutes at 15s interval
+    SLEEP_INTERVAL=15     # seconds
+
+    echo "🚀 Started deployment: $DEPLOYMENT_ID"
+
+    for ((i=1; i<=MAX_ATTEMPTS; i++)); do
+        STATUS=$(aws deploy get-deployment \
+            --deployment-id "$DEPLOYMENT_ID" \
+            --query "deploymentInfo.status" \
+            --output text)
+
+        echo "Attempt $i: Deployment status is $STATUS"
+
+        if [[ "$STATUS" == "Succeeded" ]]; then
+            echo "✅ Deployment $DEPLOYMENT_ID completed successfully."
+            exit 0
+        elif [[ "$STATUS" == "Failed" || "$STATUS" == "Stopped" ]]; then
+            echo "❌ Deployment $DEPLOYMENT_ID failed or was stopped."
+            exit 1
+    fi
+
+    sleep "$SLEEP_INTERVAL"
+    done
+
+    echo "❌ Deployment $DEPLOYMENT_ID did not complete within expected time."
+    exit 1
+
