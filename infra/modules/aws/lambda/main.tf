@@ -46,21 +46,21 @@ resource "aws_codedeploy_app" "app" {
   compute_platform = "Lambda"
 }
 
-resource "aws_iam_role" "cd_role" {
+resource "aws_iam_role" "code_deploy_role" {
   name               = "${local.lambda_name}-codedeploy-role"
   assume_role_policy = data.aws_iam_policy_document.code_deploy_assume.json
 }
 
 resource "aws_iam_role_policy" "cd_lambda" {
   name   = "${local.lambda_name}-codedeploy-lambda"
-  role   = aws_iam_role.cd_role.id
+  role   = aws_iam_role.code_deploy_role.id
   policy = data.aws_iam_policy_document.codedeploy_lambda.json
 }
 
 resource "aws_codedeploy_deployment_group" "dg" {
   app_name               = aws_codedeploy_app.app.name
   deployment_group_name  = "${local.lambda_name}-dg"
-  service_role_arn       = aws_iam_role.cd_role.arn
+  service_role_arn       = aws_iam_role.code_deploy_role.arn
   deployment_config_name = "CodeDeployDefault.LambdaCanary10Percent5Minutes"
 
   auto_rollback_configuration {
