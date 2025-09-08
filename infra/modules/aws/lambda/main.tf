@@ -58,9 +58,9 @@ resource "aws_iam_role_policy" "cd_lambda" {
 }
 
 resource "aws_codedeploy_deployment_group" "dg" {
-  app_name               = aws_codedeploy_app.app.name
-  deployment_group_name  = "${local.lambda_name}-dg"
-  service_role_arn       = aws_iam_role.code_deploy_role.arn
+  app_name              = aws_codedeploy_app.app.name
+  deployment_group_name = "${local.lambda_name}-dg"
+  service_role_arn      = aws_iam_role.code_deploy_role.arn
 
   deployment_style {
     deployment_type   = "BLUE_GREEN"

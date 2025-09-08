@@ -45,6 +45,29 @@ data "aws_iam_policy_document" "codedeploy_lambda" {
   }
 
   statement {
+    sid     = "ReadArtifactObject"
+    effect  = "Allow"
+    actions = ["s3:GetObject", "s3:GetObjectVersion"]
+    resources = [
+      "arn:aws:s3:::${data.aws_s3_bucket.lambda_code.bucket}/${local.lambda_code_zip_key}",
+      "arn:aws:s3:::${data.aws_s3_bucket.lambda_code.bucket}/${var.lambda_version}/*"
+    ]
+  }
+
+  # Allow listing the bucket for that prefix (some SDKs call this)
+  statement {
+    sid       = "ListArtifactPrefix"
+    effect    = "Allow"
+    actions   = ["s3:ListBucket", "s3:GetBucketLocation"]
+    resources = ["arn:aws:s3:::${data.aws_s3_bucket.lambda_code.bucket}"]
+    condition {
+      test     = "StringLike"
+      variable = "s3:prefix"
+      values   = ["${var.lambda_version}/*"]
+    }
+  }
+
+  statement {
     sid       = "DescribeAlarms"
     effect    = "Allow"
     actions   = ["cloudwatch:DescribeAlarms"]
