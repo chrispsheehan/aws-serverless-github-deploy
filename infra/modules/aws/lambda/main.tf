@@ -61,6 +61,12 @@ resource "aws_codedeploy_deployment_group" "dg" {
   app_name               = aws_codedeploy_app.app.name
   deployment_group_name  = "${local.lambda_name}-dg"
   service_role_arn       = aws_iam_role.code_deploy_role.arn
+
+  deployment_style {
+    deployment_type   = "BLUE_GREEN"
+    deployment_option = "WITH_TRAFFIC_CONTROL"
+  }
+
   deployment_config_name = "CodeDeployDefault.LambdaCanary10Percent5Minutes"
 
   auto_rollback_configuration {
