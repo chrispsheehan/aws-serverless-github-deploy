@@ -45,7 +45,7 @@ jobs:
           tg_directory: infra/live/${{ inputs.environment }}/aws/oidc
 
       - name: check Lambda version
-        uses: chrispsheehan/just-aws-oidc-action@0.1.1
+        uses: chrispsheehan/just-aws-oidc-action@0.1.2
         env:
           BUCKET_NAME: ${{ inputs.lambda_bucket }}
           VERSION: ${{ inputs.lambda_version }}
@@ -78,7 +78,7 @@ jobs:
           echo "code_deploy_group_name=$(echo $TG_OUTPUTS | jq -r '.code_deploy_group_name.value')" >> $GITHUB_OUTPUT
 
       - name: check lambda version
-        uses: ./.github/just
+        uses: chrispsheehan/just-aws-oidc-action@0.1.2
         env:
           BUCKET_NAME: ${{ inputs.lambda_bucket }}
           LAMBDA_ZIP_KEY: ${{ steps.get-api-vars.outputs.lambda_zip_key }}
