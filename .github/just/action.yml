@@ -42,11 +42,28 @@ runs:
         AWS_REGION: ${{ inputs.aws_region }}
         AWS_DEFAULT_REGION: ${{ inputs.aws_region }}
       run: |
-        set -euo pipefail
-        set -o pipefail
+        set -uo pipefail  # don't use -e; we want to inspect the exit code ourselves
 
         echo "📦 Running just command: ${{ inputs.just_action }}"
-        
-        result=$(just ${{ inputs.just_action }} | tail -n 1 | tr -d '\r')
-        echo "Result: $result"
-        echo "result=$result" >> "$GITHUB_OUTPUT"
+
+        echo "::group::just output"
+        output="$({ just ${{ inputs.just_action }}; } 2>&1)"
+        status=$?
+        echo "$output"
+        echo "::endgroup::"
+
+        if [[ $status -ne 0 ]]; then
+          echo "::error::Just command exited with status $status"
+          {
+            echo "### ❌ Just command failed"
+            echo "**Command:** \`just ${{ inputs.just_action }}\`"
+            echo "**Exit code:** $status"
+            echo "<details><summary>Output (last 200 lines)</summary>"
+            printf '%s\n' "$output" | tail -n 200
+            echo "</details>"
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
+        fi
+
+        result="$(printf '%s\n' "$output" | awk 'NF{last=$0} END{print last}' | tr -d '\r')"
+        printf 'result=%s\n' "$result" >> "$GITHUB_OUTPUT"
