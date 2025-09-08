@@ -180,6 +180,10 @@ lambda-deploy:
             exit 0
         elif [[ "$STATUS" == "Failed" || "$STATUS" == "Stopped" ]]; then
             echo "❌ Deployment $DEPLOYMENT_ID failed or was stopped."
+            aws deploy get-deployment \
+                --deployment-id "$DEPLOYMENT_ID" \
+                --query 'deploymentInfo.{Status:status, ErrorCode:errorInformation.code, ErrorMessage:errorInformation.message}' \
+                --output table
             exit 1
     fi
 
