@@ -74,6 +74,8 @@ jobs:
           TG_OUTPUTS: ${{ steps.deploy-api.outputs.tg_outputs  }}
         run: |
           echo "lambda_zip_key=$(echo $TG_OUTPUTS | jq -r '.lambda_zip_key.value')" >> $GITHUB_OUTPUT
+          echo "function_name=$(echo $TG_OUTPUTS | jq -r '.function_name.value')" >> $GITHUB_OUTPUT
+          echo "alias_name=$(echo $TG_OUTPUTS | jq -r '.alias_name.value')" >> $GITHUB_OUTPUT
           echo "code_deploy_app_name=$(echo $TG_OUTPUTS | jq -r '.code_deploy_app_name.value')" >> $GITHUB_OUTPUT
           echo "code_deploy_group_name=$(echo $TG_OUTPUTS | jq -r '.code_deploy_group_name.value')" >> $GITHUB_OUTPUT
 
@@ -81,6 +83,8 @@ jobs:
         uses: chrispsheehan/just-aws-oidc-action@0.1.2
         env:
           BUCKET_NAME: ${{ inputs.lambda_bucket }}
+          FUNCTION_NAME: ${{ steps.get-api-vars.outputs.function_name }}
+          ALIAS_NAME: ${{ steps.get-api-vars.outputs.alias_name }}
           LAMBDA_ZIP_KEY: ${{ steps.get-api-vars.outputs.lambda_zip_key }}
           CODE_DEPLOY_APP_NAME: ${{ steps.get-api-vars.outputs.code_deploy_app_name }}
           CODE_DEPLOY_GROUP_NAME: ${{ steps.get-api-vars.outputs.code_deploy_group_name }}
