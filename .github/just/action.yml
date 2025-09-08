@@ -35,35 +35,24 @@ runs:
         role-to-assume: ${{ inputs.aws_oidc_role_arn }}
         aws-region: ${{ inputs.aws_region }}
 
-    - name: Run just action and capture output
+    - name: Run just action (try/catch + capture)
       id: capture
       shell: bash
       env:
         AWS_REGION: ${{ inputs.aws_region }}
         AWS_DEFAULT_REGION: ${{ inputs.aws_region }}
       run: |
-        set -uo pipefail  # don't use -e; we want to inspect the exit code ourselves
+        set -euo pipefail
+        echo "📦 Running: ${{ inputs.just_action }}"
 
-        echo "📦 Running just command: ${{ inputs.just_action }}"
-
-        echo "::group::just output"
-        output="$({ just ${{ inputs.just_action }}; } 2>&1)"
-        status=$?
-        echo "$output"
-        echo "::endgroup::"
-
-        if [[ $status -ne 0 ]]; then
-          echo "::error::Just command exited with status $status"
-          {
-            echo "### ❌ Just command failed"
-            echo "**Command:** \`just ${{ inputs.just_action }}\`"
-            echo "**Exit code:** $status"
-            echo "<details><summary>Output (last 200 lines)</summary>"
-            printf '%s\n' "$output" | tail -n 200
-            echo "</details>"
-          } >> "$GITHUB_STEP_SUMMARY"
-          exit "$status"
+        if output="$(just ${{ inputs.just_action }} 2>&1)"; then
+          echo "$output"
+          result="$(printf '%s\n' "$output" | tail -n 1 | tr -d '\r')"
+          echo "result=$result" >> "$GITHUB_OUTPUT"
+          echo "✅ just '${{ inputs.just_action }}' succeeded"
+        else
+          code=$?
+          echo "$output"
+          echo "::error::just '${{ inputs.just_action }}' failed (exit $code)"
+          exit "$code"
         fi
-
-        result="$(printf '%s\n' "$output" | awk 'NF{last=$0} END{print last}' | tr -d '\r')"
-        printf 'result=%s\n' "$result" >> "$GITHUB_OUTPUT"
