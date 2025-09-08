@@ -157,6 +157,11 @@ lambda-deploy:
         --s3-location bucket=$BUCKET_NAME,key=$LAMBDA_ZIP_KEY,bundleType=zip \
         --query "deploymentId" --output text)
 
+    if [[ -z "$DEPLOYMENT_ID" || "$DEPLOYMENT_ID" == "None" ]]; then
+        echo "❌ Failed to create deployment — no deployment ID returned."
+        exit 1
+    fi
+
     MAX_ATTEMPTS=40       # ~10 minutes at 15s interval
     SLEEP_INTERVAL=15     # seconds
 
