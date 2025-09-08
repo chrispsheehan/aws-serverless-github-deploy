@@ -151,9 +151,8 @@ backend-build:
 lambda-deploy:
     #!/usr/bin/env bash
     DEPLOYMENT_ID=$(aws deploy create-deployment \
-        --region "$AWS_REGION" \
-        --application-name $CODE_DEPLOY_APP_NAME \
-        --deployment-group-name $CODE_DEPLOY_GROUP_NAME \
+        --application-name "$CODE_DEPLOY_APP_NAME" \
+        --deployment-group-name "$CODE_DEPLOY_GROUP_NAME" \
         --deployment-config-name CodeDeployDefault.LambdaCanary10Percent5Minutes \
         --s3-location bucket=$BUCKET_NAME,key=$LAMBDA_ZIP_KEY,bundleType=zip \
         --query "deploymentId" --output text)
