@@ -151,11 +151,14 @@ backend-build:
 lambda-deploy:
     #!/usr/bin/env bash
     DEPLOYMENT_ID=$(aws deploy create-deployment \
+        --region "$AWS_REGION" \
         --application-name $CODE_DEPLOY_APP_NAME \
         --deployment-group-name $CODE_DEPLOY_GROUP_NAME \
         --deployment-config-name CodeDeployDefault.LambdaCanary10Percent5Minutes \
         --s3-location bucket=$BUCKET_NAME,key=$LAMBDA_ZIP_KEY,bundleType=zip \
         --query "deploymentId" --output text)
+
+    echo "🚀 Started deployment: $DEPLOYMENT_ID"
 
     if [[ -z "$DEPLOYMENT_ID" || "$DEPLOYMENT_ID" == "None" ]]; then
         echo "❌ Failed to create deployment — no deployment ID returned."
@@ -164,8 +167,6 @@ lambda-deploy:
 
     MAX_ATTEMPTS=40       # ~10 minutes at 15s interval
     SLEEP_INTERVAL=15     # seconds
-
-    echo "🚀 Started deployment: $DEPLOYMENT_ID"
 
     for ((i=1; i<=MAX_ATTEMPTS; i++)); do
         STATUS=$(aws deploy get-deployment \

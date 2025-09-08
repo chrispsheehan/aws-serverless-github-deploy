@@ -78,7 +78,7 @@ jobs:
           echo "code_deploy_group_name=$(echo $TG_OUTPUTS | jq -r '.code_deploy_group_name.value')" >> $GITHUB_OUTPUT
 
       - name: check lambda version
-        uses: chrispsheehan/just-aws-oidc-action@0.1.1
+        uses: ./.github/just
         env:
           BUCKET_NAME: ${{ inputs.lambda_bucket }}
           LAMBDA_ZIP_KEY: ${{ steps.get-api-vars.outputs.lambda_zip_key }}
