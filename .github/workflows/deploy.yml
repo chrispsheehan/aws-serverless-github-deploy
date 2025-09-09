@@ -57,7 +57,7 @@ jobs:
     needs: setup
     runs-on: ubuntu-latest
     env:
-      APP_SPEC_FILE: ${{github.workspace}}/appspec.yaml
+      APP_SPEC_FILE: ${{github.workspace}}/appspec.yml
       APP_SPEC_KEY: appspec.zip
     steps:
       - uses: actions/checkout@v4
