@@ -154,6 +154,17 @@ lambda-get-version:
         --function-name "$FUNCTION_NAME" --name "$ALIAS_NAME" \
         --query 'FunctionVersion' --output text
 
+
+lambda-create-version:
+    #!/usr/bin/env bash
+    aws lambda update-function-code \
+        --function-name "$FUNCTION_NAME" \
+        --s3-bucket "$BUCKET_NAME" \
+        --s3-key "$LAMBDA_ZIP_KEY" \
+        --publish \
+        --query 'Version' --output text
+
+
 lambda-deploy:
     #!/usr/bin/env bash
     DEPLOYMENT_ID=$(aws deploy create-deployment \
