@@ -148,6 +148,12 @@ backend-build:
         echo "✅ Done: backend/$app_name.zip"
     done
 
+lambda-get-version:
+    #!/usr/bin/env bash
+    aws lambda get-alias \
+        --function-name "$FUNCTION_NAME" --name "$ALIAS_NAME" \
+        --query 'FunctionVersion' --output text
+
 lambda-deploy:
     #!/usr/bin/env bash
     DEPLOYMENT_ID=$(aws deploy create-deployment \

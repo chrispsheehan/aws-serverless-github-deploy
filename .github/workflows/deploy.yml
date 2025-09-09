@@ -79,15 +79,31 @@ jobs:
           echo "code_deploy_app_name=$(echo $TG_OUTPUTS | jq -r '.code_deploy_app_name.value')" >> $GITHUB_OUTPUT
           echo "code_deploy_group_name=$(echo $TG_OUTPUTS | jq -r '.code_deploy_group_name.value')" >> $GITHUB_OUTPUT
 
-      - name: deploy lambda
+      - name: get lambda version
+        id: lambda-get-version
         uses: chrispsheehan/just-aws-oidc-action@0.1.2
         env:
-          BUCKET_NAME: ${{ inputs.lambda_bucket }}
           FUNCTION_NAME: ${{ steps.get-api-vars.outputs.function_name }}
           ALIAS_NAME: ${{ steps.get-api-vars.outputs.alias_name }}
-          LAMBDA_ZIP_KEY: ${{ steps.get-api-vars.outputs.lambda_zip_key }}
-          CODE_DEPLOY_APP_NAME: ${{ steps.get-api-vars.outputs.code_deploy_app_name }}
-          CODE_DEPLOY_GROUP_NAME: ${{ steps.get-api-vars.outputs.code_deploy_group_name }}
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          just_action: lambda-deploy
+          just_action: lambda-get-version
+
+      - name: read output from script
+        run: |
+          echo "Script output: ${{ steps.lambda-get-version.outputs.just_outputs }}"
+          VERSION="${{ steps.lambda-get-version.outputs.just_outputs }}"
+          echo "Parsed VERSION=$VERSION"
+
+      # - name: deploy lambda
+      #   uses: chrispsheehan/just-aws-oidc-action@0.1.2
+      #   env:
+      #     BUCKET_NAME: ${{ inputs.lambda_bucket }}
+      #     FUNCTION_NAME: ${{ steps.get-api-vars.outputs.function_name }}
+      #     ALIAS_NAME: ${{ steps.get-api-vars.outputs.alias_name }}
+      #     LAMBDA_ZIP_KEY: ${{ steps.get-api-vars.outputs.lambda_zip_key }}
+      #     CODE_DEPLOY_APP_NAME: ${{ steps.get-api-vars.outputs.code_deploy_app_name }}
+      #     CODE_DEPLOY_GROUP_NAME: ${{ steps.get-api-vars.outputs.code_deploy_group_name }}
+      #   with:
+      #     aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+      #     just_action: lambda-deploy
