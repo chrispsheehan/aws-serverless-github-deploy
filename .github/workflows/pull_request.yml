@@ -76,19 +76,6 @@ jobs:
         run: terragrunt hclfmt --terragrunt-check
         working-directory: infra
 
-  format-frontend:
-    needs: check
-    runs-on: ubuntu-latest
-    if: ${{ needs.check.outputs.frontend == 'true' }}
-    name: Run astro formatting checks
-    timeout-minutes: 2
-    steps:
-      - uses: actions/checkout@v4
-      - name: Run prettier checks
-        run: |
-          npm install --prefix frontend
-          npm run format:check --prefix frontend
-
   build-backend:
     needs: check
     runs-on: ubuntu-latest

@@ -5,7 +5,8 @@ locals {
     "iam:*",
     "lambda:*",
     "logs:*",
-    "apigateway:*"
+    "apigateway:*",
+    "codedeploy:*"
   ]
 }
 

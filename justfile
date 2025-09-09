@@ -147,3 +147,86 @@ backend-build:
         )
         echo "✅ Done: backend/$app_name.zip"
     done
+
+lambda-get-version:
+    #!/usr/bin/env bash
+    aws lambda get-alias \
+        --function-name "$FUNCTION_NAME" --name "$ALIAS_NAME" \
+        --query 'FunctionVersion' --output text
+
+
+lambda-create-version:
+    #!/usr/bin/env bash
+    aws lambda update-function-code \
+        --function-name "$FUNCTION_NAME" \
+        --s3-bucket "$BUCKET_NAME" \
+        --s3-key "$LAMBDA_ZIP_KEY" \
+        --publish \
+        --query 'Version' --output text
+
+
+lambda-prepare-appspec:
+    #!/usr/bin/env bash
+    yq eval -i '
+      .Resources[0].LambdaFunction.Properties.Name = env(FUNCTION_NAME) |
+      .Resources[0].LambdaFunction.Properties.Alias = env(ALIAS_NAME) |
+      .Resources[0].LambdaFunction.Properties.CurrentVersion = env(CURRENT_VERSION) |
+      .Resources[0].LambdaFunction.Properties.TargetVersion = env(NEW_VERSION)
+    ' $APP_SPEC_FILE
+    cat $APP_SPEC_FILE
+
+
+lambda-upload-bundle:
+    #!/usr/bin/env bash
+    just lambda-prepare-appspec
+
+    LOCAL_APP_SPEC_ZIP="{{justfile_directory()}}/appspec.zip"
+    rm -f $LOCAL_APP_SPEC_ZIP
+    zip -q -j $LOCAL_APP_SPEC_ZIP $APP_SPEC_FILE
+    aws s3 cp $LOCAL_APP_SPEC_ZIP "s3://${BUCKET_NAME}/${APP_SPEC_KEY}"
+
+
+lambda-deploy:
+    #!/usr/bin/env bash
+    DEPLOYMENT_ID=$(aws deploy create-deployment \
+        --application-name "$CODE_DEPLOY_APP_NAME" \
+        --deployment-group-name "$CODE_DEPLOY_GROUP_NAME" \
+        --s3-location bucket=$BUCKET_NAME,key=$APP_SPEC_KEY,bundleType=zip \
+        --query "deploymentId" --output text)
+
+    echo "🚀 Started deployment: $DEPLOYMENT_ID"
+
+    if [[ -z "$DEPLOYMENT_ID" || "$DEPLOYMENT_ID" == "None" ]]; then
+        echo "❌ Failed to create deployment — no deployment ID returned."
+        exit 1
+    fi
+
+    MAX_ATTEMPTS=40       # ~10 minutes at 15s interval
+    SLEEP_INTERVAL=15     # seconds
+
+    for ((i=1; i<=MAX_ATTEMPTS; i++)); do
+        STATUS=$(aws deploy get-deployment \
+            --deployment-id "$DEPLOYMENT_ID" \
+            --query "deploymentInfo.status" \
+            --output text)
+
+        echo "Attempt $i: Deployment status is $STATUS"
+
+        if [[ "$STATUS" == "Succeeded" ]]; then
+            echo "✅ Deployment $DEPLOYMENT_ID completed successfully."
+            exit 0
+        elif [[ "$STATUS" == "Failed" || "$STATUS" == "Stopped" ]]; then
+            echo "❌ Deployment $DEPLOYMENT_ID failed or was stopped."
+            aws deploy get-deployment \
+                --deployment-id "$DEPLOYMENT_ID" \
+                --query 'deploymentInfo.{Status:status, ErrorCode:errorInformation.code, ErrorMessage:errorInformation.message}' \
+                --output table
+            exit 1
+    fi
+
+    sleep "$SLEEP_INTERVAL"
+    done
+
+    echo "❌ Deployment $DEPLOYMENT_ID did not complete within expected time."
+    exit 1
+

@@ -30,9 +30,10 @@ permissions:
 env:
   TF_VAR_lambda_version: ${{ inputs.lambda_version }}
   AWS_OIDC_ROLE_ARN: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/aws-serverless-github-deploy-${{ inputs.environment }}-github-oidc-role
+  BUCKET_NAME: ${{ inputs.lambda_bucket }}
 
 jobs:
-  oidc:
+  setup:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -44,35 +45,79 @@ jobs:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/oidc
 
-  backend:
-    needs:
-      - oidc
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.infra_version }}
-
-      - name: check Lambda vars
-        uses: chrispsheehan/just-aws-oidc-action@0.1.1
+      - name: check Lambda version
+        uses: chrispsheehan/just-aws-oidc-action@0.1.3
         env:
-          BUCKET_NAME: ${{ inputs.lambda_bucket }}
           VERSION: ${{ inputs.lambda_version }}
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           just_action: check-version
 
   api:
-    needs:
-      - oidc
+    needs: setup
     runs-on: ubuntu-latest
+    env:
+      APP_SPEC_FILE: ${{ github.workspace }}/appspec.yml
+      APP_SPEC_KEY: ${{ inputs.lambda_version }}/appspec.zip
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.infra_version }}
 
-      - name: Deploy API
+      - name: deploy api
+        id: deploy-api
         uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.0
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/api
+
+      - name: get api variables
+        id: get-api-vars
+        env:
+          TG_OUTPUTS: ${{ steps.deploy-api.outputs.tg_outputs  }}
+        run: |
+          echo "lambda_zip_key=$(echo $TG_OUTPUTS | jq -r '.lambda_zip_key.value')" >> $GITHUB_OUTPUT
+          echo "lambda_function_name=$(echo $TG_OUTPUTS | jq -r '.lambda_function_name.value')" >> $GITHUB_OUTPUT
+          echo "lambda_alias_name=$(echo $TG_OUTPUTS | jq -r '.lambda_alias_name.value')" >> $GITHUB_OUTPUT
+          echo "code_deploy_app_name=$(echo $TG_OUTPUTS | jq -r '.code_deploy_app_name.value')" >> $GITHUB_OUTPUT
+          echo "code_deploy_group_name=$(echo $TG_OUTPUTS | jq -r '.code_deploy_group_name.value')" >> $GITHUB_OUTPUT
+
+      - name: get lambda version
+        id: lambda-get-version
+        uses: chrispsheehan/just-aws-oidc-action@0.1.3
+        env:
+          FUNCTION_NAME: ${{ steps.get-api-vars.outputs.lambda_function_name }}
+          ALIAS_NAME: ${{ steps.get-api-vars.outputs.lambda_alias_name }}
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          just_action: lambda-get-version
+
+      - name: create lambda version
+        id: lambda-create-version
+        uses: chrispsheehan/just-aws-oidc-action@0.1.3
+        env:
+          LAMBDA_ZIP_KEY: ${{ steps.get-api-vars.outputs.lambda_zip_key }}
+          FUNCTION_NAME: ${{ steps.get-api-vars.outputs.lambda_function_name }}
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          just_action: lambda-create-version
+
+      - name: Prepare and upload AppSpec File to s3
+        uses: chrispsheehan/just-aws-oidc-action@0.1.3
+        env:
+          FUNCTION_NAME: ${{ steps.get-api-vars.outputs.lambda_function_name }}
+          ALIAS_NAME: ${{ steps.get-api-vars.outputs.lambda_alias_name }}
+          CURRENT_VERSION: ${{ steps.lambda-get-version.outputs.just_outputs }}
+          NEW_VERSION: ${{ steps.lambda-create-version.outputs.just_outputs }}
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          just_action: lambda-upload-bundle
+
+      - name: deploy lambda
+        uses: chrispsheehan/just-aws-oidc-action@0.1.3
+        env:
+          CODE_DEPLOY_APP_NAME: ${{ steps.get-api-vars.outputs.code_deploy_app_name }}
+          CODE_DEPLOY_GROUP_NAME: ${{ steps.get-api-vars.outputs.code_deploy_group_name }}
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          just_action: lambda-deploy

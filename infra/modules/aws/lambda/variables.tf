@@ -27,3 +27,10 @@ variable "lambda_version" {
   description = "Lambda code version to be deployed. Used in locating zip file keys"
 }
 ### end of dynamic vars required for resources ###
+
+
+variable "log_retention_days" {
+  type        = number
+  description = "Number of days to hold logs"
+  default     = 1
+}
