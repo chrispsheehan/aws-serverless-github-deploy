@@ -49,7 +49,6 @@ data "aws_iam_policy_document" "codedeploy_lambda" {
     effect  = "Allow"
     actions = ["s3:GetObject", "s3:GetObjectVersion"]
     resources = [
-      "arn:aws:s3:::${data.aws_s3_bucket.lambda_code.bucket}/${local.lambda_code_zip_key}",
       "arn:aws:s3:::${data.aws_s3_bucket.lambda_code.bucket}/${var.lambda_version}/*"
     ]
   }
