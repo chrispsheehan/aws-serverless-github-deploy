@@ -95,11 +95,11 @@ jobs:
         env:
           LAMBDA_ZIP_KEY: ${{ steps.get-api-vars.outputs.lambda_zip_key }}
           FUNCTION_NAME: ${{ steps.get-api-vars.outputs.lambda_function_name }}
-          ALIAS_NAME: ${{ steps.get-api-vars.outputs.lambda_alias_name }}
+          BUCKET_NAME: ${{ inputs.lambda_bucket }}
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           just_action: lambda-create-version
-
+          
       - name: read output from script
         run: |
           echo "Script output: ${{ steps.lambda-get-version.outputs.just_outputs }}"
