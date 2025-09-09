@@ -168,8 +168,7 @@ lambda-create-version:
 lambda-upload-bundle:
     #!/usr/bin/env bash
     LOCAL_APP_SPEC_ZIP="{{justfile_directory()}}/appspec.zip"
-    rm -f $APP_SPEC_ZIP
-
+    rm -f $LOCAL_APP_SPEC_ZIP
     zip -q $LOCAL_APP_SPEC_ZIP $APP_SPEC_FILE
     aws s3 cp $LOCAL_APP_SPEC_ZIP "s3://${BUCKET_NAME}/${APP_SPEC_KEY}"
 
