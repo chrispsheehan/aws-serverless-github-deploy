@@ -17,3 +17,15 @@ output "code_deploy_app_name" {
 output "code_deploy_group_name" {
   value = module.lambda_api.code_deploy_group_name
 }
+
+output "lambda_arn" {
+  value = module.lambda_api.arn
+}
+
+output "lambda_function_name" {
+  value = module.lambda_api.function_name
+}
+
+output "lambda_alias_name" {
+  value = module.lambda_api.alias_name
+}
