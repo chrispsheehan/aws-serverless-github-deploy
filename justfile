@@ -169,7 +169,7 @@ lambda-prepare-appspec:
     #!/usr/bin/env bash
     yq eval -i '
       .Resources[0].LambdaFunction.Properties.Name = env(FUNCTION_NAME) |
-      .Resources[0].LambdaFunction.Properties.Alias = env(FUNCTION_ALIAS) |
+      .Resources[0].LambdaFunction.Properties.Alias = env(ALIAS_NAME) |
       .Resources[0].LambdaFunction.Properties.CurrentVersion = env(CURRENT_VERSION) |
       .Resources[0].LambdaFunction.Properties.TargetVersion = env(NEW_VERSION)
     ' $APP_SPEC_FILE
