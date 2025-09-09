@@ -84,7 +84,7 @@ jobs:
 
       - name: get lambda version
         id: lambda-get-version
-        uses: chrispsheehan/just-aws-oidc-action@0.1.2
+        uses: ./.github/just
         env:
           FUNCTION_NAME: ${{ steps.get-api-vars.outputs.lambda_function_name }}
           ALIAS_NAME: ${{ steps.get-api-vars.outputs.lambda_alias_name }}
