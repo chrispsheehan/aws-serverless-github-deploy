@@ -116,7 +116,7 @@ jobs:
           just_action: lambda-upload-bundle
 
       - name: deploy lambda
-        uses: chrispsheehan/just-aws-oidc-action@0.1.2
+        uses: ./.github/just
         env:
           BUCKET_NAME: ${{ inputs.lambda_bucket }}
           CODE_DEPLOY_APP_NAME: ${{ steps.get-api-vars.outputs.code_deploy_app_name }}
