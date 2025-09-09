@@ -79,7 +79,7 @@ jobs:
           echo "code_deploy_app_name=$(echo $TG_OUTPUTS | jq -r '.code_deploy_app_name.value')" >> $GITHUB_OUTPUT
           echo "code_deploy_group_name=$(echo $TG_OUTPUTS | jq -r '.code_deploy_group_name.value')" >> $GITHUB_OUTPUT
 
-      - name: check lambda version
+      - name: deploy lambda
         uses: chrispsheehan/just-aws-oidc-action@0.1.2
         env:
           BUCKET_NAME: ${{ inputs.lambda_bucket }}
