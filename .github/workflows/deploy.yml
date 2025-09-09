@@ -108,7 +108,7 @@ jobs:
         env:
           BUCKET_NAME: ${{ inputs.lambda_bucket }}
           FUNCTION_NAME: ${{ steps.get-api-vars.outputs.lambda_function_name }}
-          FUNCTION_ALIAS: ${{ steps.get-api-vars.outputs.alias_name }}
+          ALIAS_NAME: ${{ steps.get-api-vars.outputs.lambda_alias_name }}
           CURRENT_VERSION: ${{ steps.lambda-get-version.outputs.just_outputs }}
           NEW_VERSION: ${{ steps.lambda-create-version.outputs.just_outputs }}
         with:
