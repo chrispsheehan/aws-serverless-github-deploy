@@ -191,7 +191,6 @@ lambda-deploy:
     DEPLOYMENT_ID=$(aws deploy create-deployment \
         --application-name "$CODE_DEPLOY_APP_NAME" \
         --deployment-group-name "$CODE_DEPLOY_GROUP_NAME" \
-        --deployment-config-name CodeDeployDefault.LambdaCanary10Percent5Minutes \
         --s3-location bucket=$BUCKET_NAME,key=$APP_SPEC_KEY,bundleType=zip \
         --query "deploymentId" --output text)
 
