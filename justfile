@@ -165,11 +165,24 @@ lambda-create-version:
         --query 'Version' --output text
 
 
+lambda-prepare-appspec:
+    #!/usr/bin/env bash
+    yq eval -i '
+      .Resources[0].LambdaFunction.Properties.Name = env(FUNCTION_NAME) |
+      .Resources[0].LambdaFunction.Properties.Alias = env(FUNCTION_ALIAS) |
+      .Resources[0].LambdaFunction.Properties.CurrentVersion = env(CURRENT_VERSION) |
+      .Resources[0].LambdaFunction.Properties.TargetVersion = env(NEW_VERSION)
+    ' $APP_SPEC_FILE
+    cat $APP_SPEC_FILE
+
+
 lambda-upload-bundle:
     #!/usr/bin/env bash
+    just lambda-prepare-appspec
+
     LOCAL_APP_SPEC_ZIP="{{justfile_directory()}}/appspec.zip"
     rm -f $LOCAL_APP_SPEC_ZIP
-    zip -q $LOCAL_APP_SPEC_ZIP $APP_SPEC_FILE
+    zip -q -j $LOCAL_APP_SPEC_ZIP $APP_SPEC_FILE
     aws s3 cp $LOCAL_APP_SPEC_ZIP "s3://${BUCKET_NAME}/${APP_SPEC_KEY}"
 
 

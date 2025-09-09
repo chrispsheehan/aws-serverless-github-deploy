@@ -103,19 +103,14 @@ jobs:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           just_action: lambda-create-version
 
-      - name: Prepare AppSpec File
-        run: |
-          echo "::notice::Preparing update for ${{ steps.get-api-vars.outputs.lambda_function_name }} from v${{ steps.lambda-get-version.outputs.just_outputs }} to v${{ steps.lambda-create-version.outputs.just_outputs }}"
-          sed -i 's|{{FUNCTION_NAME}}|${{ steps.get-api-vars.outputs.lambda_function_name }}|g' ${{ env.APP_SPEC_FILE }}
-          sed -i 's|{{FUNCTION_ALIAS}}|${{ steps.get-api-vars.outputs.alias_name }}|g' ${{ env.APP_SPEC_FILE }}
-          sed -i 's|{{CURRENT_VERSION}}|${{ steps.lambda-get-version.outputs.just_outputs }}|g' ${{ env.APP_SPEC_FILE }}
-          sed -i 's|{{NEW_VERSION}}|${{ steps.lambda-create-version.outputs.just_outputs }}|g' ${{ env.APP_SPEC_FILE }}
-          cat ${{ env.APP_SPEC_FILE }}
-
-      - name: Upload AppSpec File to s3
+      - name: Prepare and upload AppSpec File to s3
         uses: chrispsheehan/just-aws-oidc-action@0.1.2
         env:
           BUCKET_NAME: ${{ inputs.lambda_bucket }}
+          FUNCTION_NAME: ${{ steps.get-api-vars.outputs.lambda_function_name }}
+          FUNCTION_ALIAS: ${{ steps.get-api-vars.outputs.alias_name }}
+          CURRENT_VERSION: ${{ steps.lambda-get-version.outputs.just_outputs }}
+          NEW_VERSION: ${{ steps.lambda-create-version.outputs.just_outputs }}
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           just_action: lambda-upload-bundle
