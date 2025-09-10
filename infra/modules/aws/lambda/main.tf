@@ -100,3 +100,30 @@ resource "aws_codedeploy_deployment_group" "dg" {
     events  = ["DEPLOYMENT_FAILURE", "DEPLOYMENT_STOP_ON_ALARM"]
   }
 }
+
+resource "aws_appautoscaling_target" "pc_target" {
+  count              = local.pc_util_on ? 1 : 0
+  min_capacity       = local.pc_util_min
+  max_capacity       = local.pc_util_max
+  resource_id        = local.pc_resource_id
+  scalable_dimension = "lambda:function:ProvisionedConcurrency"
+  service_namespace  = "lambda"
+}
+
+resource "aws_appautoscaling_policy" "pc_policy" {
+  count              = local.pc_util_on ? 1 : 0
+  name               = "${aws_lambda_function.lambda.function_name}-pc-tt"
+  policy_type        = "TargetTrackingScaling"
+  resource_id        = aws_appautoscaling_target.pc_target[0].resource_id
+  scalable_dimension = aws_appautoscaling_target.pc_target[0].scalable_dimension
+  service_namespace  = aws_appautoscaling_target.pc_target[0].service_namespace
+
+  target_tracking_scaling_policy_configuration {
+    target_value       = local.pc_util_target
+    scale_in_cooldown  = local.pc_in_cd
+    scale_out_cooldown = local.pc_out_cd
+    predefined_metric_specification {
+      predefined_metric_type = "LambdaProvisionedConcurrencyUtilization"
+    }
+  }
+}
