@@ -7,6 +7,10 @@ module "lambda_api" {
 
   lambda_name    = "api"
   lambda_version = var.lambda_version
+
+  deploy_strategy         = "canary"
+  deploy_percentage       = 50
+  deploy_interval_minutes = 1
 }
 
 resource "aws_apigatewayv2_api" "http_api" {

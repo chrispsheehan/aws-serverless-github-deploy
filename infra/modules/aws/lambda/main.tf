@@ -57,16 +57,28 @@ resource "aws_iam_role_policy" "cd_lambda" {
   policy = data.aws_iam_policy_document.codedeploy_lambda.json
 }
 
-resource "aws_codedeploy_deployment_config" "lambda_deployment_config" {
-  # A custom Lambda deployment config that sends 50% traffic for 1 minute, then shifts to 100% (with your DG using it and auto-rollback on failure/alarms).
-  deployment_config_name = "${local.lambda_name}-deployment-config"
+resource "aws_codedeploy_deployment_config" "lambda_config" {
+  count                  = local.use_custom_config ? 1 : 0
+  deployment_config_name = local.custom_config_name
   compute_platform       = "Lambda"
 
   traffic_routing_config {
-    type = "TimeBasedCanary"
-    time_based_canary {
-      percentage = 50
-      interval   = 1
+    type = var.deploy_strategy == "canary" ? "TimeBasedCanary" : "TimeBasedLinear"
+
+    dynamic "time_based_canary" {
+      for_each = var.deploy_strategy == "canary" ? [1] : []
+      content {
+        percentage = var.deploy_percentage
+        interval   = var.deploy_interval_minutes
+      }
+    }
+
+    dynamic "time_based_linear" {
+      for_each = var.deploy_strategy == "linear" ? [1] : []
+      content {
+        percentage = var.deploy_percentage
+        interval   = var.deploy_interval_minutes
+      }
     }
   }
 }
@@ -81,7 +93,7 @@ resource "aws_codedeploy_deployment_group" "dg" {
     deployment_option = "WITH_TRAFFIC_CONTROL"
   }
 
-  deployment_config_name = aws_codedeploy_deployment_config.lambda_deployment_config.id
+  deployment_config_name = local.use_custom_config ? aws_codedeploy_deployment_config.lambda_config[0].deployment_config_name : local.effective_config_name
 
   auto_rollback_configuration {
     enabled = true
