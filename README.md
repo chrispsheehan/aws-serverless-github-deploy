@@ -1,6 +1,11 @@
 # aws-serverless-github-deploy
 
-## setup roles for ci
+**Terraform + GitHub Actions for AWS serverless deployments.**  
+Lambda + API Gateway with CodeDeploy rollouts and provisioned concurrency controls — driven by clean module variables and `just` recipes.
+
+---
+
+## 🚀 setup roles for ci
 
 ```sh
 just tg ci aws/oidc apply
@@ -8,7 +13,7 @@ just tg dev aws/oidc apply
 just tg prod aws/oidc apply
 ```
 
-## local plan some infra
+## 🛠️ local plan some infra
 
 Given a terragrunt file is found at `infra/live/dev/aws/api/terragrunt.hcl`
 
@@ -16,7 +21,7 @@ Given a terragrunt file is found at `infra/live/dev/aws/api/terragrunt.hcl`
 just tg dev aws/api plan
 ```
 
-## types of lambda provisioned concurrency
+## ⚙️ types of lambda provisioned concurrency
 
 ```hcl
 module "lambda_example" {
@@ -26,7 +31,7 @@ module "lambda_example" {
 }
 ```
 
-#### [default] No provisioned lambdas
+#### ✅ [default] No provisioned lambdas
 - use case: background processes
 - we can handle an initial lag while lambda warms up/boots
 ```hcl
@@ -35,7 +40,7 @@ provisioned_config = {
 }
 ```
 
-#### X number of provisioned lambdas
+#### 🔒 X number of provisioned lambdas
 - use case: high predictable usage
 - we never want lag due to warm up and can predict traffic
 ```hcl
@@ -44,7 +49,7 @@ provisioned_config = {
 }
 ```
 
-#### Scale provisioning when usage exceeds % tolerance 
+#### 📈 Scale provisioning when usage exceeds % tolerance 
 - use case: react to traffic i.e. api backend
 - limit the cost with autoscale.max
 - ensure minimal concurrency (no cold starts) with autoscale.min
@@ -61,7 +66,7 @@ provisioned_config = {
 }
 ```
 
-## types of lambda deploy
+## 🚦 types of lambda deploy
 
 ```hcl
 module "lambda_example" {
@@ -71,7 +76,7 @@ module "lambda_example" {
 }
 ```
 
-#### [default] All at once (fastest):
+#### ⚡ [default] All at once (fastest):
 
 - use case: background processes
 ```hcl
@@ -80,7 +85,7 @@ deployment_config = {
 }
 ```
 
-#### canary deployment:
+#### 🐤 canary deployment:
 
 - use case: api or service serving traffic
 - incrementally rolls out new version to 10% of lambdas and rolls back if errors detected. If not goes to 100%.
@@ -93,7 +98,7 @@ deployment_config = {
 }
 ```
 
-#### linear deployment:
+#### 📶 linear deployment:
 
 - use case: api or service serving traffic
 - checks for lambda health on 10% of lambdas and rolls back if errors detected
