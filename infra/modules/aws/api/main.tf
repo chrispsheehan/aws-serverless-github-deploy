@@ -10,9 +10,6 @@ module "lambda_api" {
 
   deployment_config = {
     strategy = "all_at_once"
-    # strategy         = "canary"
-    # percentage       = 50
-    # interval_minutes = 1
   }
 
   provisioned_config = {
