@@ -18,13 +18,15 @@ just tg dev aws/api plan
 
 ## types of lambda provisioned concurrency
 
+```hcl
 module "lambda_example" {
   source = "../lambda"
   ...
   provisioned_config = var.your_provisioned_config
 }
+```
 
-[default] No provisioned lambdas
+#### [default] No provisioned lambdas
 - use case: background processes
 - we can handle an initial lag while lambda warms up/boots
 ```hcl
@@ -33,7 +35,7 @@ provisioned_config = {
 }
 ```
 
-[default] X number of provisioned lambdas
+#### X number of provisioned lambdas
 - use case: high predictable usage
 - we never want lag due to warm up and can predict traffic
 ```hcl
@@ -42,7 +44,7 @@ provisioned_config = {
 }
 ```
 
-[default] Scale provisioning when usage exceeds % tolerance 
+#### Scale provisioning when usage exceeds % tolerance 
 - use case: react to traffic i.e. api backend
 - limit the cost with autoscale.max
 - ensure minimal concurrency (no cold starts) with autoscale.min
@@ -61,24 +63,44 @@ provisioned_config = {
 
 ## types of lambda deploy
 
-api - canary 50% wait for it to be healthy and then go to 100%
+```hcl
+module "lambda_example" {
+  source = "../lambda"
+  ...
+  deployment_config = var.your_deployment_config
+}
+```
 
-How to use
+#### [default] All at once (fastest):
 
-All at once (fastest):
+- use case: background processes
+```hcl
+deployment_config = {
+    strategy = "all_at_once"
+}
+```
 
-deploy_strategy = "all_at_once"
+#### canary deployment:
 
+- use case: api or service serving traffic
+- incrementally rolls out new version to 10% of lambdas and rolls back if errors detected. If not goes to 100%.
+- waits to make a decision on health after 1 minute
+```hcl
+deployment_config = {
+    strategy         = "linear"
+    percentage       = 10
+    interval_minutes = 1
+}
+```
 
-Canary 10% for 2 minutes (then 100%):
+#### linear deployment:
 
-deploy_strategy        = "canary"
-deploy_percentage      = 10
-deploy_interval_minutes = 2
-
-
-Linear 25% every 1 minute:
-
-deploy_strategy        = "linear"
-deploy_percentage      = 25
-deploy_interval_minutes = 1
+- use case: api or service serving traffic
+- checks for lambda health on 10% of lambdas and rolls back if errors detected
+- rolls out changes on increments of 1 minute
+```hcl
+deployment_config = {
+    strategy         = "linear"
+    percentage       = 10
+    interval_minutes = 1
+}
