@@ -24,6 +24,6 @@ locals {
   pc_fixed_count       = try(var.provisioned_config.fixed, 0)
   pc_min_capacity      = try(var.provisioned_config.auto_scale.min, 0)
   pc_max_capacity      = try(var.provisioned_config.auto_scale.max, 0)
-  pc_trigger_percent   = try(var.provisioned_config.auto_scale.trigger_percent, var.provisioned_config_defaults.trigger_percent)
+  pc_trigger_percent   = try(var.provisioned_config.auto_scale.trigger_percent, var.provisioned_config_defaults.trigger_percent)/100
   pc_cool_down_seconds = try(var.provisioned_config.auto_scale.cool_down_seconds, var.provisioned_config_defaults.cool_down_seconds)
 }

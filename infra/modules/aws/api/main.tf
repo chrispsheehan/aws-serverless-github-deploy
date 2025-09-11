@@ -17,12 +17,6 @@ module "lambda_api" {
 
   provisioned_config = {
     fixed = 0
-    # auto_scale = {
-    #   max               = 1,
-    #   min               = 0,
-    #   trigger_percent   = 70
-    #   cool_down_seconds = 60
-    # }
   }
 }
 
