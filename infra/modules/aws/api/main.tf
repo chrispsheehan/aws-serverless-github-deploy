@@ -8,9 +8,22 @@ module "lambda_api" {
   lambda_name    = "api"
   lambda_version = var.lambda_version
 
-  deploy_strategy         = "canary"
-  deploy_percentage       = 50
-  deploy_interval_minutes = 1
+  deployment_config = {
+    strategy = "all_at_once"
+    # strategy         = "canary"
+    # percentage       = 50
+    # interval_minutes = 1
+  }
+
+  provisioned_config = {
+    fixed = 0
+    # auto_scale = {
+    #   max               = 1,
+    #   min               = 0,
+    #   trigger_percent   = 70
+    #   cool_down_seconds = 60
+    # }
+  }
 }
 
 resource "aws_apigatewayv2_api" "http_api" {

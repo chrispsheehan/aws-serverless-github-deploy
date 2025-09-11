@@ -41,6 +41,16 @@ resource "aws_lambda_alias" "live" {
   }
 }
 
+resource "aws_lambda_provisioned_concurrency_config" "alias_pc_fixed" {
+  count = local.fixed_mode ? 1 : 0
+
+  function_name                     = aws_lambda_function.lambda.function_name
+  qualifier                         = aws_lambda_alias.live.name
+  provisioned_concurrent_executions = local.pc_fixed_count
+
+  depends_on = [aws_lambda_alias.live]
+}
+
 resource "aws_codedeploy_app" "app" {
   name             = "${local.lambda_name}-app"
   compute_platform = "Lambda"
@@ -58,26 +68,25 @@ resource "aws_iam_role_policy" "cd_lambda" {
 }
 
 resource "aws_codedeploy_deployment_config" "lambda_config" {
-  count                  = local.use_custom_config ? 1 : 0
-  deployment_config_name = local.custom_config_name
+  deployment_config_name = "${local.lambda_name}-deploy-config"
   compute_platform       = "Lambda"
 
   traffic_routing_config {
-    type = var.deploy_strategy == "canary" ? "TimeBasedCanary" : "TimeBasedLinear"
+    type = local.deploy_config.type
 
     dynamic "time_based_canary" {
-      for_each = var.deploy_strategy == "canary" ? [1] : []
+      for_each = local.deploy_config.type == local.deploy_canary_type ? [1] : []
       content {
-        percentage = var.deploy_percentage
-        interval   = var.deploy_interval_minutes
+        percentage = local.deploy_config.percent
+        interval   = local.deploy_config.minutes
       }
     }
 
     dynamic "time_based_linear" {
-      for_each = var.deploy_strategy == "linear" ? [1] : []
+      for_each = local.deploy_config.type == local.deploy_linear_type ? [1] : []
       content {
-        percentage = var.deploy_percentage
-        interval   = var.deploy_interval_minutes
+        percentage = local.deploy_config.percent
+        interval   = local.deploy_config.minutes
       }
     }
   }
@@ -93,7 +102,7 @@ resource "aws_codedeploy_deployment_group" "dg" {
     deployment_option = "WITH_TRAFFIC_CONTROL"
   }
 
-  deployment_config_name = local.use_custom_config ? aws_codedeploy_deployment_config.lambda_config[0].deployment_config_name : local.effective_config_name
+  deployment_config_name = aws_codedeploy_deployment_config.lambda_config.deployment_config_name
 
   auto_rollback_configuration {
     enabled = true
@@ -102,26 +111,25 @@ resource "aws_codedeploy_deployment_group" "dg" {
 }
 
 resource "aws_appautoscaling_target" "pc_target" {
-  count              = local.pc_util_on ? 1 : 0
-  min_capacity       = local.pc_util_min
-  max_capacity       = local.pc_util_max
-  resource_id        = local.pc_resource_id
+  min_capacity       = local.pc_min_capacity
+  max_capacity       = local.pc_max_capacity
+  resource_id        = "function:${local.lambda_name}:${var.environment}"
   scalable_dimension = "lambda:function:ProvisionedConcurrency"
   service_namespace  = "lambda"
 }
 
 resource "aws_appautoscaling_policy" "pc_policy" {
-  count              = local.pc_util_on ? 1 : 0
-  name               = "${aws_lambda_function.lambda.function_name}-pc-tt"
+  count              = local.fixed_mode ? 0 : 1
+  name               = "${local.lambda_name}-pc-tt"
   policy_type        = "TargetTrackingScaling"
-  resource_id        = aws_appautoscaling_target.pc_target[0].resource_id
-  scalable_dimension = aws_appautoscaling_target.pc_target[0].scalable_dimension
-  service_namespace  = aws_appautoscaling_target.pc_target[0].service_namespace
+  resource_id        = aws_appautoscaling_target.pc_target.resource_id
+  scalable_dimension = aws_appautoscaling_target.pc_target.scalable_dimension
+  service_namespace  = aws_appautoscaling_target.pc_target.service_namespace
 
   target_tracking_scaling_policy_configuration {
-    target_value       = local.pc_util_target
-    scale_in_cooldown  = local.pc_in_cd
-    scale_out_cooldown = local.pc_out_cd
+    target_value       = local.pc_trigger_percent
+    scale_in_cooldown  = local.pc_min_capacity
+    scale_out_cooldown = local.pc_max_capacity
     predefined_metric_specification {
       predefined_metric_type = "LambdaProvisionedConcurrencyUtilization"
     }

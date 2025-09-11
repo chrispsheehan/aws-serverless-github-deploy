@@ -35,7 +35,7 @@ variable "log_retention_days" {
   default     = 1
 }
 
-variable "deployment_strategy" {
+variable "deployment_config" {
   description = "Traffic shifting: all_at_once | canary | linear"
   type = object({
     strategy         = string           # all_at_once | canary | linear
@@ -46,15 +46,15 @@ variable "deployment_strategy" {
 
   validation {
     condition = (
-      contains(["all_at_once", "canary", "linear"], var.deployment_strategy.strategy)
+      contains(["all_at_once", "canary", "linear"], var.deployment_config.strategy)
       &&
       (
-        var.deployment_strategy.strategy == "all_at_once"
+        var.deployment_config.strategy == "all_at_once"
         ||
         (
-          coalesce(var.deployment_strategy.percentage, 0) >= 1
-          && coalesce(var.deployment_strategy.percentage, 0) <= 99
-          && coalesce(var.deployment_strategy.interval_minutes, 0) >= 1
+          coalesce(var.deployment_config.percentage, 0) >= 1
+          && coalesce(var.deployment_config.percentage, 0) <= 99
+          && coalesce(var.deployment_config.interval_minutes, 0) >= 1
         )
       )
     )
@@ -69,7 +69,7 @@ variable "provisioned_config_defaults" {
     cool_down_seconds = number
   })
   default = {
-    trigger_percent = 70
+    trigger_percent   = 70
     cool_down_seconds = 60
   }
 }

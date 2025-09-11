@@ -5,20 +5,25 @@ locals {
   lambda_name         = "${var.environment}-${var.project_name}-${var.lambda_name}"
   lambda_code_zip_key = "${var.lambda_version}/${var.lambda_name}.zip"
 
-  use_custom_config     = var.deploy_strategy != "all_at_once"
-  builtin_all_at_once   = "CodeDeployDefault.LambdaAllAtOnce"
-  custom_config_name    = "${local.lambda_name}-${var.deploy_strategy}-${var.deploy_percentage}-${var.deploy_interval_minutes}m"
-  effective_config_name = local.use_custom_config ? local.custom_config_name : local.builtin_all_at_once
+  deploy_all_at_once_type = "AllAtOnce"
+  deploy_canary_type      = "TimeBasedCanary"
+  deploy_linear_type      = "TimeBasedLinear"
 
-  pc_fixed_count = try(var.provisioned_concurrency.fixed_count, 0)
-  pc_util_min    = try(var.provisioned_concurrency.util_min, 0)
-  pc_util_max    = try(var.provisioned_concurrency.util_max, 0)
-  pc_util_target = try(var.provisioned_concurrency.util_target, 0.7)
-  pc_in_cd       = try(var.provisioned_concurrency.util_scale_in_cd, 60)
-  pc_out_cd      = try(var.provisioned_concurrency.util_scale_out_cd, 30)
+  deploy_config_type_map = {
+    all_at_once = local.deploy_all_at_once_type
+    canary      = local.deploy_canary_type
+    linear      = local.deploy_linear_type
+  }
+  deploy_config = {
+    type    = local.deploy_config_type_map[var.deployment_config.strategy]
+    percent = var.deployment_config.percentage
+    minutes = var.deployment_config.interval_minutes
+  }
 
-  pc_fixed_on = local.pc_fixed_count > 0
-  pc_util_on  = !local.pc_fixed_on && (local.pc_util_min > 0 || local.pc_util_max > 0)
-
-  pc_resource_id = "function:${aws_lambda_function.lambda.function_name}:${aws_lambda_alias.live.name}"
+  fixed_mode           = try(var.provisioned_config.fixed != null, true)
+  pc_fixed_count       = try(var.provisioned_config.fixed, 0)
+  pc_min_capacity      = try(var.provisioned_config.auto_scale.min, 0)
+  pc_max_capacity      = try(var.provisioned_config.auto_scale.max, 0)
+  pc_trigger_percent   = try(var.provisioned_config.auto_scale.trigger_percent, var.provisioned_config_defaults.trigger_percent)
+  pc_cool_down_seconds = try(var.provisioned_config.auto_scale.cool_down_seconds, var.provisioned_config_defaults.cool_down_seconds)
 }
