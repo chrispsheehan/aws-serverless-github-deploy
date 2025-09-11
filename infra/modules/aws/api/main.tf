@@ -7,6 +7,14 @@ module "lambda_api" {
 
   lambda_name    = "api"
   lambda_version = var.lambda_version
+
+  deployment_config = {
+    strategy = "all_at_once"
+  }
+
+  provisioned_config = {
+    fixed = 0
+  }
 }
 
 resource "aws_apigatewayv2_api" "http_api" {

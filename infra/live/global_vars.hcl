@@ -6,7 +6,9 @@ locals {
     "lambda:*",
     "logs:*",
     "apigateway:*",
-    "codedeploy:*"
+    "codedeploy:*",
+    "application-autoscaling:*",
+    "cloudwatch:*"
   ]
 }
 

@@ -41,6 +41,16 @@ resource "aws_lambda_alias" "live" {
   }
 }
 
+resource "aws_lambda_provisioned_concurrency_config" "alias_pc_fixed" {
+  count = local.fixed_mode && coalesce(local.pc_fixed_count, 0) > 0 ? 1 : 0
+
+  function_name                     = aws_lambda_function.lambda.function_name
+  qualifier                         = aws_lambda_alias.live.name
+  provisioned_concurrent_executions = local.pc_fixed_count
+
+  depends_on = [aws_lambda_alias.live]
+}
+
 resource "aws_codedeploy_app" "app" {
   name             = "${local.lambda_name}-app"
   compute_platform = "Lambda"
@@ -57,16 +67,27 @@ resource "aws_iam_role_policy" "cd_lambda" {
   policy = data.aws_iam_policy_document.codedeploy_lambda.json
 }
 
-resource "aws_codedeploy_deployment_config" "lambda_deployment_config" {
-  # A custom Lambda deployment config that sends 50% traffic for 1 minute, then shifts to 100% (with your DG using it and auto-rollback on failure/alarms).
-  deployment_config_name = "${local.lambda_name}-deployment-config"
+resource "aws_codedeploy_deployment_config" "lambda_config" {
+  deployment_config_name = "${local.lambda_name}-deploy-config"
   compute_platform       = "Lambda"
 
   traffic_routing_config {
-    type = "TimeBasedCanary"
-    time_based_canary {
-      percentage = 50
-      interval   = 1
+    type = local.deploy_config.type
+
+    dynamic "time_based_canary" {
+      for_each = local.deploy_config.type == local.deploy_canary_type ? [1] : []
+      content {
+        percentage = local.deploy_config.percent
+        interval   = local.deploy_config.minutes
+      }
+    }
+
+    dynamic "time_based_linear" {
+      for_each = local.deploy_config.type == local.deploy_linear_type ? [1] : []
+      content {
+        percentage = local.deploy_config.percent
+        interval   = local.deploy_config.minutes
+      }
     }
   }
 }
@@ -81,10 +102,36 @@ resource "aws_codedeploy_deployment_group" "dg" {
     deployment_option = "WITH_TRAFFIC_CONTROL"
   }
 
-  deployment_config_name = aws_codedeploy_deployment_config.lambda_deployment_config.id
+  deployment_config_name = aws_codedeploy_deployment_config.lambda_config.deployment_config_name
 
   auto_rollback_configuration {
     enabled = true
     events  = ["DEPLOYMENT_FAILURE", "DEPLOYMENT_STOP_ON_ALARM"]
+  }
+}
+
+resource "aws_appautoscaling_target" "pc_target" {
+  min_capacity       = local.pc_min_capacity
+  max_capacity       = local.pc_max_capacity
+  resource_id        = "function:${local.lambda_name}:${var.environment}"
+  scalable_dimension = "lambda:function:ProvisionedConcurrency"
+  service_namespace  = "lambda"
+}
+
+resource "aws_appautoscaling_policy" "pc_policy" {
+  count              = local.fixed_mode ? 0 : 1
+  name               = "${local.lambda_name}-pc-tt"
+  policy_type        = "TargetTrackingScaling"
+  resource_id        = aws_appautoscaling_target.pc_target.resource_id
+  scalable_dimension = aws_appautoscaling_target.pc_target.scalable_dimension
+  service_namespace  = aws_appautoscaling_target.pc_target.service_namespace
+
+  target_tracking_scaling_policy_configuration {
+    target_value       = local.pc_trigger_percent
+    scale_in_cooldown  = local.pc_min_capacity
+    scale_out_cooldown = local.pc_max_capacity
+    predefined_metric_specification {
+      predefined_metric_type = "LambdaProvisionedConcurrencyUtilization"
+    }
   }
 }
