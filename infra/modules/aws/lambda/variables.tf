@@ -35,56 +35,101 @@ variable "log_retention_days" {
   default     = 1
 }
 
-variable "deploy_strategy" {
+variable "deployment_strategy" {
   description = "Traffic shifting: all_at_once | canary | linear"
-  type        = string
-  default     = "canary"
-  validation {
-    condition     = contains(["all_at_once", "canary", "linear"], var.deploy_strategy)
-    error_message = "deploy_strategy must be one of: all_at_once, canary, linear."
-  }
-}
-
-variable "deploy_percentage" {
-  description = "Percent for first step (canary) or each step (linear). 1..99"
-  type        = number
-  default     = 50
-  validation {
-    condition     = var.deploy_percentage >= 1 && var.deploy_percentage <= 99
-    error_message = "deploy_percentage must be between 1 and 99."
-  }
-}
-
-variable "deploy_interval_minutes" {
-  description = "Minutes between shifts (>=1)."
-  type        = number
-  default     = 1
-  validation {
-    condition     = var.deploy_interval_minutes >= 1
-    error_message = "deploy_interval_minutes must be >= 1."
-  }
-}
-
-variable "provisioned_concurrency" {
-  description = "Fixed PC via fixed_count, or autoscaled via util_min/max; leave all zero for none"
   type = object({
-    fixed_count           = optional(number)  # 0 = off, >0 = fixed PC
-    util_min              = optional(number)  # autoscaled: minimum PC
-    util_max              = optional(number)  # autoscaled: maximum PC
-    util_target           = optional(number)  # autoscaled target 0<..<=1 (default 0.7)
-    util_scale_in_cd      = optional(number)  # seconds (default 60)
-    util_scale_out_cd     = optional(number)  # seconds (default 30)
+    strategy         = string           # all_at_once | canary | linear
+    percentage       = optional(number) # 1..99 (req for canary/linear)
+    interval_minutes = optional(number) # >=1  (req for canary/linear)
+  })
+  default = { strategy = "all_at_once" }
+
+  validation {
+    condition = (
+      contains(["all_at_once", "canary", "linear"], var.deployment_strategy.strategy)
+      &&
+      (
+        var.deployment_strategy.strategy == "all_at_once"
+        ||
+        (
+          coalesce(var.deployment_strategy.percentage, 0) >= 1
+          && coalesce(var.deployment_strategy.percentage, 0) <= 99
+          && coalesce(var.deployment_strategy.interval_minutes, 0) >= 1
+        )
+      )
+    )
+    error_message = "Use strategy all_at_once | canary | linear. For canary/linear, set percentage (1..99) and interval_minutes (>=1)."
+  }
+}
+
+variable "provisioned_config_defaults" {
+  description = "Fall back values for provisioned_config.auto_scale.trigger_percent and provisioned_config.auto_scale.cool_down_seconds"
+  type = object({
+    trigger_percent   = number
+    cool_down_seconds = number
   })
   default = {
-    fixed_count = 0
+    trigger_percent = 70
+    cool_down_seconds = 60
+  }
+}
+
+variable "provisioned_config" {
+  description = "Either fixed provisioned concurrency (fixed) or autoscaled (auto_scale); omit/zero = none"
+  type = object({
+    fixed = optional(number) # 0/omit = off, >0 = fixed PC
+    auto_scale = optional(object({
+      min               = number
+      max               = number
+      trigger_percent   = optional(number)
+      cool_down_seconds = optional(number)
+    }))
+  })
+  default = {
+    fixed = 0
+    # auto_scale = {
+    #   max               = 1,
+    #   min               = 0,
+    #   trigger_percent   = 70
+    #   cool_down_seconds = 60
+    # }
   }
 
-  # Don’t allow fixed and autoscaled simultaneously
   validation {
     condition = !(
-      try(var.provisioned_concurrency.fixed_count, 0) > 0 &&
-      (try(var.provisioned_concurrency.util_min, 0) > 0 || try(var.provisioned_concurrency.util_max, 0) > 0)
+      (var.provisioned_config.fixed != null) &&
+      (var.provisioned_config.auto_scale != null)
     )
-    error_message = "Use either fixed_count>0 (fixed) OR util_min/max>0 (autoscaled), not both."
+    error_message = "Specify either 'fixed' or 'auto_scale' (or neither), not both."
+  }
+
+  # When autoscale is set, ensure max > min
+  validation {
+    condition = (
+      var.provisioned_config.auto_scale != null
+      ? (var.provisioned_config.auto_scale.max > var.provisioned_config.auto_scale.min)
+      : true
+    )
+    error_message = "When auto_scale is set, 'max' must be greater than 'min'."
+  }
+
+  # When autoscale.trigger_percent is set, ensure is 1-99
+  validation {
+    condition = (
+      var.provisioned_config.auto_scale != null
+      ? (var.provisioned_config.auto_scale.trigger_percent > 0 && var.provisioned_config.auto_scale.trigger_percent < 100)
+      : true
+    )
+    error_message = "When autoscale.trigger_percent, must be > 0 && < 100"
+  }
+
+  # When autoscale.cool_down_seconds is set, ensure is at least a minute, max and hour
+  validation {
+    condition = (
+      var.provisioned_config.auto_scale != null
+      ? (var.provisioned_config.auto_scale.cool_down_seconds > 59 && var.provisioned_config.auto_scale.cool_down_seconds < 3600)
+      : true
+    )
+    error_message = "When autoscale.cool_down_seconds, must be > 59 && < 3600"
   }
 }
