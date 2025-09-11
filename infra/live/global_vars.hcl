@@ -7,7 +7,8 @@ locals {
     "logs:*",
     "apigateway:*",
     "codedeploy:*",
-    "application-autoscaling:*"
+    "application-autoscaling:*",
+    "cloudwatch:*"
   ]
 }
 
