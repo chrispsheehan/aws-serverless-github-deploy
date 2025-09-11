@@ -92,7 +92,7 @@ deployment_config = {
 - waits to make a decision on health after 1 minute
 ```hcl
 deployment_config = {
-    strategy         = "linear"
+    strategy         = "canary"
     percentage       = 10
     interval_minutes = 1
 }
