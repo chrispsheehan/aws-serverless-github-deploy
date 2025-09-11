@@ -42,7 +42,7 @@ resource "aws_lambda_alias" "live" {
 }
 
 resource "aws_lambda_provisioned_concurrency_config" "alias_pc_fixed" {
-  count = local.fixed_mode ? 1 : 0
+  count = local.fixed_mode && local.pc_fixed_count > 0 ? 1 : 0
 
   function_name                     = aws_lambda_function.lambda.function_name
   qualifier                         = aws_lambda_alias.live.name
