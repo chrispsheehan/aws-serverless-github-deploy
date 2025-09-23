@@ -233,17 +233,13 @@ lambda-deploy:
 
 lambda-prune:
     #!/usr/bin/env bash
-    KEEP=3
-
     live_version=$(aws lambda get-alias \
         --function-name "$FUNCTION_NAME" \
         --name "$ALIAS_NAME" \
-        --region "$REGION" \
+        --region "$AWS_REGION" \
         | jq -r '.FunctionVersion')
 
     echo "Alias '$ALIAS_NAME' points to: ${live_version:-<none>}"
-
-    # All published versions (exclude $LATEST), newest first
     versions=$(aws lambda list-versions-by-function \
         --function-name "$FUNCTION_NAME" \
         --region "$AWS_REGION" \
@@ -254,6 +250,12 @@ lambda-prune:
     keep_set=$(printf "%s\n%s\n" "$keep_newest" "$live_version" | sort -u)
     to_delete=$(comm -23 <(echo "$versions" | sort -u) <(echo "$keep_set" | sort -u))
 
-    echo "Keeping:  $(echo "$keep_set" | tr '\n' ' ')"
-    echo "Deleting: $(echo "$to_delete" | tr '\n' ' ')"
-    # aws lambda delete-function --function-name "$FUNCTION_NAME" --qualifier "$v" --region "$REGION"
+    echo "Keeping version(s):  $(echo "$keep_set" | tr '\n' ' ')"
+    if [[ -z "${to_delete// }" ]]; then
+        echo "Nothing to delete."
+        exit 0
+    fi
+    for v in $to_delete; do
+        echo "Deleting $FUNCTION_NAME:$v"
+        aws lambda delete-function --function-name "$FUNCTION_NAME" --qualifier "$v" --region "$REGION"
+    done
