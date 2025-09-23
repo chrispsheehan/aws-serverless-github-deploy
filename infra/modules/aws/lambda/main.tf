@@ -116,6 +116,8 @@ resource "aws_appautoscaling_target" "pc_target" {
   resource_id        = "function:${local.lambda_name}:${var.environment}"
   scalable_dimension = "lambda:function:ProvisionedConcurrency"
   service_namespace  = "lambda"
+
+  depends_on = [aws_lambda_alias.live]
 }
 
 resource "aws_appautoscaling_policy" "pc_policy" {
