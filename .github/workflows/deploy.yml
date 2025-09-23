@@ -17,6 +17,10 @@ on:
         description: "Valid lambda version"
         required: true
         type: string
+      lambda_keep:
+        description: "Number of lambda versions to keep"
+        default: '5'
+        type: string
 
 
 concurrency: # only run one instance of workflow at any one time
@@ -125,7 +129,7 @@ jobs:
       - name: prune lambda
         uses: chrispsheehan/just-aws-oidc-action@0.1.3
         env:
-          KEEP: 5
+          KEEP: ${{ inputs.lambda_keep }}
           FUNCTION_NAME: ${{ steps.get-api-vars.outputs.lambda_function_name }}
           ALIAS_NAME: ${{ steps.get-api-vars.outputs.lambda_alias_name }}
         with:
