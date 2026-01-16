@@ -17,7 +17,7 @@ module "lambda_api" {
   # }
 
   provisioned_config = {
-    fixed = 1 # always have 1 lambda ready to go
+    fixed                = 1 # always have 1 lambda ready to go
     reserved_concurrency = 2 # only allow 2 concurrent executions THIS ALSO SERVES AS A LIMIT TO AVOID THROTTLING
   }
 }
