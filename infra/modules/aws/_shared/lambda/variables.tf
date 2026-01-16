@@ -100,11 +100,14 @@ variable "provisioned_config" {
 
   validation {
     condition = (
-      var.provisioned_config.fixed == null
+      var.provisioned_config.fixed == null || var.provisioned_config.fixed == 0
       ? true
-      : var.provisioned_config.reserved > var.provisioned_config.fixed
+      : (
+          var.provisioned_config.reserved != null &&
+          var.provisioned_config.reserved > var.provisioned_config.fixed
+        )
     )
-    error_message = "When provisioned_config.fixed is set, provisioned_config.reserved must be greater than fixed to avoid Lambda throttling."
+    error_message = "When provisioned_config.fixed > 0, provisioned_config.reserved must be set and greater than fixed to avoid Lambda throttling."
   }
 
   validation {
