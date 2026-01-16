@@ -14,6 +14,10 @@ output "alias_name" {
   value = aws_lambda_alias.live.name
 }
 
+output "alias_arn" {
+  value = aws_lambda_alias.live.arn
+}
+
 output "cloudwatch_log_group" {
   value = aws_cloudwatch_log_group.lambda_cloudwatch_group.name
 }

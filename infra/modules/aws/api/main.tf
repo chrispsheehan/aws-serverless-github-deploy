@@ -12,14 +12,14 @@ module "lambda_api" {
     strategy = "all_at_once"
   }
 
-  provisioned_config = {
-    fixed = 0 # cold starts only
-  }
-
   # provisioned_config = {
-  #   fixed = 1 # always have 1 lambda ready to go
-  #   reserved_concurrency = 2 # only allow 2 concurrent executions THIS ALSO SERVES AS A LIMIT TO AVOID THROTTLING
+  #   fixed = 0 # cold starts only
   # }
+
+  provisioned_config = {
+    fixed = 1 # always have 1 lambda ready to go
+    reserved_concurrency = 2 # only allow 2 concurrent executions THIS ALSO SERVES AS A LIMIT TO AVOID THROTTLING
+  }
 }
 
 resource "aws_apigatewayv2_api" "http_api" {
@@ -30,7 +30,7 @@ resource "aws_apigatewayv2_api" "http_api" {
 resource "aws_apigatewayv2_integration" "lambda_proxy" {
   api_id                 = aws_apigatewayv2_api.http_api.id
   integration_type       = "AWS_PROXY"
-  integration_uri        = module.lambda_api.arn
+  integration_uri        = module.lambda_api.alias_arn
   payload_format_version = "2.0"
 }
 
@@ -55,7 +55,7 @@ resource "aws_apigatewayv2_stage" "default" {
 resource "aws_lambda_permission" "allow_invoke" {
   statement_id  = "AllowAPIGatewayInvoke"
   action        = "lambda:InvokeFunction"
-  function_name = module.lambda_api.arn
+  function_name = module.lambda_api.alias_arn
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_apigatewayv2_api.http_api.execution_arn}/*/*" # all routes/stages
 }
