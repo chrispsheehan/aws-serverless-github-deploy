@@ -9,6 +9,8 @@ resource "aws_lambda_function" "lambda" {
   handler       = local.lambda_handler
   runtime       = local.lambda_runtime
 
+  reserved_concurrent_executions = local.pc_reserved_count
+
   s3_bucket = data.aws_s3_bucket.lambda_code.bucket
   s3_key    = local.lambda_code_zip_key
 
@@ -53,7 +55,7 @@ resource "aws_lambda_provisioned_concurrency_config" "alias_pc_fixed" {
 
 resource "aws_codedeploy_app" "app" {
   name             = "${local.lambda_name}-app"
-  compute_platform = "Lambda"
+  compute_platform = local.compute_platform
 }
 
 resource "aws_iam_role" "code_deploy_role" {
@@ -69,7 +71,7 @@ resource "aws_iam_role_policy" "cd_lambda" {
 
 resource "aws_codedeploy_deployment_config" "lambda_config" {
   deployment_config_name = "${local.lambda_name}-deploy-config"
-  compute_platform       = "Lambda"
+  compute_platform       = local.compute_platform
 
   traffic_routing_config {
     type = local.deploy_config.type

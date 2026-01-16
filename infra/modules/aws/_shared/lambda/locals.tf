@@ -1,6 +1,7 @@
 locals {
-  lambda_runtime = "python3.12"
-  lambda_handler = "lambda_handler.lambda_handler"
+  lambda_runtime   = "python3.12"
+  lambda_handler   = "lambda_handler.lambda_handler"
+  compute_platform = "Lambda"
 
   lambda_name         = "${var.environment}-${var.project_name}-${var.lambda_name}"
   lambda_code_zip_key = "${var.lambda_version}/${var.lambda_name}.zip"
@@ -22,6 +23,7 @@ locals {
 
   fixed_mode           = try(var.provisioned_config.fixed != null, true)
   pc_fixed_count       = try(var.provisioned_config.fixed, 0)
+  pc_reserved_count    = try(var.provisioned_config.reserved, 0)
   pc_min_capacity      = try(var.provisioned_config.auto_scale.min, 0)
   pc_max_capacity      = try(var.provisioned_config.auto_scale.max, 0)
   pc_trigger_percent   = try(var.provisioned_config.auto_scale.trigger_percent, var.provisioned_config_defaults.trigger_percent) / 100
