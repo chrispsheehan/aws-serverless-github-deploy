@@ -78,7 +78,7 @@ variable "provisioned_config" {
   description = "Either fixed provisioned concurrency (fixed) or autoscaled (auto_scale); omit/zero = none"
   type = object({
     fixed    = optional(number) # 0/omit = off, >0 = fixed PC
-    reserved = optional(number) # 0/omit = unreserved, >0 = reserved
+    reserved = optional(number) # 0/omit = no concurrency limit, >0 = limited concurrency
 
     auto_scale = optional(object({
       min               = number
