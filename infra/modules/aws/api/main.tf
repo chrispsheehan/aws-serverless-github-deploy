@@ -1,5 +1,5 @@
 module "lambda_api" {
-  source = "../lambda"
+  source = "../_shared/lambda"
 
   project_name  = var.project_name
   environment   = var.environment
