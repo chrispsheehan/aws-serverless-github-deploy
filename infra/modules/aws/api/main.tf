@@ -13,8 +13,13 @@ module "lambda_api" {
   }
 
   provisioned_config = {
-    fixed = 0
+    fixed = 0 # cold starts only
   }
+
+  # provisioned_config = {
+  #   fixed = 1 # always have 1 lambda ready to go
+  #   reserved_concurrency = 2 # only allow 2 concurrent executions THIS ALSO SERVES AS A LIMIT TO AVOID THROTTLING
+  # }
 }
 
 resource "aws_apigatewayv2_api" "http_api" {

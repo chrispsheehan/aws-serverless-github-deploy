@@ -77,8 +77,8 @@ variable "provisioned_config_defaults" {
 variable "provisioned_config" {
   description = "Either fixed provisioned concurrency (fixed) or autoscaled (auto_scale); omit/zero = none"
   type = object({
-    fixed    = optional(number) # 0/omit = off, >0 = fixed PC
-    reserved = optional(number) # 0/omit = no concurrency limit, >0 = limited concurrency
+    fixed                = optional(number) # 0/omit = off, >0 = fixed PC
+    reserved_concurrency = optional(number) # 0/omit = no concurrency limit, >0 = limited concurrency
 
     auto_scale = optional(object({
       min               = number
@@ -88,8 +88,8 @@ variable "provisioned_config" {
     }))
   })
   default = {
-    fixed    = 0
-    reserved = 1
+    fixed                = 0
+    reserved_concurrency = 1
     # auto_scale = {
     #   max               = 1,
     #   min               = 0,
@@ -103,11 +103,11 @@ variable "provisioned_config" {
       var.provisioned_config.fixed == null || var.provisioned_config.fixed == 0
       ? true
       : (
-          var.provisioned_config.reserved != null &&
-          var.provisioned_config.reserved > var.provisioned_config.fixed
-        )
+        var.provisioned_config.reserved_concurrency != null &&
+        var.provisioned_config.reserved_concurrency > var.provisioned_config.fixed
+      )
     )
-    error_message = "When provisioned_config.fixed > 0, provisioned_config.reserved must be set and greater than fixed to avoid Lambda throttling."
+    error_message = "When provisioned_config.fixed > 0, provisioned_config.reserved_concurrency must be set and greater than fixed to avoid Lambda throttling."
   }
 
   validation {
