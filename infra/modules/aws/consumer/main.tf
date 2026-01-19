@@ -25,5 +25,5 @@ module "lambda_consumer" {
 module "sqs_queue" {
   source = "../_shared/sqs"
 
-  sqs_queue_name  = "${var.project_name}-${var.environment}-consumer-queue"
+  sqs_queue_name = "${var.project_name}-${var.environment}-consumer-queue"
 }
