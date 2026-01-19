@@ -27,3 +27,13 @@ module "sqs_queue" {
 
   sqs_queue_name = "${var.project_name}-${var.environment}-consumer-queue"
 }
+
+resource "aws_lambda_event_source_mapping" "sqs" {
+  event_source_arn = module.sqs_queue.sqs_queue_arn
+  function_name    = module.sqs_queue.lambda_function_name
+
+  batch_size                         = 500
+  maximum_batching_window_in_seconds = 10
+
+  function_response_types = ["ReportBatchItemFailures"]
+}
