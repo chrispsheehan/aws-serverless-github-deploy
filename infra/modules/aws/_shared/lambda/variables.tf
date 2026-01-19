@@ -86,16 +86,18 @@ variable "provisioned_config" {
       trigger_percent   = optional(number)
       cool_down_seconds = optional(number)
     }))
+
+    sqs_scale = optional(object({
+      min               = number
+      max               = number
+      visible_messages  = number
+      queue_name        = optional(string)
+      cool_down_seconds = optional(number)
+    }))
   })
   default = {
     fixed                = 0
     reserved_concurrency = 1
-    # auto_scale = {
-    #   max               = 1,
-    #   min               = 0,
-    #   trigger_percent   = 70
-    #   cool_down_seconds = 60
-    # }
   }
 
   validation {

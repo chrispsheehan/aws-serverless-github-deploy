@@ -139,3 +139,33 @@ resource "aws_appautoscaling_policy" "pc_policy" {
     }
   }
 }
+
+resource "aws_appautoscaling_policy" "pc_policy" {
+  count              = local.fixed_mode ? 0 : 1
+  name               = "${local.lambda_name}-pc-sqs-depth-tt"
+  policy_type        = "TargetTrackingScaling"
+  resource_id        = aws_appautoscaling_target.pc_target.resource_id
+  scalable_dimension = aws_appautoscaling_target.pc_target.scalable_dimension
+  service_namespace  = aws_appautoscaling_target.pc_target.service_namespace
+
+  target_tracking_scaling_policy_configuration {
+    # Example: try to keep ~1000 visible messages in the queue.
+    # Tune this based on your batch size + desired drain speed.
+    target_value = local.pc_sqs_target_visible_messages
+
+    scale_in_cooldown  = local.pc_scale_in_cooldown_seconds
+    scale_out_cooldown = local.pc_scale_out_cooldown_seconds
+
+    customized_metric_specification {
+      metric_name = "ApproximateNumberOfMessagesVisible"
+      namespace   = "AWS/SQS"
+      statistic   = "Average"
+      unit        = "Count"
+
+      dimensions {
+        name  = "QueueName"
+        value = var.sqs_queue_name
+      }
+    }
+  }
+}
