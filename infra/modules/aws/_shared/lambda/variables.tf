@@ -105,16 +105,14 @@ variable "provisioned_config" {
   validation {
     condition = !(
       (
-        var.provisioned_config.fixed != null &&
-        var.provisioned_config.fixed > 0
-      ) &&
-      (
+        try(var.provisioned_config.fixed, 0) > 0
+      ) && (
         var.provisioned_config.auto_scale != null ||
-        var.provisioned_config.sqs_scale != null
+        var.provisioned_config.sqs_scale  != null
       )
-      ) && !(
+    ) && !(
       var.provisioned_config.auto_scale != null &&
-      var.provisioned_config.sqs_scale != null
+      var.provisioned_config.sqs_scale  != null
     )
     error_message = "Specify only one of 'fixed', 'auto_scale', or 'sqs_scale' (or none)."
   }
