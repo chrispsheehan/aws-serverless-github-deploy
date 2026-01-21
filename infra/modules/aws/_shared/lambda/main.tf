@@ -140,7 +140,7 @@ resource "aws_appautoscaling_policy" "pc_policy" {
   }
 }
 
-resource "aws_appautoscaling_policy" "pc_policy" {
+resource "aws_appautoscaling_policy" "pc_sqs_policy" {
   count              = local.fixed_mode ? 0 : 1
   name               = "${local.lambda_name}-pc-sqs-depth-tt"
   policy_type        = "TargetTrackingScaling"
