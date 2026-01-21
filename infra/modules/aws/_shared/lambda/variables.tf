@@ -105,7 +105,7 @@ variable "provisioned_config" {
   validation {
     condition = !(
       (
-        try(var.provisioned_config.fixed, 0) > 0
+        coalesce(var.provisioned_config.fixed, 0) > 0
       ) && (
         var.provisioned_config.auto_scale != null ||
         var.provisioned_config.sqs_scale  != null
