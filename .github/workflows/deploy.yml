@@ -61,8 +61,8 @@ jobs:
     needs: setup
     runs-on: ubuntu-latest
     env:
-      APP_SPEC_FILE: ${{ github.workspace }}/appspec.yml
-      APP_SPEC_KEY: ${{ inputs.lambda_version }}/appspec.zip
+      APP_SPEC_FILE: ${{ github.workspace }}/api-appspec.yml
+      APP_SPEC_KEY: ${{ inputs.lambda_version }}/api-appspec.zip
     steps:
       - uses: actions/checkout@v4
         with:
@@ -141,8 +141,8 @@ jobs:
     needs: setup
     runs-on: ubuntu-latest
     env:
-      APP_SPEC_FILE: ${{ github.workspace }}/appspec.yml
-      APP_SPEC_KEY: ${{ inputs.lambda_version }}/appspec.zip
+      APP_SPEC_FILE: ${{ github.workspace }}/consumer-appspec.yml
+      APP_SPEC_KEY: ${{ inputs.lambda_version }}/consumer-appspec.zip
     steps:
       - uses: actions/checkout@v4
         with:
