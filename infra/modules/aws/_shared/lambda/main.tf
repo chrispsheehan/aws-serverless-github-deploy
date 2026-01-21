@@ -3,6 +3,13 @@ resource "aws_iam_role" "iam_for_lambda" {
   assume_role_policy = data.aws_iam_policy_document.assume_role.json
 }
 
+resource "aws_iam_role_policy_attachment" "additional_iam_attachments" {
+  for_each = { for idx, arn in var.additional_policy_arns : idx => arn }
+
+  role       = aws_iam_role.iam_for_lambda.name
+  policy_arn = each.value
+}
+
 resource "aws_lambda_function" "lambda" {
   function_name = local.lambda_name
   role          = aws_iam_role.iam_for_lambda.arn

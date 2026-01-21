@@ -35,6 +35,12 @@ variable "log_retention_days" {
   default     = 1
 }
 
+variable "additional_policy_arns" {
+  description = "List of IAM policy ARNs to attach to the role"
+  type        = list(string)
+  default     = []
+}
+
 variable "deployment_config" {
   description = "Traffic shifting: all_at_once | canary | linear"
   type = object({
@@ -106,13 +112,13 @@ variable "provisioned_config" {
     condition = !(
       (
         coalesce(var.provisioned_config.fixed, 0) > 0
-      ) && (
+        ) && (
         var.provisioned_config.auto_scale != null ||
-        var.provisioned_config.sqs_scale  != null
+        var.provisioned_config.sqs_scale != null
       )
-    ) && !(
+      ) && !(
       var.provisioned_config.auto_scale != null &&
-      var.provisioned_config.sqs_scale  != null
+      var.provisioned_config.sqs_scale != null
     )
     error_message = "Specify only one of 'fixed', 'auto_scale', or 'sqs_scale' (or none)."
   }

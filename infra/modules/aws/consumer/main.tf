@@ -8,6 +8,10 @@ module "lambda_consumer" {
   lambda_name    = "consumer"
   lambda_version = var.lambda_version
 
+  additional_policy_arns = [
+    module.sqs_queue.sqs_queue_read_policy_arn
+  ]
+
   deployment_config = {
     strategy = "all_at_once"
   }
