@@ -44,11 +44,10 @@ jobs:
         with:
           ref: ${{ inputs.infra_version }}
 
-      - uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.0
+      - uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/oidc
-          tf_version: "1.13.3"
 
       - name: check Lambda version
         uses: chrispsheehan/just-aws-oidc-action@0.1.3
@@ -71,11 +70,10 @@ jobs:
 
       - name: deploy api
         id: deploy-api
-        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.0
+        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/api
-          tf_version: "1.13.3"
 
       - name: get api variables
         id: get-api-vars
@@ -152,11 +150,11 @@ jobs:
 
       - name: deploy consumer
         id: deploy-consumer
-        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.0
+        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/consumer
-          tf_version: "1.13.3"
+
       - name: get consumer variables
         id: get-consumer-vars
         env:

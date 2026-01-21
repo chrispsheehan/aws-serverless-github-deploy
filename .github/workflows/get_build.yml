@@ -38,7 +38,7 @@ jobs:
           ref: ${{ inputs.version }}
 
       - name: Get code bucket outputs
-        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.0
+        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
         id: code_action
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}

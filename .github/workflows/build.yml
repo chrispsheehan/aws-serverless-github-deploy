@@ -38,12 +38,11 @@ jobs:
           ref: ${{ inputs.version }}
 
       - name: Deploy code buckets
-        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.0
+        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
         id: code_action
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/code_bucket
-          tf_version: "1.13.3"
 
       - name: Get bucket name
         id: get_bucket_name
