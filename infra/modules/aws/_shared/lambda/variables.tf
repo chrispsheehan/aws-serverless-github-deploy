@@ -189,7 +189,7 @@ variable "provisioned_config" {
   validation {
     condition = (
       var.provisioned_config.sqs_scale != null && var.provisioned_config.sqs_scale.queue_name != null
-      ? length(trim(var.provisioned_config.sqs_scale.queue_name)) > 0
+      ? length(trimspace(var.provisioned_config.sqs_scale.queue_name)) > 0
       : true
     )
     error_message = "When sqs_scale.queue_name is set, it must be a non-empty string."
