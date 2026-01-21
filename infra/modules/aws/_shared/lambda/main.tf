@@ -130,7 +130,7 @@ resource "aws_appautoscaling_target" "pc_target" {
 }
 
 resource "aws_appautoscaling_policy" "pc_policy" {
-  count              = local.fixed_mode ? 0 : 1
+  count              = local.auto_scale_mode ? 1 : 0
   name               = "${local.lambda_name}-pc-tt"
   policy_type        = "TargetTrackingScaling"
   resource_id        = aws_appautoscaling_target.pc_target.resource_id
@@ -148,7 +148,7 @@ resource "aws_appautoscaling_policy" "pc_policy" {
 }
 
 resource "aws_appautoscaling_policy" "pc_sqs_policy" {
-  count              = local.fixed_mode ? 0 : 1
+  count              = local.sqs_scale_mode ? 1 : 0
   name               = "${local.lambda_name}-pc-sqs-depth-tt"
   policy_type        = "TargetTrackingScaling"
   resource_id        = aws_appautoscaling_target.pc_target.resource_id
