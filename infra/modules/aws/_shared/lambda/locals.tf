@@ -21,9 +21,9 @@ locals {
     minutes = var.deployment_config.interval_minutes
   }
 
-  fixed_mode        = try(var.provisioned_config.fixed != null, true) && try(var.provisioned_config.fixed > 0, false)
-  auto_scale_mode   = try(var.provisioned_config.auto_scale != null, false)
-  sqs_scale_mode    = try(var.provisioned_config.sqs_scale != null, false)
+  fixed_mode      = try(var.provisioned_config.fixed != null, true) && try(var.provisioned_config.fixed > 0, false)
+  auto_scale_mode = try(var.provisioned_config.auto_scale != null, false)
+  sqs_scale_mode  = try(var.provisioned_config.sqs_scale != null, false)
 
   pc_fixed_count    = try(var.provisioned_config.fixed, 0)
   pc_reserved_count = try(var.provisioned_config.reserved_concurrency, 0)
