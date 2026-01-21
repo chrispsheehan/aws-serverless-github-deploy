@@ -21,11 +21,17 @@ locals {
     minutes = var.deployment_config.interval_minutes
   }
 
-  fixed_mode           = try(var.provisioned_config.fixed != null, true)
-  pc_fixed_count       = try(var.provisioned_config.fixed, 0)
-  pc_reserved_count    = try(var.provisioned_config.reserved_concurrency, 0)
-  pc_min_capacity      = try(var.provisioned_config.auto_scale.min, 0)
-  pc_max_capacity      = try(var.provisioned_config.auto_scale.max, 0)
-  pc_trigger_percent   = try(var.provisioned_config.auto_scale.trigger_percent, var.provisioned_config_defaults.trigger_percent) / 100
-  pc_cool_down_seconds = try(var.provisioned_config.auto_scale.cool_down_seconds, var.provisioned_config_defaults.cool_down_seconds)
+  fixed_mode        = try(var.provisioned_config.fixed != null, true)
+  pc_fixed_count    = try(var.provisioned_config.fixed, 0)
+  pc_reserved_count = try(var.provisioned_config.reserved_concurrency, 0)
+
+  pc_min_capacity = try(var.provisioned_config.sqs_scale.min, var.provisioned_config.auto_scale.min, 0)
+  pc_max_capacity = try(var.provisioned_config.sqs_scale.max, var.provisioned_config.auto_scale.max, 0)
+
+  pc_scale_in_cooldown_seconds  = try(var.provisioned_config.auto_scale.scale_in_cooldown_seconds, var.provisioned_config.sqs_scale.scale_in_cooldown_seconds, 60)
+  pc_scale_out_cooldown_seconds = try(var.provisioned_config.auto_scale.scale_out_cooldown_seconds, var.provisioned_config.sqs_scale.scale_out_cooldown_seconds, 60)
+
+  pc_trigger_percent             = try(var.provisioned_config.auto_scale.trigger_percent, 70) / 100
+  pc_sqs_target_visible_messages = try(var.provisioned_config.sqs_scale.visible_messages, 0)
+  pc_sqs_queue_name              = var.provisioned_config.sqs_scale.queue_name
 }

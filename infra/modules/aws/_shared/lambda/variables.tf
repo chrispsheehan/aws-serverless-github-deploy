@@ -62,18 +62,6 @@ variable "deployment_config" {
   }
 }
 
-variable "provisioned_config_defaults" {
-  description = "Fall back values for provisioned_config.auto_scale.trigger_percent and provisioned_config.auto_scale.cool_down_seconds"
-  type = object({
-    trigger_percent   = number
-    cool_down_seconds = number
-  })
-  default = {
-    trigger_percent   = 70
-    cool_down_seconds = 60
-  }
-}
-
 variable "provisioned_config" {
   description = "Either fixed provisioned concurrency (fixed) or autoscaled (auto_scale); omit/zero = none"
   type = object({
@@ -81,18 +69,20 @@ variable "provisioned_config" {
     reserved_concurrency = optional(number) # 0/omit = no concurrency limit, >0 = limited concurrency
 
     auto_scale = optional(object({
-      min               = number
-      max               = number
-      trigger_percent   = optional(number)
-      cool_down_seconds = optional(number)
+      min                        = number
+      max                        = number
+      trigger_percent            = optional(number)
+      scale_in_cooldown_seconds  = optional(number)
+      scale_out_cooldown_seconds = optional(number)
     }))
 
     sqs_scale = optional(object({
-      min               = number
-      max               = number
-      visible_messages  = number
-      queue_name        = optional(string)
-      cool_down_seconds = optional(number)
+      min                        = number
+      max                        = number
+      visible_messages           = number
+      queue_name                 = optional(string)
+      scale_in_cooldown_seconds  = optional(number)
+      scale_out_cooldown_seconds = optional(number)
     }))
   })
   default = {
@@ -114,23 +104,38 @@ variable "provisioned_config" {
 
   validation {
     condition = !(
-      (var.provisioned_config.fixed != null) &&
-      (var.provisioned_config.auto_scale != null)
+      (
+        var.provisioned_config.fixed != null &&
+        var.provisioned_config.fixed > 0
+      ) &&
+      (
+        var.provisioned_config.auto_scale != null ||
+        var.provisioned_config.sqs_scale != null
+      )
+      ) && !(
+      var.provisioned_config.auto_scale != null &&
+      var.provisioned_config.sqs_scale != null
     )
-    error_message = "Specify either 'fixed' or 'auto_scale' (or neither), not both."
+    error_message = "Specify only one of 'fixed', 'auto_scale', or 'sqs_scale' (or none)."
   }
 
-  # When autoscale is set, ensure max > min
   validation {
     condition = (
-      var.provisioned_config.auto_scale != null
-      ? (var.provisioned_config.auto_scale.max > var.provisioned_config.auto_scale.min)
-      : true
+      (
+        var.provisioned_config.auto_scale != null
+        ? var.provisioned_config.auto_scale.max > var.provisioned_config.auto_scale.min
+        : true
+      )
+      &&
+      (
+        var.provisioned_config.sqs_scale != null
+        ? var.provisioned_config.sqs_scale.max > var.provisioned_config.sqs_scale.min
+        : true
+      )
     )
-    error_message = "When auto_scale is set, 'max' must be greater than 'min'."
+    error_message = "When auto_scale or sqs_scale is set, 'max' must be greater than 'min'."
   }
 
-  # When autoscale.trigger_percent is set, ensure is 1-99
   validation {
     condition = (
       var.provisioned_config.auto_scale != null
@@ -140,13 +145,68 @@ variable "provisioned_config" {
     error_message = "When autoscale.trigger_percent, must be > 0 && < 100"
   }
 
-  # When autoscale.cool_down_seconds is set, ensure is at least a minute, max and hour
   validation {
     condition = (
       var.provisioned_config.auto_scale != null
-      ? (var.provisioned_config.auto_scale.cool_down_seconds > 59 && var.provisioned_config.auto_scale.cool_down_seconds < 3600)
+      ? (
+        var.provisioned_config.auto_scale.scale_in_cooldown_seconds != null &&
+        var.provisioned_config.auto_scale.scale_out_cooldown_seconds != null &&
+
+        var.provisioned_config.auto_scale.scale_in_cooldown_seconds >= 60 &&
+        var.provisioned_config.auto_scale.scale_out_cooldown_seconds >= 60
+      )
       : true
     )
-    error_message = "When autoscale.cool_down_seconds, must be > 59 && < 3600"
+    error_message = "When auto_scale is set, both scale_in_cooldown_seconds and scale_out_cooldown_seconds must be specified and each must be at least 60 seconds."
+  }
+
+  validation {
+    condition = (
+      var.provisioned_config.sqs_scale != null
+      ? (
+        var.provisioned_config.sqs_scale.min >= 0 &&
+        var.provisioned_config.sqs_scale.max > var.provisioned_config.sqs_scale.min &&
+        floor(var.provisioned_config.sqs_scale.min) == var.provisioned_config.sqs_scale.min &&
+        floor(var.provisioned_config.sqs_scale.max) == var.provisioned_config.sqs_scale.max
+      )
+      : true
+    )
+    error_message = "When sqs_scale is set, 'min' must be an integer >= 0 and 'max' must be an integer greater than 'min'."
+  }
+
+  validation {
+    condition = (
+      var.provisioned_config.sqs_scale != null
+      ? (
+        var.provisioned_config.sqs_scale.visible_messages > 0 &&
+        floor(var.provisioned_config.sqs_scale.visible_messages) == var.provisioned_config.sqs_scale.visible_messages
+      )
+      : true
+    )
+    error_message = "When sqs_scale is set, 'visible_messages' must be a positive integer."
+  }
+
+  validation {
+    condition = (
+      var.provisioned_config.sqs_scale != null && var.provisioned_config.sqs_scale.queue_name != null
+      ? length(trim(var.provisioned_config.sqs_scale.queue_name)) > 0
+      : true
+    )
+    error_message = "When sqs_scale.queue_name is set, it must be a non-empty string."
+  }
+
+  validation {
+    condition = (
+      var.provisioned_config.sqs_scale != null
+      ? (
+        var.provisioned_config.sqs_scale.scale_in_cooldown_seconds != null &&
+        var.provisioned_config.sqs_scale.scale_out_cooldown_seconds != null &&
+
+        var.provisioned_config.sqs_scale.scale_in_cooldown_seconds >= 60 &&
+        var.provisioned_config.sqs_scale.scale_out_cooldown_seconds >= 60
+      )
+      : true
+    )
+    error_message = "When sqs_scale is set, both scale_in_cooldown_seconds and scale_out_cooldown_seconds must be specified and each must be at least 60 seconds."
   }
 }

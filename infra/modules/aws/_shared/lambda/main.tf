@@ -164,7 +164,7 @@ resource "aws_appautoscaling_policy" "pc_policy" {
 
       dimensions {
         name  = "QueueName"
-        value = var.sqs_queue_name
+        value = local.pc_sqs_queue_name
       }
     }
   }

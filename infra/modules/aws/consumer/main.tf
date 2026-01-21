@@ -12,13 +12,17 @@ module "lambda_consumer" {
     strategy = "all_at_once"
   }
 
-  # provisioned_config = {
-  #   fixed = 0 # cold starts only
-  # }
-
   provisioned_config = {
     fixed                = 1 # always have 1 lambda ready to go
     reserved_concurrency = 2 # only allow 2 concurrent executions THIS ALSO SERVES AS A LIMIT TO AVOID THROTTLING
+    sqs_scale = {
+      min               = 1
+      max               = 10
+      visible_messages  = 100
+      queue_name        = module.sqs_queue.sqs_queue_name
+      scale_in_cooldown_seconds  = 60
+      scale_out_cooldown_seconds = 60
+    }
   }
 }
 
