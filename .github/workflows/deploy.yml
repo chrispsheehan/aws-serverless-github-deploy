@@ -61,7 +61,7 @@ jobs:
     needs: setup
     runs-on: ubuntu-latest
     env:
-      APP_SPEC_FILE: ${{ github.workspace }}/api-appspec.yml
+      APP_SPEC_FILE: ${{ github.workspace }}/appspec.yml
       APP_SPEC_KEY: ${{ inputs.lambda_version }}/api-appspec.zip
     steps:
       - uses: actions/checkout@v4
@@ -144,6 +144,14 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.infra_version }}
+
+      - name: Deploy infra (Terragrunt)
+        id: deploy
+        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          tg_directory: infra/live/${{ inputs.environment }}/aws/consumer
+
       - uses: ./.github/actions/deploy-lambda
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}

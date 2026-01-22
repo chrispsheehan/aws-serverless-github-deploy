@@ -79,8 +79,8 @@ runs:
         ALIAS_NAME: ${{ steps.vars.outputs.lambda_alias_name }}
         CURRENT_VERSION: ${{ steps.get-version.outputs.just_outputs }}
         NEW_VERSION: ${{ steps.publish.outputs.just_outputs }}
-        APP_SPEC_FILE: ${{ github.workspace }}/${{ github.workspace }}/appspec.yml
-        APP_SPEC_KEY: ${{ github.workspace }}/${{ github.workspace }}/appspec.zip
+        APP_SPEC_FILE: ${{ github.workspace }}/appspec.yml
+        APP_SPEC_KEY: ${{ github.workspace }}/${{ inputs.tg_directory }}/appspec.zip
       with:
         aws_oidc_role_arn: ${{ inputs.aws_oidc_role_arn }}
         just_action: lambda-upload-bundle
