@@ -57,7 +57,7 @@ jobs:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           just_action: check-version
 
-  api:
+  api-infra:
     needs: setup
     runs-on: ubuntu-latest
     steps:
@@ -65,12 +65,20 @@ jobs:
         with:
           ref: ${{ inputs.infra_version }}
 
-      - name: Deploy infra (Terragrunt)
+      - name: Deploy api infra
         id: deploy
         uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/api
+
+  api:
+    needs: api-infra
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.infra_version }}
 
       - uses: ./.github/actions/deploy-lambda
         with:
@@ -80,27 +88,36 @@ jobs:
           lambda_bucket: ${{ inputs.lambda_bucket }}
           lambda_version: ${{ inputs.lambda_version }}
           lambda_keep: ${{ inputs.lambda_keep }}
+
+  consumer-infra:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.infra_version }}
+
+      - name: Deploy api infra
+        id: deploy
+        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          tg_directory: infra/live/${{ inputs.environment }}/aws/api
 
   consumer:
-    needs: setup
+    needs: consumer-infra
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.infra_version }}
 
-      - name: Deploy infra (Terragrunt)
-        id: deploy
-        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
-        with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          tg_directory: infra/live/${{ inputs.environment }}/aws/consumer
-
       - uses: ./.github/actions/deploy-lambda
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           infra_version: ${{ inputs.infra_version }}
-          tg_directory: infra/live/${{ inputs.environment }}/aws/consumer
+          tg_directory: infra/live/${{ inputs.environment }}/aws/api
           lambda_bucket: ${{ inputs.lambda_bucket }}
           lambda_version: ${{ inputs.lambda_version }}
           lambda_keep: ${{ inputs.lambda_keep }}
+
