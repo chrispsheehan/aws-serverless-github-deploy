@@ -6,10 +6,6 @@ output "lambda_zip_key" {
   value = module.lambda_consumer.lambda_zip_key
 }
 
-output "lambda_appspec_key" {
-  value = module.lambda_consumer.lambda_appspec_key
-}
-
 output "code_deploy_app_name" {
   value = module.lambda_consumer.code_deploy_app_name
 }

@@ -5,7 +5,7 @@ locals {
 
   lambda_name         = "${var.environment}-${var.project_name}-${var.lambda_name}"
   lambda_code_zip_key = "${var.lambda_version}/${var.lambda_name}.zip"
-  lambda_appspec_key  = "${var.lambda_name}/appspec.zip"
+  lambda_appspec_key  = "appspecs/${var.lambda_name}-appspec.zip"
 
   deploy_all_at_once_type = "AllAtOnce"
   deploy_canary_type      = "TimeBasedCanary"
