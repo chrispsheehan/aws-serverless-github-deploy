@@ -90,6 +90,7 @@ runs:
         BUCKET_NAME: ${{ inputs.lambda_bucket }}
         CODE_DEPLOY_APP_NAME: ${{ steps.vars.outputs.code_deploy_app_name }}
         CODE_DEPLOY_GROUP_NAME: ${{ steps.vars.outputs.code_deploy_group_name }}
+        APP_SPEC_KEY: ${{ github.workspace }}/${{ inputs.tg_directory }}/appspec.zip
       with:
         aws_oidc_role_arn: ${{ inputs.aws_oidc_role_arn }}
         just_action: lambda-deploy
