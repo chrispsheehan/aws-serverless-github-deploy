@@ -10,6 +10,10 @@ output "lambda_zip_key" {
   value = module.lambda_api.lambda_zip_key
 }
 
+output "lambda_appspec_key" {
+  value = module.lambda_api.lambda_appspec_key
+}
+
 output "code_deploy_app_name" {
   value = module.lambda_api.code_deploy_app_name
 }
