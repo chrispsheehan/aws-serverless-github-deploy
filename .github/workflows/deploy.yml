@@ -141,7 +141,7 @@ jobs:
     needs: setup
     runs-on: ubuntu-latest
     steps:
-      - uses: ./.github/actions/deploy-lambda-with-codedeploy
+      - uses: ./.github/actions/deploy-lambda
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           infra_version: ${{ inputs.infra_version }}
