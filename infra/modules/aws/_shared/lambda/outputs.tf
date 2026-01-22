@@ -26,6 +26,10 @@ output "lambda_zip_key" {
   value = local.lambda_code_zip_key
 }
 
+output "lambda_appspec_key" {
+  value = local.lambda_appspec_key
+}
+
 output "code_deploy_app_name" {
   value = aws_codedeploy_app.app.name
 }
