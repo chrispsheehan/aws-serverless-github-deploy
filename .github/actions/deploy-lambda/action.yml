@@ -10,10 +10,6 @@ inputs:
     description: Git ref containing Terraform/Terragrunt config
     required: true
 
-  environment:
-    description: Environment name (dev/prod/etc)
-    required: true
-
   tg_directory:
     description: Terragrunt directory for this lambda
     required: true
@@ -29,22 +25,19 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: actions/checkout@v4
-      with:
-        ref: ${{ inputs.infra_version }}
-
-    - name: Deploy infra (Terragrunt)
-      id: deploy
+    - name: Get Terragrunt outputs
+      id: init
       uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
       with:
         aws_oidc_role_arn: ${{ inputs.aws_oidc_role_arn }}
         tg_directory: ${{ inputs.tg_directory }}
+        tg_action: init
 
     - name: Extract Terragrunt outputs
       id: vars
       shell: bash
       env:
-        TG_OUTPUTS: ${{ steps.deploy.outputs.tg_outputs }}
+        TG_OUTPUTS: ${{ steps.init.outputs.tg_outputs }}
       run: |
         echo "lambda_zip_key=$(echo $TG_OUTPUTS | jq -r '.lambda_zip_key.value')" >> $GITHUB_OUTPUT
         echo "lambda_function_name=$(echo $TG_OUTPUTS | jq -r '.lambda_function_name.value')" >> $GITHUB_OUTPUT

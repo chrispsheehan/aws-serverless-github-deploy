@@ -100,6 +100,7 @@ jobs:
         id: lambda-create-version
         uses: chrispsheehan/just-aws-oidc-action@0.1.3
         env:
+          BUCKET_NAME: ${{ inputs.lambda_bucket }}
           LAMBDA_ZIP_KEY: ${{ steps.get-api-vars.outputs.lambda_zip_key }}
           FUNCTION_NAME: ${{ steps.get-api-vars.outputs.lambda_function_name }}
         with:
@@ -109,6 +110,7 @@ jobs:
       - name: Prepare and upload AppSpec File to s3
         uses: chrispsheehan/just-aws-oidc-action@0.1.3
         env:
+          BUCKET_NAME: ${{ inputs.lambda_bucket }}
           FUNCTION_NAME: ${{ steps.get-api-vars.outputs.lambda_function_name }}
           ALIAS_NAME: ${{ steps.get-api-vars.outputs.lambda_alias_name }}
           CURRENT_VERSION: ${{ steps.lambda-get-version.outputs.just_outputs }}
@@ -120,6 +122,7 @@ jobs:
       - name: deploy lambda
         uses: chrispsheehan/just-aws-oidc-action@0.1.3
         env:
+          BUCKET_NAME: ${{ inputs.lambda_bucket }}
           CODE_DEPLOY_APP_NAME: ${{ steps.get-api-vars.outputs.code_deploy_app_name }}
           CODE_DEPLOY_GROUP_NAME: ${{ steps.get-api-vars.outputs.code_deploy_group_name }}
         with:
@@ -155,8 +158,8 @@ jobs:
       - uses: ./.github/actions/deploy-lambda
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          bucket_name: ${{ inputs.lambda_bucket }}
           infra_version: ${{ inputs.infra_version }}
-          environment: ${{ inputs.environment }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/consumer
           lambda_version: ${{ inputs.lambda_version }}
           lambda_keep: ${{ inputs.lambda_keep }}
