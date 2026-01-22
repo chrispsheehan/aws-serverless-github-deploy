@@ -14,6 +14,10 @@ inputs:
     description: Terragrunt directory for this lambda
     required: true
 
+  lambda_bucket:
+    description: "Bucket containing lambda zips"
+    required: true
+
   lambda_version:
     description: Lambda artifact version (S3 prefix)
     required: true
@@ -59,6 +63,7 @@ runs:
       id: publish
       uses: chrispsheehan/just-aws-oidc-action@0.1.3
       env:
+        BUCKET_NAME: ${{ inputs.lambda_bucket }}
         FUNCTION_NAME: ${{ steps.vars.outputs.lambda_function_name }}
         LAMBDA_ZIP_KEY: ${{ steps.vars.outputs.lambda_zip_key }}
       with:
@@ -68,6 +73,7 @@ runs:
     - name: Upload AppSpec bundle
       uses: chrispsheehan/just-aws-oidc-action@0.1.3
       env:
+        BUCKET_NAME: ${{ inputs.lambda_bucket }}
         FUNCTION_NAME: ${{ steps.vars.outputs.lambda_function_name }}
         ALIAS_NAME: ${{ steps.vars.outputs.lambda_alias_name }}
         CURRENT_VERSION: ${{ steps.get-version.outputs.just_outputs }}
@@ -81,6 +87,7 @@ runs:
     - name: Run CodeDeploy
       uses: chrispsheehan/just-aws-oidc-action@0.1.3
       env:
+        BUCKET_NAME: ${{ inputs.lambda_bucket }}
         CODE_DEPLOY_APP_NAME: ${{ steps.vars.outputs.code_deploy_app_name }}
         CODE_DEPLOY_GROUP_NAME: ${{ steps.vars.outputs.code_deploy_group_name }}
       with:

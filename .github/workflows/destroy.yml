@@ -50,6 +50,7 @@ jobs:
   build:
     needs:
       - api
+      - consumer
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
