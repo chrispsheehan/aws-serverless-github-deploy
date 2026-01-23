@@ -16,7 +16,6 @@ jobs:
     with:
       environment: dev
       infra_version: ${{ github.sha }}
-      version: ${{ github.sha }}
 
   lambdas:
     needs: code
