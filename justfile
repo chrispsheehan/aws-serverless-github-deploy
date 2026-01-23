@@ -186,8 +186,37 @@ lambda-upload-bundle:
     aws s3 cp $LOCAL_APP_SPEC_ZIP "s3://${BUCKET_NAME}/${APP_SPEC_KEY}"
 
 
+lambda-get-function-arn:
+    #!/usr/bin/env bash
+    aws lambda get-function \
+        --function-name $FUNCTION_NAME \
+        --query 'Configuration.FunctionArn' \
+        --output text
+
+
+lambda-get-code-deploy-app:
+    #!/usr/bin/env bash
+    FUNCTION_ARN=$(just lambda-get-function-arn)
+    aws lambda list-tags \
+        --resource "$FUNCTION_ARN" \
+        --query 'Tags.CodeDeployApplication' \
+        --output text
+
+
+lambda-get-code-deploy-group:
+    #!/usr/bin/env bash
+    FUNCTION_ARN=$(just lambda-get-function-arn)
+    aws lambda list-tags \
+        --resource "$FUNCTION_ARN" \
+        --query 'Tags.CodeDeployGroup' \
+        --output text
+
+
 lambda-deploy:
     #!/usr/bin/env bash
+    CODE_DEPLOY_APP_NAME=$(just lambda-get-code-deploy-app)
+    CODE_DEPLOY_GROUP_NAME=$(just lambda-get-code-deploy-group)
+
     DEPLOYMENT_ID=$(aws deploy create-deployment \
         --application-name "$CODE_DEPLOY_APP_NAME" \
         --deployment-group-name "$CODE_DEPLOY_GROUP_NAME" \

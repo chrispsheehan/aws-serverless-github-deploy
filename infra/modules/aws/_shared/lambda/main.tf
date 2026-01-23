@@ -24,6 +24,13 @@ resource "aws_lambda_function" "lambda" {
   # publish ONE immutable version so we can create an alias
   publish = true
 
+  # tags for identifying the code deploy app and its deployment config. Used in CI/CD pipelines.
+  tags = {
+    CodeDeployApplication   = aws_codedeploy_app.app.name
+    CodeDeployGroup         = aws_codedeploy_deployment_group.dg.deployment_group_name
+    DeploymentStrategy      = local.deploy_config.type
+  }
+
   lifecycle {
     # Do not update on changes to the initial s3 file version
     ignore_changes = [
