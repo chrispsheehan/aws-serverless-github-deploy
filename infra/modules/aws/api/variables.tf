@@ -14,11 +14,3 @@ variable "lambda_bucket" {
   description = "Lambda bucket where the code zip(s) are uploaded to"
 }
 ### end of static vars set in root.hcl ###
-
-
-### start of dynamic vars required for resources ###
-variable "lambda_version" {
-  type        = string
-  description = "Lambda code version to be deployed. Used in locating zip file keys"
-}
-### end of dynamic vars required for resources ###

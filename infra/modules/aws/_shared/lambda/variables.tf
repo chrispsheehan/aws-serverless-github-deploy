@@ -21,11 +21,6 @@ variable "lambda_name" {
   type        = string
   description = "Must match the name of the zip - formed in /backend directory i.e. /backend/api = 'api'"
 }
-
-variable "lambda_version" {
-  type        = string
-  description = "Lambda code version to be deployed. Used in locating zip file keys"
-}
 ### end of dynamic vars required for resources ###
 
 
