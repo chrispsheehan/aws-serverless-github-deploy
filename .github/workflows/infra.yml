@@ -47,23 +47,31 @@ jobs:
         with:
           just_action: backend-get-directories
 
-  lambdas:
+  debug-backend-dirs:
     needs: setup
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        value: ${{ fromJson(needs.setup.outputs.backend_dirs) }}
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.infra_version }}
+      - name: Show backend_dirs raw
+        run: |
+          echo "RAW backend_dirs: '${{ needs.setup.outputs.backend_dirs }}'"
 
-      - name: Deploy ${{ matrix.value }} infra
-        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
-        with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.value }}
+  # lambdas:
+  #   needs: setup
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       value: ${{ fromJson(needs.setup.outputs.backend_dirs) }}
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #       with:
+  #         ref: ${{ inputs.infra_version }}
+
+  #     - name: Deploy ${{ matrix.value }} infra
+  #       uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+  #       with:
+  #         aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+  #         tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.value }}
 
   # consumer:
   #   needs: setup
