@@ -52,7 +52,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.setup.outputs.backend_dirs) }}
+      matrix:
+        value: ${{ fromJson(needs.setup.outputs.backend_dirs) }}
     steps:
       - uses: actions/checkout@v4
         with:
