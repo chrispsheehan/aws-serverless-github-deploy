@@ -3,9 +3,8 @@ locals {
   lambda_handler   = "lambda_handler.lambda_handler"
   compute_platform = "Lambda"
 
+  lambda_bootstrap_zip_key = "bootstrap/bootstrap-lambda.zip"
   lambda_name         = "${var.environment}-${var.project_name}-${var.lambda_name}"
-  lambda_code_zip_key = "${var.lambda_version}/${var.lambda_name}.zip"
-  lambda_appspec_key  = "appspecs/${var.lambda_name}-appspec.zip"
 
   deploy_all_at_once_type = "AllAtOnce"
   deploy_canary_type      = "TimeBasedCanary"

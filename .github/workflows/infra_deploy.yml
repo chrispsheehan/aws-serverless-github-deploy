@@ -13,10 +13,6 @@ on:
         description: "Bucket containing lambda zips"
         required: true
         type: string
-      lambda_version:
-        description: "Valid lambda version"
-        required: true
-        type: string
 
 
 concurrency: # only run one instance of workflow at any one time

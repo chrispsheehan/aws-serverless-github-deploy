@@ -2,6 +2,12 @@ data "aws_s3_bucket" "lambda_code" {
   bucket = var.lambda_bucket
 }
 
+data "archive_file" "bootstrap_lambda" {
+  type        = "zip"
+  source_file = "${path.module}/bootstrap/index.py"
+  output_path = "${path.module}/${local.lambda_bootstrap_zip_key}"
+}
+
 data "aws_iam_policy_document" "assume_role" {
   statement {
     effect = "Allow"

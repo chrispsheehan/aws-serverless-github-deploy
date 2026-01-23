@@ -4,16 +4,6 @@ on:
       environment:
         required: true
         type: string
-      version:
-        required: true
-        type: string
-    outputs:
-      lambda_bucket:
-        description: "Bucket containing lambda zips"
-        value: ${{ jobs.infra.outputs.lambda_bucket_name }}
-      lambda_version:
-        description: "Valid lambda version"
-        value: ${{ inputs.version }}
 
 concurrency: # only run one instance of workflow at any one time
   group: ${{ github.workflow }}-${{inputs.environment}}
@@ -50,25 +40,3 @@ jobs:
           TG_OUTPUTS: ${{ steps.code_action.outputs.tg_outputs  }}
         run: |
           echo "bucket_lambda=$(echo $TG_OUTPUTS | jq -r '.bucket_lambda.value')" >> $GITHUB_OUTPUT
-
-  backend:
-    needs: infra
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.version }}
-
-      - uses: extractions/setup-just@v3
-
-      - name: Build Lambdas
-        shell: bash
-        run: just backend-build
-
-      - name: Upload Lambda zips
-        uses: chrispsheehan/just-aws-oidc-action@0.1.3
-        env:
-          BUCKET_NAME: ${{ needs.infra.outputs.lambda_bucket_name }}
-        with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          just_action: backend-upload

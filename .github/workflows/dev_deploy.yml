@@ -8,14 +8,14 @@ permissions:
   contents: write
 
 jobs:
-  build:
+  bucket:
     uses: ./.github/workflows/build.yml
     with:
       environment: dev
       version: ${{ github.sha }}
 
   lambdas:
-    needs: build
+    needs: bucket
     uses: ./.github/workflows/infra_deploy.yml
     with:
       environment: dev
