@@ -111,7 +111,11 @@ backend-get-directories:
     #!/usr/bin/env bash
     set -euo pipefail
     BACKEND_DIR="{{justfile_directory()}}/backend"
-    echo $(find "$BACKEND_DIR" -mindepth 1 -maxdepth 1 -type d) | jq -R . | jq -s .
+    # echo $(find "$BACKEND_DIR" -mindepth 1 -maxdepth 1 -type d) | jq -R . | jq -s .
+    find "$BACKEND_DIR" -mindepth 1 -maxdepth 1 -type d \
+      | xargs -I{} basename "{}" \
+      | jq -R . \
+      | jq -s .
 
 
 backend-upload:
