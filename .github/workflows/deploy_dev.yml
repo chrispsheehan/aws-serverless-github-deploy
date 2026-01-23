@@ -17,7 +17,7 @@ jobs:
       environment: dev
       infra_version: ${{ github.sha }}
 
-  lambdas:
+  infra:
     needs: code
     uses: ./.github/workflows/infra.yml
     with:
@@ -26,11 +26,10 @@ jobs:
       lambda_bucket: ${{ needs.code.outputs.lambda_bucket }}
 
   # dev:
-  #   uses: ./.github/workflows/deploy.yml
+  #   uses: ./.github/workflows/build.yml
   #   needs: 
-  #     - build
+  #     - code
   #     - lambdas
   #   with:
   #     environment: dev
-  #     lambda_bucket: ${{ needs.build.outputs.lambda_bucket }}
-  #     lambda_version: ${{ needs.build.outputs.lambda_version }}
+  #     version: ${{ github.sha }}
