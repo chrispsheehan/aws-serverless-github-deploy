@@ -15,6 +15,7 @@ jobs:
     uses: ./.github/workflows/infra_releases.yml
     with:
       environment: dev
+      infra_version: ${{ github.sha }}
       version: ${{ github.sha }}
 
   lambdas:
