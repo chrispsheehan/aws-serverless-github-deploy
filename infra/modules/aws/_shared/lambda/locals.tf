@@ -4,7 +4,7 @@ locals {
   compute_platform = "Lambda"
 
   lambda_bootstrap_zip_key = "bootstrap/bootstrap-lambda.zip"
-  lambda_name         = "${var.environment}-${var.project_name}-${var.lambda_name}"
+  lambda_name              = "${var.environment}-${var.project_name}-${var.lambda_name}"
 
   deploy_all_at_once_type = "AllAtOnce"
   deploy_canary_type      = "TimeBasedCanary"
