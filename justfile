@@ -3,16 +3,7 @@ _default:
 
 
 PROJECT_DIR := justfile_directory()
-
-clean-terragrunt-cache:
-    @echo "Cleaning up .terraform directories in {{PROJECT_DIR}}..."
-    find {{PROJECT_DIR}} -type d -name ".terraform" -exec rm -rf {} +
-    @echo "Cleaning up .terraform.lock.hcl files in {{PROJECT_DIR}}..."
-    find {{PROJECT_DIR}} -type f -name ".terraform.lock.hcl" -exec rm -f {} +
-    @echo "Cleaning up .terragrunt-cache directories in {{PROJECT_DIR}}..."
-    find {{PROJECT_DIR}} -type d -name ".terragrunt-cache" -exec rm -rf {} +
-    @echo "Cleaning up terragrunt-debug.tfvars.json files in {{PROJECT_DIR}}..."
-    find {{PROJECT_DIR}} -type f -name "terragrunt-debug.tfvars.json" -exec rm -f {} +
+LAMBDA_DIR := "backend"
 
 
 lambda-invoke:
@@ -110,9 +101,7 @@ check-version:
 backend-get-directories:
     #!/usr/bin/env bash
     set -euo pipefail
-    BACKEND_DIR="{{justfile_directory()}}/backend"
-    # echo $(find "$BACKEND_DIR" -mindepth 1 -maxdepth 1 -type d) | jq -R . | jq -s .
-    find "$BACKEND_DIR" -mindepth 1 -maxdepth 1 -type d \
+    find "{{LAMBDA_DIR}}" -mindepth 1 -maxdepth 1 -type d \
       | xargs -I{} basename "{}" \
       | jq -R . \
       | jq -s -c .
@@ -140,25 +129,25 @@ backend-build:
     python3 -m venv venv
     source venv/bin/activate
 
-    BACKEND_DIR="{{justfile_directory()}}/backend"
-    BACKEND_BUILD_DIR="$BACKEND_DIR/build"
+    BACKEND_BUILD_DIR="{{PROJECT_DIR}}/{{LAMBDA_DIR}}/build"
 
     echo "🔄 Cleaning previous builds..."
     rm -rf $BACKEND_BUILD_DIR
 
-    for dir in $(just backend-get-directories); do
-        echo "📦 Building Lambda in $dir.."
-        app_name=$(basename "$dir")
-        # echo "📦 Building $app_name Lambda..."
-        # mkdir -p "$BACKEND_BUILD_DIR/$app_name"
-        # pip install --target "$BACKEND_BUILD_DIR/$app_name" -r "$dir/requirements.txt"
-        # cp "$dir"/*.py "$BACKEND_BUILD_DIR/$app_name/"
-        # (
-        #     cd "$BACKEND_BUILD_DIR/$app_name"
-        #     zip -r "../../$app_name.zip" . > /dev/null
-        # )
-        # echo "✅ Done: backend/$app_name.zip"
-    done
+    echo "🔍 Discovering backend directories..."
+    just backend-get-directories \
+      | jq -r '.[]' \
+      | while read -r dir; do
+            echo "📦 Building Lambda in $dir..."
+            pip install --target "$BACKEND_BUILD_DIR/$dir" -r "{{PROJECT_DIR}}/{{LAMBDA_DIR}}/$dir/requirements.txt"
+            cp "{{PROJECT_DIR}}/{{LAMBDA_DIR}}/$dir"/*.py "$BACKEND_BUILD_DIR/$dir/"
+            (
+                cd "$BACKEND_BUILD_DIR/$dir"
+                zip -r "../../$dir.zip" . > /dev/null
+            )
+            echo "✅ Done: backend/$dir.zip"
+        done
+
 
 lambda-get-version:
     #!/usr/bin/env bash
