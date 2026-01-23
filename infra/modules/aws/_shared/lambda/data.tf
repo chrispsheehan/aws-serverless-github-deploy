@@ -65,11 +65,6 @@ data "aws_iam_policy_document" "codedeploy_lambda" {
     effect    = "Allow"
     actions   = ["s3:ListBucket", "s3:GetBucketLocation"]
     resources = ["arn:aws:s3:::${data.aws_s3_bucket.lambda_code.bucket}"]
-    condition {
-      test     = "StringLike"
-      variable = "s3:prefix"
-      values   = ["${var.lambda_version}/*"]
-    }
   }
 
   statement {
