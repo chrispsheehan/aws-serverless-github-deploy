@@ -23,13 +23,12 @@ jobs:
       lambda_bucket: ${{ needs.build.outputs.lambda_bucket }}
       lambda_version: ${{ github.sha }}
 
-  dev:
-    uses: ./.github/workflows/deploy.yml
-    needs: 
-      - build
-      - lambdas
-    with:
-      environment: dev
-      infra_version: ${{ github.sha }}
-      lambda_bucket: ${{ needs.build.outputs.lambda_bucket }}
-      lambda_version: ${{ needs.build.outputs.lambda_version }}
+  # dev:
+  #   uses: ./.github/workflows/deploy.yml
+  #   needs: 
+  #     - build
+  #     - lambdas
+  #   with:
+  #     environment: dev
+  #     lambda_bucket: ${{ needs.build.outputs.lambda_bucket }}
+  #     lambda_version: ${{ needs.build.outputs.lambda_version }}

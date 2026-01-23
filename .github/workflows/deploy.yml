@@ -5,10 +5,6 @@ on:
         description: environment reference i.e. 'prod' or 'dev'
         required: true
         type: string
-      infra_version:
-        description: "Version of infrastructure (terraform) to be deployed"
-        required: true
-        type: string
       lambda_bucket:
         description: "Bucket containing lambda zips"
         required: true
@@ -36,18 +32,9 @@ env:
   AWS_OIDC_ROLE_ARN: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/aws-serverless-github-deploy-${{ inputs.environment }}-github-oidc-role
 
 jobs:
-  setup:
+  check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.infra_version }}
-
-      - uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
-        with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          tg_directory: infra/live/${{ inputs.environment }}/aws/oidc
-
       - name: check Lambda version
         uses: chrispsheehan/just-aws-oidc-action@0.1.3
         env:
@@ -57,34 +44,15 @@ jobs:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           just_action: check-version
 
-  api-infra:
-    needs: setup
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.infra_version }}
-
-      - name: Deploy api infra
-        id: deploy
-        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
-        with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          tg_directory: infra/live/${{ inputs.environment }}/aws/api
-
   api:
-    needs: api-infra
+    needs: check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.infra_version }}
 
       - uses: ./.github/actions/deploy-lambda
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          infra_version: ${{ inputs.infra_version }}
-          tg_directory: infra/live/${{ inputs.environment }}/aws/api
           lambda_bucket: ${{ inputs.lambda_bucket }}
           lambda_version: ${{ inputs.lambda_version }}
           lambda_keep: ${{ inputs.lambda_keep }}
