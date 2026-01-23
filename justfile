@@ -107,6 +107,13 @@ check-version:
     fi
 
 
+backend-get-directories:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    BACKEND_DIR="{{justfile_directory()}}/backend"
+    echo $(find "$BACKEND_DIR" -mindepth 1 -maxdepth 1 -type d) | jq -R . | jq -s .
+
+
 backend-upload:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -135,17 +142,18 @@ backend-build:
     echo "🔄 Cleaning previous builds..."
     rm -rf $BACKEND_BUILD_DIR
 
-    for dir in $(find "$BACKEND_DIR" -mindepth 1 -maxdepth 1 -type d); do
+    for dir in $(just backend-get-directories); do
+        echo "📦 Building Lambda in $dir.."
         app_name=$(basename "$dir")
-        echo "📦 Building $app_name Lambda..."
-        mkdir -p "$BACKEND_BUILD_DIR/$app_name"
-        pip install --target "$BACKEND_BUILD_DIR/$app_name" -r "$dir/requirements.txt"
-        cp "$dir"/*.py "$BACKEND_BUILD_DIR/$app_name/"
-        (
-            cd "$BACKEND_BUILD_DIR/$app_name"
-            zip -r "../../$app_name.zip" . > /dev/null
-        )
-        echo "✅ Done: backend/$app_name.zip"
+        # echo "📦 Building $app_name Lambda..."
+        # mkdir -p "$BACKEND_BUILD_DIR/$app_name"
+        # pip install --target "$BACKEND_BUILD_DIR/$app_name" -r "$dir/requirements.txt"
+        # cp "$dir"/*.py "$BACKEND_BUILD_DIR/$app_name/"
+        # (
+        #     cd "$BACKEND_BUILD_DIR/$app_name"
+        #     zip -r "../../$app_name.zip" . > /dev/null
+        # )
+        # echo "✅ Done: backend/$app_name.zip"
     done
 
 lambda-get-version:
