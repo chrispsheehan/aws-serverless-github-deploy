@@ -8,19 +8,19 @@ permissions:
   contents: write
 
 jobs:
-  bucket:
-    uses: ./.github/workflows/build.yml
+  code:
+    uses: ./.github/workflows/infra_releases.yml
     with:
       environment: dev
       version: ${{ github.sha }}
 
   lambdas:
-    needs: bucket
+    needs: code
     uses: ./.github/workflows/infra_deploy.yml
     with:
       environment: dev
       infra_version: ${{ github.sha }}
-      lambda_bucket: ${{ needs.build.outputs.lambda_bucket }}
+      lambda_bucket: ${{ needs.code.outputs.lambda_bucket }}
       lambda_version: ${{ github.sha }}
 
   # dev:

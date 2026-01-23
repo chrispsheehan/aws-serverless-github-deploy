@@ -50,7 +50,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: ./.github/actions/deploy-lambda
+      - uses: ./.github/actions/lambda-deploy
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           lambda_bucket: ${{ inputs.lambda_bucket }}
