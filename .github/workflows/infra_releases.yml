@@ -27,20 +27,7 @@ env:
   AWS_OIDC_ROLE_ARN: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/aws-serverless-github-deploy-${{ inputs.environment }}-github-oidc-role
 
 jobs:
-  setup:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.infra_version }}
-
-      - uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
-        with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          tg_directory: infra/live/${{ inputs.environment }}/aws/oidc
-
   bucket:
-    needs: setup
     runs-on: ubuntu-latest
     outputs:
       lambda_bucket_name: ${{ steps.get_bucket_name.outputs.bucket_lambda }}

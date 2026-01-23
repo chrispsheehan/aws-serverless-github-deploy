@@ -115,7 +115,7 @@ backend-get-directories:
     find "$BACKEND_DIR" -mindepth 1 -maxdepth 1 -type d \
       | xargs -I{} basename "{}" \
       | jq -R . \
-      | jq -s .
+      | jq -s -c .
 
 
 backend-upload:
