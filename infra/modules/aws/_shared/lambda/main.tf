@@ -26,9 +26,9 @@ resource "aws_lambda_function" "lambda" {
 
   # tags for identifying the code deploy app and its deployment config. Used in CI/CD pipelines.
   tags = {
-    CodeDeployApplication   = aws_codedeploy_app.app.name
-    CodeDeployGroup         = aws_codedeploy_deployment_group.dg.deployment_group_name
-    DeploymentStrategy      = local.deploy_config.type
+    CodeDeployApplication = aws_codedeploy_app.app.name
+    CodeDeployGroup       = aws_codedeploy_deployment_group.dg.deployment_group_name
+    DeploymentStrategy    = local.deploy_config.type
   }
 
   lifecycle {
