@@ -24,7 +24,6 @@ jobs:
       environment: dev
       infra_version: ${{ github.sha }}
       lambda_bucket: ${{ needs.code.outputs.lambda_bucket }}
-      lambda_version: ${{ github.sha }}
 
   # dev:
   #   uses: ./.github/workflows/deploy.yml
