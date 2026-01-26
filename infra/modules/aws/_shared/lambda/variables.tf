@@ -19,7 +19,7 @@ variable "lambda_bucket" {
 ### start of dynamic vars required for resources ###
 variable "lambda_name" {
   type        = string
-  description = "Must match the name of the zip - formed in /backend directory i.e. /backend/api = 'api'"
+  description = "Must match the name of the zip - formed in /lambdas directory i.e. /lambdas/api = 'api'"
 }
 ### end of dynamic vars required for resources ###
 

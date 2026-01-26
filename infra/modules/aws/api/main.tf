@@ -5,7 +5,7 @@ module "lambda_api" {
   environment   = var.environment
   lambda_bucket = var.lambda_bucket
 
-  lambda_name    = "api"
+  lambda_name = "api"
 
   deployment_config = {
     strategy = "all_at_once"

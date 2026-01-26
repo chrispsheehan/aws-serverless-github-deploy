@@ -5,7 +5,7 @@ module "lambda_consumer" {
   environment   = var.environment
   lambda_bucket = var.lambda_bucket
 
-  lambda_name    = "consumer"
+  lambda_name = "consumer"
 
   additional_policy_arns = [
     module.sqs_queue.sqs_queue_read_policy_arn

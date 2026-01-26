@@ -3,7 +3,7 @@ _default:
 
 
 PROJECT_DIR := justfile_directory()
-LAMBDA_DIR := "backend"
+LAMBDA_DIR := "lambdas"
 
 
 lambda-invoke:
@@ -98,7 +98,7 @@ check-version:
     fi
 
 
-backend-get-directories:
+lambda-get-directories:
     #!/usr/bin/env bash
     set -euo pipefail
     find "{{LAMBDA_DIR}}" -mindepth 1 -maxdepth 1 -type d \
@@ -107,45 +107,44 @@ backend-get-directories:
       | jq -s -c .
 
 
-backend-upload:
+lambda-upload:
     #!/usr/bin/env bash
     set -euo pipefail
 
-    BACKEND_DIR="{{justfile_directory()}}/backend"
+    LAMBDA_DIR="{{justfile_directory()}}/lambdas"
+    echo "📤 Uploading .zip files from $LAMBDA_DIR to s3://$BUCKET_NAME/$VERSION/"
 
-    echo "📤 Uploading .zip files from $BACKEND_DIR to s3://$BUCKET_NAME/$VERSION/"
-
-    aws s3 cp "$BACKEND_DIR" "s3://$BUCKET_NAME/$VERSION/" \
+    aws s3 cp "$LAMBDA_DIR" "s3://$BUCKET_NAME/$VERSION/" \
         --recursive \
         --exclude "*" \
         --include "*.zip" \
         --storage-class STANDARD
 
 
-backend-build:
+lambda-build:
     #!/usr/bin/env bash
     set -euo pipefail
 
     python3 -m venv venv
     source venv/bin/activate
 
-    BACKEND_BUILD_DIR="{{PROJECT_DIR}}/{{LAMBDA_DIR}}/build"
+    LAMBDA_BUILD_DIR="{{PROJECT_DIR}}/{{LAMBDA_DIR}}/build"
 
     echo "🔄 Cleaning previous builds..."
-    rm -rf $BACKEND_BUILD_DIR
+    rm -rf $LAMBDA_BUILD_DIR
 
-    echo "🔍 Discovering backend directories..."
-    just backend-get-directories \
+    echo "🔍 Discovering lambda directories..."
+    just lambda-get-directories \
       | jq -r '.[]' \
       | while read -r dir; do
             echo "📦 Building Lambda in $dir..."
-            pip install --target "$BACKEND_BUILD_DIR/$dir" -r "{{PROJECT_DIR}}/{{LAMBDA_DIR}}/$dir/requirements.txt"
-            cp "{{PROJECT_DIR}}/{{LAMBDA_DIR}}/$dir"/*.py "$BACKEND_BUILD_DIR/$dir/"
+            pip install --target "$LAMBDA_BUILD_DIR/$dir" -r "{{PROJECT_DIR}}/{{LAMBDA_DIR}}/$dir/requirements.txt"
+            cp "{{PROJECT_DIR}}/{{LAMBDA_DIR}}/$dir"/*.py "$LAMBDA_BUILD_DIR/$dir/"
             (
-                cd "$BACKEND_BUILD_DIR/$dir"
+                cd "$LAMBDA_BUILD_DIR/$dir"
                 zip -r "../../$dir.zip" . > /dev/null
             )
-            echo "✅ Done: backend/$dir.zip"
+            echo "✅ Done: lambdas/$dir.zip"
         done
 
 

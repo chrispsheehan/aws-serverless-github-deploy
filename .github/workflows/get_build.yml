@@ -10,7 +10,7 @@ on:
     outputs:
       lambda_bucket:
         description: "Bucket containing lambda zips"
-        value: ${{ jobs.backend.outputs.lambda_bucket_name }}
+        value: ${{ jobs.lambdas.outputs.lambda_bucket_name }}
       lambda_version:
         description: "Valid lambda version"
         value: ${{ inputs.version }}
@@ -28,7 +28,7 @@ env:
   TF_VAR_deploy_version: ${{ inputs.version }}
 
 jobs:
-  backend:
+  lambdas:
     runs-on: ubuntu-latest
     outputs:
       lambda_bucket_name: ${{ steps.get_bucket_name.outputs.bucket_lambda }}

@@ -26,22 +26,20 @@ jobs:
   setup:
     runs-on: ubuntu-latest
     outputs:
-      backend_dirs: ${{ steps.backend_dirs.outputs.just_outputs }}
+      lambda_dirs: ${{ steps.lambda_dirs.outputs.just_outputs }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.infra_version }}
 
       - uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/oidc
 
-      - name: Get Backend Directories
-        id: backend_dirs
+      - name: Get Lambda Directories
+        id: lambda_dirs
         uses: chrispsheehan/just-aws-oidc-action@0.1.3
         with:
-          just_action: backend-get-directories
+          just_action: lambda-get-directories
 
   lambdas:
     needs: setup
@@ -49,11 +47,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        value: ${{ fromJson(needs.setup.outputs.backend_dirs) }}
+        value: ${{ fromJson(needs.setup.outputs.lambda_dirs) }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.infra_version }}
 
       - name: Deploy ${{ matrix.value }} infra
         uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1

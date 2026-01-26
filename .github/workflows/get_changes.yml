@@ -15,9 +15,9 @@ on:
       github:
         description: "Whether GitHub workflow files changed"
         value: ${{ jobs.changes.outputs.github == 'true' }}
-      backend:
-        description: "Whether backend files changed"
-        value: ${{ jobs.changes.outputs.backend == 'true' }}
+      lambdas:
+        description: "Whether lambdas files changed"
+        value: ${{ jobs.changes.outputs.lambdas == 'true' }}
 
 jobs:
   changes:
@@ -26,7 +26,7 @@ jobs:
       terragrunt: ${{ steps.filter.outputs.terragrunt }}
       github: ${{ steps.filter.outputs.github }}
       frontend: ${{ steps.filter.outputs.frontend }}
-      backend: ${{ steps.filter.outputs.backend }}
+      lambdas: ${{ steps.filter.outputs.lambdas }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -43,8 +43,8 @@ jobs:
               - 'infra/**'
             github:
               - '.github/**'
-            backend:
-              - 'backend/**'
+            lambdas:
+              - 'lambdas/**'
           token: ${{ secrets.GITHUB_TOKEN }}
           list-files: none
           initial-fetch-depth: 100
@@ -56,4 +56,4 @@ jobs:
         run: echo "github changes - ${{ steps.filter.outputs.github }}"
 
       - shell: bash
-        run: echo "backend changes - ${{ steps.filter.outputs.backend }}"
+        run: echo "lambdas changes - ${{ steps.filter.outputs.lambdas }}"

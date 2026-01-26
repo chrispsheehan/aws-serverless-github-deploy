@@ -76,14 +76,14 @@ jobs:
         run: terragrunt hclfmt --terragrunt-check
         working-directory: infra
 
-  build-backend:
+  build-lambdas:
     needs: check
     runs-on: ubuntu-latest
-    if: ${{ needs.check.outputs.backend == 'true' }}
-    name: Run backend build
+    if: ${{ needs.check.outputs.lambdas == 'true' }}
+    name: Run lambdas build
     timeout-minutes: 2
     steps:
       - uses: actions/checkout@v4
       - uses: extractions/setup-just@v3
-      - name: Run backend build
-        run: just backend-build
+      - name: Run lambdas build
+        run: just lambdas-build
