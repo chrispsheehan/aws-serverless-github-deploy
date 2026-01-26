@@ -43,7 +43,6 @@ jobs:
         env:
           LAMBDA_NAME: ${{ matrix.value }}
         with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           just_action: lambda-build
 
       - name: "Upload ${{ matrix.value }} Lambda"

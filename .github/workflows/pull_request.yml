@@ -76,14 +76,36 @@ jobs:
         run: terragrunt hclfmt --terragrunt-check
         working-directory: infra
 
-  build-lambdas:
+
+  setup-lambdas:
+    if: ${{ needs.check.outputs.lambdas == 'true' }}
     needs: check
     runs-on: ubuntu-latest
-    if: ${{ needs.check.outputs.lambdas == 'true' }}
-    name: Run lambdas build
-    timeout-minutes: 2
+    outputs:
+      lambda_dirs: ${{ steps.lambda_dirs.outputs.just_outputs }}
     steps:
       - uses: actions/checkout@v4
-      - uses: extractions/setup-just@v3
-      - name: Run lambdas build
-        run: just lambda-build
+      - name: Get Lambda Directories
+        id: lambda_dirs
+        uses: chrispsheehan/just-aws-oidc-action@0.3.0
+        with:
+          just_action: lambda-get-directories
+
+  build-lambdas:
+    if: ${{ needs.check.outputs.lambdas == 'true' }}
+    needs: setup-lambdas
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        value: ${{ fromJson(needs.setup.outputs.lambda_dirs) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: "Build ${{ matrix.value }} Lambda"
+        uses: chrispsheehan/just-aws-oidc-action@0.3.0
+        env:
+          LAMBDA_NAME: ${{ matrix.value }}
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          just_action: lambda-build
