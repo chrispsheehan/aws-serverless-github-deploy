@@ -17,7 +17,7 @@ on:
         default: "[]"
 
 concurrency: # only run one instance of workflow at any one time
-  group: ${{ github.workflow }}-${{ inputs.environment }}
+  group: build-${{ inputs.environment }}
   cancel-in-progress: false
 
 permissions:

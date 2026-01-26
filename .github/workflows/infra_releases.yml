@@ -36,8 +36,8 @@ jobs:
         with:
           ref: ${{ inputs.infra_version }}
 
-      - name: Deploy api infra
-        id: deploy
+      - name: Deploy lambda code bucket
+        id: deploy_bucket
         uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
@@ -46,6 +46,6 @@ jobs:
       - name: Get bucket name
         id: get_bucket_name
         env:
-          TG_OUTPUTS: ${{ steps.code_action.outputs.tg_outputs  }}
+          TG_OUTPUTS: ${{ steps.deploy_bucket.outputs.tg_outputs  }}
         run: |
           echo "bucket_lambda=$(echo $TG_OUTPUTS | jq -r '.bucket_lambda.value')" >> $GITHUB_OUTPUT

@@ -20,7 +20,7 @@ on:
 
 
 concurrency: # only run one instance of workflow at any one time
-  group: ${{ github.workflow }}-${{ inputs.environment }}
+  group: infra-${{ inputs.environment }}
   cancel-in-progress: false
 
 permissions:
