@@ -86,4 +86,4 @@ jobs:
       - uses: actions/checkout@v4
       - uses: extractions/setup-just@v3
       - name: Run lambdas build
-        run: just lambdas-build
+        run: just lambda-build
