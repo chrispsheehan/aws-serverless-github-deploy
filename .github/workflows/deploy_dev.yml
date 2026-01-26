@@ -11,6 +11,19 @@ permissions:
   contents: write
 
 jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      lambdas_dirs: ${{ steps.lambdas_dirs.outputs.just_outputs }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get lambdas Directories
+        id: lambdas_dirs
+        uses: ./.github/actions/just-action
+        with:
+          just_action: lambda-get-directories
+
   code:
     uses: ./.github/workflows/infra_releases.yml
     with:
@@ -25,11 +38,11 @@ jobs:
       infra_version: ${{ github.sha }}
       lambda_bucket: ${{ needs.code.outputs.lambda_bucket }}
 
-  build:
-    uses: ./.github/workflows/build.yml
-    needs: 
-      - code
-      - infra
-    with:
-      environment: dev
-      version: ${{ github.sha }}
+  # build:
+  #   uses: ./.github/workflows/build.yml
+  #   needs: 
+  #     - code
+  #     - infra
+  #   with:
+  #     environment: dev
+  #     version: ${{ github.sha }}

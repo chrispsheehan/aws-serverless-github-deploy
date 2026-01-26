@@ -1,0 +1,84 @@
+name: "Execute Just command with AWS OIDC"
+description: "Sets up Just, configures AWS OIDC authentication and runs just action"
+
+inputs:
+  just_version:
+    description: "Version of Just to install"
+    required: false
+    default: "1.0.0"
+  aws_region:
+    description: "AWS Region"
+    default: "eu-west-2"
+  aws_oidc_role_arn:
+    description: "AWS iam role arn"
+    default: ""
+  just_action:
+    description: "Just command (recipe) to execute"
+    required: true
+  mask_result:
+    description: "Mask value in CI logs"
+    required: true
+    default: "false"
+
+outputs:
+  just_outputs:
+    description: "Output from the just script"
+    value: ${{ steps.capture_masked.outputs.result || steps.capture.outputs.result }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install Just
+      uses: extractions/setup-just@v3
+      with:
+        just-version: ${{ inputs.just_version }}
+
+    - name: Configure AWS OIDC Authentication
+      if: ${{ inputs.aws_oidc_role_arn != '' }}
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ inputs.aws_oidc_role_arn }}
+        aws-region: ${{ inputs.aws_region }}
+
+    - name: Run just action (try/catch + capture)
+      id: capture
+      if: ${{ inputs.mask_result == 'false' }}
+      shell: bash
+      env:
+        AWS_REGION: ${{ inputs.aws_region }}
+        AWS_DEFAULT_REGION: ${{ inputs.aws_region }}
+      run: |
+        set +e
+        set -uo pipefail
+
+        LOG_FILE="$RUNNER_TEMP/just_${{ inputs.just_action }}_$(date +%s).log"
+        echo "📦 Running: ${{ inputs.just_action }}"
+        just ${{ inputs.just_action }} 2>&1 | tee "$LOG_FILE"
+        status=${PIPESTATUS[0]}
+
+        result="$(tail -n 1 "$LOG_FILE" | tr -d '\r')"
+        echo "result=$result" >> "$GITHUB_OUTPUT"
+
+        exit "$status"
+
+    - name: Run just action (masked output, no logs)
+      id: capture_masked
+      shell: bash
+      if: ${{ inputs.mask_result == 'true' }}
+      env:
+        AWS_REGION: ${{ inputs.aws_region }}
+        AWS_DEFAULT_REGION: ${{ inputs.aws_region }}
+      run: |
+        set +e
+        set -uo pipefail
+
+        # Capture stdout (not printed)
+        out="$(just ${{ inputs.just_action }} 2>/dev/null || true)"
+        status=$?
+
+        secret="$(printf '%s' "$out" | tr -d '\r' | tail -n 1)"
+
+        echo "::add-mask::$secret"
+        echo "result=$secret" >> "$GITHUB_OUTPUT"
+
+        exit "$status"

@@ -13,6 +13,10 @@ on:
         description: "Bucket containing lambda zips"
         required: true
         type: string
+      matrix:
+        required: false
+        type: string
+        default: "[]"
 
 
 concurrency: # only run one instance of workflow at any one time
@@ -54,7 +58,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        value: ${{ fromJson(needs.setup.outputs.lambdas_dirs) }}
+        # value: ${{ fromJson(needs.setup.outputs.lambdas_dirs) }}
+        value: ${{ fromJson(inputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
         with:
