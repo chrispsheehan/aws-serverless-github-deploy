@@ -45,6 +45,7 @@ jobs:
     uses: ./.github/workflows/build.yml
     needs: 
       - code
+      - setup
     with:
       environment: dev
       version: ${{ github.sha }}
