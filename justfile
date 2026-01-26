@@ -154,9 +154,9 @@ lambda-upload:
     fi
 
     LAMBDA_ZIP="{{PROJECT_DIR}}/{{LAMBDA_DIR}}/$LAMBDA_NAME.zip"
-    echo "📤 Uploading $LAMBDA_ZIP to s3://$BUCKET_NAME/$VERSION/api.zip"
+    echo "📤 Uploading $LAMBDA_ZIP to s3://$BUCKET_NAME/$VERSION/$LAMBDA_NAME.zip"
 
-    aws s3 cp "$LAMBDA_ZIP" "s3://$BUCKET_NAME/$VERSION/api.zip" \
+    aws s3 cp "$LAMBDA_ZIP" "s3://$BUCKET_NAME/$VERSION/$LAMBDA_NAME.zip" \
         --storage-class STANDARD
 
 
