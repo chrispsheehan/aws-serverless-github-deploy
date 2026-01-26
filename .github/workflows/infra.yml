@@ -34,7 +34,7 @@ jobs:
   lambdas:
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         value: ${{ fromJson(inputs.matrix) }}
     steps:
