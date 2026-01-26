@@ -13,6 +13,10 @@ on:
         description: "Valid lambda version"
         required: true
         type: string
+      matrix:
+        required: false
+        type: string
+        default: "[]"
       lambda_keep:
         description: "Number of lambda versions to keep"
         default: '5'
@@ -20,7 +24,7 @@ on:
 
 
 concurrency: # only run one instance of workflow at any one time
-  group: ${{ github.workflow }}-${{ inputs.environment }}
+  group: deploy-${{ inputs.environment }}
   cancel-in-progress: false
 
 permissions:
@@ -44,48 +48,33 @@ jobs:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           just_action: check-version
 
-  api:
+  lambdas:
     needs: check
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        value: ${{ fromJson(inputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
+      - name: Set AppSpec paths
+        id: appspec
+        shell: bash
+        run: |
+          lambda_function_name="${{ inputs.environment }}-${{ github.event.repository.name }}-${{ matrix.value }}"
+          lambda_zip_key="${{ inputs.lambda_version }}/${{ matrix.value }}.zip"
+          lambda_appspec_key="${{ inputs.lambda_version }}/${{ matrix.value }}-appspec.zip"
+          echo "lambda_function_name=$lambda_function_name" >> $GITHUB_OUTPUT
+          echo "lambda_zip_key=$lambda_zip_key" >> $GITHUB_OUTPUT
+          echo "lambda_appspec_key=$lambda_appspec_key" >> $GITHUB_OUTPUT
 
-      - uses: ./.github/actions/lambda-deploy
+      - name: Publish new lambda version
+        id: publish
+        uses: chrispsheehan/just-aws-oidc-action@0.3.0
+        env:
+          BUCKET_NAME: ${{ inputs.lambda_bucket }}
+          FUNCTION_NAME: ${{ steps.appspec.outputs.lambda_function_name }}
+          LAMBDA_ZIP_KEY: ${{ steps.appspec.outputs.lambda_zip_key }}
         with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          lambda_bucket: ${{ inputs.lambda_bucket }}
-          lambda_version: ${{ inputs.lambda_version }}
-          lambda_keep: ${{ inputs.lambda_keep }}
-
-  # consumer-infra:
-  #   needs: setup
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #       with:
-  #         ref: ${{ inputs.infra_version }}
-
-  #     - name: Deploy consumer infra
-  #       id: deploy
-  #       uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
-  #       with:
-  #         aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-  #         tg_directory: infra/live/${{ inputs.environment }}/aws/consumer
-
-  # consumer:
-  #   needs: consumer-infra
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #       with:
-  #         ref: ${{ inputs.infra_version }}
-
-  #     - uses: ./.github/actions/deploy-lambda
-  #       with:
-  #         aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-  #         infra_version: ${{ inputs.infra_version }}
-  #         tg_directory: infra/live/${{ inputs.environment }}/aws/consumer
-  #         lambda_bucket: ${{ inputs.lambda_bucket }}
-  #         lambda_version: ${{ inputs.lambda_version }}
-  #         lambda_keep: ${{ inputs.lambda_keep }}
-
+          aws_oidc_role_arn: ${{ inputs.aws_oidc_role_arn }}
+          just_action: lambda-create-version

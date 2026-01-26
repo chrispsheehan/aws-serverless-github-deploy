@@ -51,3 +51,15 @@ jobs:
       version: ${{ github.sha }}
       lambda_bucket: ${{ needs.code.outputs.lambda_bucket }}
       matrix: ${{ needs.setup.outputs.lambdas_dirs }}
+
+  deploy:
+    uses: ./.github/workflows/deploy.yml
+    needs: 
+      - build
+      - infra
+      - setup
+    with:
+      environment: dev
+      lambda_version: ${{ github.sha }}
+      lambda_bucket: ${{ needs.code.outputs.lambda_bucket }}
+      matrix: ${{ needs.setup.outputs.lambdas_dirs }}
