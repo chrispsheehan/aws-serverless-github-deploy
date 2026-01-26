@@ -62,20 +62,78 @@ jobs:
         id: appspec
         shell: bash
         run: |
-          lambda_function_name="${{ inputs.environment }}-${{ github.event.repository.name }}-${{ matrix.value }}"
           lambda_zip_key="${{ inputs.lambda_version }}/${{ matrix.value }}.zip"
           lambda_appspec_key="${{ inputs.lambda_version }}/${{ matrix.value }}-appspec.zip"
-          echo "lambda_function_name=$lambda_function_name" >> $GITHUB_OUTPUT
           echo "lambda_zip_key=$lambda_zip_key" >> $GITHUB_OUTPUT
           echo "lambda_appspec_key=$lambda_appspec_key" >> $GITHUB_OUTPUT
+
+      - name: Get ${{ matrix.value }} infra
+        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+        id: get-infra
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.value }}
+          tg_action: init
+
+      - name: Get infra detail
+        id: get_infra_detail
+        env:
+          TG_OUTPUTS: ${{ steps.get-infra.outputs.tg_outputs  }}
+        run: |
+          echo "lambda_function_name=$(echo $TG_OUTPUTS | jq -r '.lambda_function_name.value')" >> $GITHUB_OUTPUT
+          echo "lambda_alias_name=$(echo $TG_OUTPUTS | jq -r '.lambda_alias_name.value')" >> $GITHUB_OUTPUT
 
       - name: Publish new lambda version
         id: publish
         uses: chrispsheehan/just-aws-oidc-action@0.3.0
         env:
           BUCKET_NAME: ${{ inputs.lambda_bucket }}
-          FUNCTION_NAME: ${{ steps.appspec.outputs.lambda_function_name }}
+          FUNCTION_NAME: ${{ steps.get_infra_detail.outputs.lambda_function_name }}
           LAMBDA_ZIP_KEY: ${{ steps.appspec.outputs.lambda_zip_key }}
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           just_action: lambda-create-version
+
+      - name: Get current lambda version
+        id: get-version
+        uses: chrispsheehan/just-aws-oidc-action@0.3.0
+        env:
+          FUNCTION_NAME: ${{ steps.get_infra_detail.outputs.lambda_function_name }}
+          ALIAS_NAME: ${{ steps.get_infra_detail.outputs.lambda_alias_name }}
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          just_action: lambda-get-version
+
+      - name: Upload AppSpec bundle
+        uses: chrispsheehan/just-aws-oidc-action@0.3.0
+        env:
+          BUCKET_NAME: ${{ inputs.lambda_bucket }}
+          FUNCTION_NAME: ${{ steps.get_infra_detail.outputs.lambda_function_name }}
+          ALIAS_NAME: ${{ steps.get_infra_detail.outputs.lambda_alias_name }}
+          CURRENT_VERSION: ${{ steps.get-version.outputs.just_outputs }}
+          NEW_VERSION: ${{ steps.publish.outputs.just_outputs }}
+          APP_SPEC_FILE: ${{ github.workspace }}/appspec.yml
+          APP_SPEC_KEY: ${{ steps.appspec.outputs.lambda_appspec_key }}
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          just_action: lambda-upload-bundle
+
+      - name: Run CodeDeploy
+        uses: chrispsheehan/just-aws-oidc-action@0.3.0
+        env:
+          FUNCTION_NAME: ${{ steps.get_infra_detail.outputs.lambda_function_name }}
+          BUCKET_NAME: ${{ inputs.lambda_bucket }}
+          APP_SPEC_KEY: ${{ steps.appspec.outputs.lambda_appspec_key }}
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          just_action: lambda-deploy
+
+      - name: Prune old lambda versions
+        uses: chrispsheehan/just-aws-oidc-action@0.3.0
+        env:
+          KEEP: ${{ inputs.lambda_keep }}
+          FUNCTION_NAME: ${{ steps.get_infra_detail.outputs.lambda_function_name }}
+          ALIAS_NAME: ${{ steps.get_infra_detail.outputs.lambda_alias_name }}
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          just_action: lambda-prune
