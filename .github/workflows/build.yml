@@ -4,10 +4,6 @@ on:
       environment:
         required: true
         type: string
-      lambda_bucket:
-        description: "Bucket containing lambda zips"
-        required: true
-        type: string
       version:
         required: true
         type: string
@@ -29,7 +25,30 @@ env:
   AWS_OIDC_ROLE_ARN: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/aws-serverless-github-deploy-${{ inputs.environment }}-github-oidc-role
 
 jobs:
+  bucket:
+    runs-on: ubuntu-latest
+    outputs:
+      lambda_bucket_name: ${{ steps.get_bucket_name.outputs.bucket_lambda }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get lambda code bucket
+        id: deploy_bucket
+        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          tg_directory: infra/live/${{ inputs.environment }}/aws/code_bucket
+          tg_action: init
+
+      - name: Get bucket name
+        id: get_bucket_name
+        env:
+          TG_OUTPUTS: ${{ steps.deploy_bucket.outputs.tg_outputs  }}
+        run: |
+          echo "bucket_lambda=$(echo $TG_OUTPUTS | jq -r '.bucket_lambda.value')" >> $GITHUB_OUTPUT
+
   lambdas:
+    needs: bucket
     runs-on: ubuntu-latest
     strategy:
       fail-fast: true
@@ -49,7 +68,7 @@ jobs:
         uses: chrispsheehan/just-aws-oidc-action@0.3.0
         env:
           LAMBDA_NAME: ${{ matrix.value }}
-          BUCKET_NAME: ${{ inputs.lambda_bucket }}
+          BUCKET_NAME: ${{ needs.bucket.outputs.lambda_bucket_name }}
           VERSION: ${{ inputs.version }}
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}

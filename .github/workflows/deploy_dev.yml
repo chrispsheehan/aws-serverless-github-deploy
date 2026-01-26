@@ -49,7 +49,6 @@ jobs:
     with:
       environment: dev
       version: ${{ github.sha }}
-      lambda_bucket: ${{ needs.code.outputs.lambda_bucket }}
       matrix: ${{ needs.setup.outputs.lambdas_dirs }}
 
   deploy:
