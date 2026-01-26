@@ -36,7 +36,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: check Lambda version
-        uses: ./.github/actions/just-action
+        uses: chrispsheehan/just-aws-oidc-action@0.3.0
         env:
           BUCKET_NAME: ${{ inputs.lambda_bucket }}
           VERSION: ${{ inputs.lambda_version }}

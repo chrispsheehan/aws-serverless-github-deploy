@@ -37,7 +37,7 @@ jobs:
 
       - name: Get Lambda Directories
         id: lambda_dirs
-        uses: ./.github/actions/just-action
+        uses: chrispsheehan/just-aws-oidc-action@0.3.0
         with:
           just_action: lambda-get-directories
 
