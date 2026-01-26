@@ -54,7 +54,8 @@ jobs:
 
   deploy:
     uses: ./.github/workflows/deploy.yml
-    needs: 
+    needs:
+      - code 
       - build
       - infra
       - setup
