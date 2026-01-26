@@ -45,7 +45,7 @@ jobs:
         id: lambdas_dirs
         uses: chrispsheehan/just-aws-oidc-action@0.1.3
         with:
-          just_action: lambdas-get-directories
+          just_action: lambda-get-directories
 
   lambdas:
     needs: setup
