@@ -93,7 +93,9 @@ jobs:
 
   build-lambdas:
     if: ${{ needs.check.outputs.lambdas == 'true' }}
-    needs: setup-lambdas
+    needs: 
+      - check
+      - setup-lambdas
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
