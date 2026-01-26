@@ -31,7 +31,7 @@ runs:
 
     - name: Publish new lambda version
       id: publish
-      uses: chrispsheehan/just-aws-oidc-action@0.1.3
+      uses: ./.github/actions/just-action
       env:
         BUCKET_NAME: ${{ inputs.lambda_bucket }}
         FUNCTION_NAME: ${{ steps.vars.outputs.lambda_function_name }}

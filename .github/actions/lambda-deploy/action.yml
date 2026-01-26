@@ -34,7 +34,7 @@ runs:
 
     - name: Get current lambda version
       id: get-version
-      uses: chrispsheehan/just-aws-oidc-action@0.1.3
+      uses: ./.github/actions/just-action
       env:
         FUNCTION_NAME: ${{ steps.vars.outputs.lambda_function_name }}
         ALIAS_NAME: ${{ steps.vars.outputs.lambda_alias_name }}
@@ -44,7 +44,7 @@ runs:
 
     - name: Publish new lambda version
       id: publish
-      uses: chrispsheehan/just-aws-oidc-action@0.1.3
+      uses: ./.github/actions/just-action
       env:
         BUCKET_NAME: ${{ inputs.lambda_bucket }}
         FUNCTION_NAME: ${{ steps.vars.outputs.lambda_function_name }}
@@ -54,7 +54,7 @@ runs:
         just_action: lambda-create-version
 
     - name: Upload AppSpec bundle
-      uses: chrispsheehan/just-aws-oidc-action@0.1.3
+      uses: ./.github/actions/just-action
       env:
         BUCKET_NAME: ${{ inputs.lambda_bucket }}
         FUNCTION_NAME: ${{ steps.vars.outputs.lambda_function_name }}
@@ -68,7 +68,7 @@ runs:
         just_action: lambda-upload-bundle
 
     - name: Run CodeDeploy
-      uses: chrispsheehan/just-aws-oidc-action@0.1.3
+      uses: ./.github/actions/just-action
       env:
         FUNCTION_NAME: ${{ steps.vars.outputs.lambda_function_name }}
         BUCKET_NAME: ${{ inputs.lambda_bucket }}
@@ -78,7 +78,7 @@ runs:
         just_action: lambda-deploy
 
     - name: Prune old lambda versions
-      uses: chrispsheehan/just-aws-oidc-action@0.1.3
+      uses: ./.github/actions/just-action
       env:
         KEEP: ${{ inputs.lambda_keep }}
         FUNCTION_NAME: ${{ steps.vars.outputs.lambda_function_name }}
