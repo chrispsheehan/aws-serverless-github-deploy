@@ -77,5 +77,5 @@ jobs:
           FUNCTION_NAME: ${{ steps.appspec.outputs.lambda_function_name }}
           LAMBDA_ZIP_KEY: ${{ steps.appspec.outputs.lambda_zip_key }}
         with:
-          aws_oidc_role_arn: ${{ inputs.aws_oidc_role_arn }}
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           just_action: lambda-create-version
