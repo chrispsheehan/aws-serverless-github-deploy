@@ -98,7 +98,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        value: ${{ fromJson(needs.setup.outputs.lambda_dirs) }}
+        value: ${{ fromJson(needs.setup-lambdas.outputs.lambda_dirs) }}
     steps:
       - uses: actions/checkout@v4
 
