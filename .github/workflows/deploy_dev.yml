@@ -31,7 +31,9 @@ jobs:
       infra_version: ${{ github.sha }}
 
   infra:
-    needs: code
+    needs: 
+      - code
+      - setup
     uses: ./.github/workflows/infra.yml
     with:
       environment: dev
