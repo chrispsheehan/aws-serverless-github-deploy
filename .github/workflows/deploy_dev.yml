@@ -41,11 +41,12 @@ jobs:
       lambda_bucket: ${{ needs.code.outputs.lambda_bucket }}
       matrix: ${{ needs.setup.outputs.lambdas_dirs }}
 
-  # build:
-  #   uses: ./.github/workflows/build.yml
-  #   needs: 
-  #     - code
-  #     - infra
-  #   with:
-  #     environment: dev
-  #     version: ${{ github.sha }}
+  build:
+    uses: ./.github/workflows/build.yml
+    needs: 
+      - code
+    with:
+      environment: dev
+      version: ${{ github.sha }}
+      lambda_bucket: ${{ needs.code.outputs.lambda_bucket }}
+      matrix: ${{ needs.setup.outputs.lambdas_dirs }}

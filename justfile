@@ -107,23 +107,14 @@ lambda-get-directories:
       | jq -s -c .
 
 
-lambda-upload:
-    #!/usr/bin/env bash
-    set -euo pipefail
-
-    LAMBDA_DIR="{{justfile_directory()}}/lambdas"
-    echo "📤 Uploading .zip files from $LAMBDA_DIR to s3://$BUCKET_NAME/$VERSION/"
-
-    aws s3 cp "$LAMBDA_DIR" "s3://$BUCKET_NAME/$VERSION/" \
-        --recursive \
-        --exclude "*" \
-        --include "*.zip" \
-        --storage-class STANDARD
-
-
 lambda-build:
     #!/usr/bin/env bash
     set -euo pipefail
+
+    if [[ -z "$LAMBDA_NAME" ]]; then
+        echo "❌ LAMBDA_NAME environment variable is not set."
+        exit 1
+    fi
 
     python3 -m venv venv
     source venv/bin/activate
@@ -133,19 +124,40 @@ lambda-build:
     echo "🔄 Cleaning previous builds..."
     rm -rf $LAMBDA_BUILD_DIR
 
-    echo "🔍 Discovering lambda directories..."
-    just lambda-get-directories \
-      | jq -r '.[]' \
-      | while read -r dir; do
-            echo "📦 Building Lambda in $dir..."
-            pip install --target "$LAMBDA_BUILD_DIR/$dir" -r "{{PROJECT_DIR}}/{{LAMBDA_DIR}}/$dir/requirements.txt"
-            cp "{{PROJECT_DIR}}/{{LAMBDA_DIR}}/$dir"/*.py "$LAMBDA_BUILD_DIR/$dir/"
-            (
-                cd "$LAMBDA_BUILD_DIR/$dir"
-                zip -r "../../$dir.zip" . > /dev/null
-            )
-            echo "✅ Done: lambdas/$dir.zip"
-        done
+    echo "📦 Building $LAMBDA_NAME Lambda..."
+    pip install --target "$LAMBDA_BUILD_DIR/$LAMBDA_NAME" -r "{{PROJECT_DIR}}/{{LAMBDA_DIR}}/$LAMBDA_NAME/requirements.txt"
+    cp "{{PROJECT_DIR}}/{{LAMBDA_DIR}}/$LAMBDA_NAME"/*.py "$LAMBDA_BUILD_DIR/$LAMBDA_NAME/"
+    (
+        cd "$LAMBDA_BUILD_DIR/$LAMBDA_NAME"
+        zip -r "../../$LAMBDA_NAME.zip" . > /dev/null
+    )
+    echo "✅ Done: lambdas/$LAMBDA_NAME.zip"
+
+
+lambda-upload:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "$LAMBDA_NAME" ]]; then
+        echo "❌ LAMBDA_NAME environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "$BUCKET_NAME" ]]; then
+        echo "❌ BUCKET_NAME environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "$VERSION" ]]; then
+        echo "❌ VERSION environment variable is not set."
+        exit 1
+    fi
+
+    LAMBDA_ZIP="{{PROJECT_DIR}}/{{LAMBDA_DIR}}/$LAMBDA_NAME.zip"
+    echo "📤 Uploading $LAMBDA_ZIP to s3://$BUCKET_NAME/$VERSION/api.zip"
+
+    aws s3 cp "$LAMBDA_ZIP" "s3://$BUCKET_NAME/$VERSION/api.zip" \
+        --storage-class STANDARD
 
 
 lambda-get-version:

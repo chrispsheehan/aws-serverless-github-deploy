@@ -4,9 +4,17 @@ on:
       environment:
         required: true
         type: string
+      lambda_bucket:
+        description: "Bucket containing lambda zips"
+        required: true
+        type: string
       version:
         required: true
         type: string
+      matrix:
+        required: false
+        type: string
+        default: "[]"
 
 concurrency: # only run one instance of workflow at any one time
   group: ${{ github.workflow }}-${{ inputs.environment }}
@@ -21,38 +29,29 @@ env:
   AWS_OIDC_ROLE_ARN: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/aws-serverless-github-deploy-${{ inputs.environment }}-github-oidc-role
 
 jobs:
-  setup:
-    runs-on: ubuntu-latest
-    outputs:
-      lambdas_dirs: ${{ steps.lambdas_dirs.outputs.just_outputs }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Get lambdas Directories
-        id: lambdas_dirs
-        uses: ./.github/actions/just-action
-        with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          just_action: lambda-get-directories
-
   lambdas:
-    needs: setup
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        value: ${{ fromJson(needs.setup.outputs.lambdas_dirs) }}
+        value: ${{ fromJson(inputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Deploy ${{ matrix.value }} infra
-        run: |
-          echo "Deploying ${{ matrix.value }} Lambda"
-      # - uses: ./.github/actions/deploy-lambda
-      #   with:
-      #     aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-      #     infra_version: ${{ inputs.infra_version }}
-      #     tg_directory: infra/live/${{ inputs.environment }}/aws/consumer
-      #     lambda_bucket: ${{ inputs.lambda_bucket }}
-      #     lambda_version: ${{ inputs.lambda_version }}
-      #     lambda_keep: ${{ inputs.lambda_keep }}
+      - name: "Build ${{ matrix.value }} Lambda"
+        uses: ./.github/actions/just-action
+        env:
+          LAMBDA_NAME: ${{ matrix.value }}
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          just_action: lambda-build
+
+      - name: "Upload ${{ matrix.value }} Lambda"
+        uses: ./.github/actions/just-action
+        env:
+          LAMBDA_NAME: ${{ matrix.value }}
+          BUCKET_NAME: ${{ inputs.lambda_bucket }}
+          VERSION: ${{ inputs.version }}
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          just_action: lambda-upload
