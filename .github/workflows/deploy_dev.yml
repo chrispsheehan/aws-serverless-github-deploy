@@ -51,6 +51,13 @@ jobs:
       version: ${{ github.sha }}
       matrix: ${{ needs.setup.outputs.lambdas_dirs }}
 
+  get_build:
+    needs: build
+    uses: ./.github/workflows/build_get.yml
+    with:
+      environment: dev
+      version: ${{ github.sha }}
+
   deploy:
     uses: ./.github/workflows/deploy.yml
     needs:
