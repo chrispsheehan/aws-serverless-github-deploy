@@ -2,9 +2,6 @@ name: Dev Deploy
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - sqs-consumer-lambda
 
 permissions:
   id-token: write
