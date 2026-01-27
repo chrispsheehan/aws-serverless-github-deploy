@@ -75,20 +75,3 @@ data "aws_iam_policy_document" "codedeploy_lambda" {
   }
 }
 
-data "aws_iam_policy_document" "lambda_iam_policy" {
-  statement {
-    sid = "AllowLambdaCloudwatchLogGroupPut"
-
-    actions = [
-      "logs:CreateLogStream",
-      "logs:PutLogEvents"
-    ]
-
-    effect = "Allow"
-
-    resources = [
-      "${aws_cloudwatch_log_group.lambda_cloudwatch_group.arn}",
-      "${aws_cloudwatch_log_group.lambda_cloudwatch_group.arn}:*"
-    ]
-  }
-}
