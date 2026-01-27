@@ -59,6 +59,7 @@ jobs:
     uses: ./.github/workflows/deploy.yml
     needs:
       - get_build
+      - infra
     with:
       environment: dev
       lambda_version: ${{ needs.get_build.outputs.lambda_version }}
