@@ -31,6 +31,8 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       lambda_bucket_name: ${{ steps.get_bucket_name.outputs.bucket_lambda }}
+      lambda_version_files: ${{ steps.get_build_files.outputs.just_outputs }}
+
     steps:
       - uses: actions/checkout@v4
         with:
@@ -59,3 +61,13 @@ jobs:
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           just_action: check-version
+
+      - name: Get build files
+        id: get_build_files
+        uses: chrispsheehan/just-aws-oidc-action@0.3.0
+        env:
+          BUCKET_NAME: ${{ steps.get_bucket_name.outputs.bucket_lambda }}
+          VERSION: ${{ inputs.version }}
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          just_action: get-version-files

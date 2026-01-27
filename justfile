@@ -9,7 +9,7 @@ LAMBDA_DIR := "lambdas"
 lambda-invoke:
     #!/bin/bash
     set -euo pipefail
-    
+
     if [[ -z "$LAMBDA_NAME" ]]; then
         echo "Error: LAMBDA_NAME environment variable is not set."
         exit 1
@@ -97,6 +97,34 @@ check-version:
         echo "❌ No files found under $FULL_BUCKET_NAME"
         exit 1
     fi
+
+
+get-version-files:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "$BUCKET_NAME" ]]; then
+        echo "❌ BUCKET_NAME environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "$VERSION" ]]; then
+        echo "❌ VERSION environment variable is not set."
+        exit 1
+    fi
+
+    FULL_BUCKET_PATH="s3://$BUCKET_NAME/$VERSION/"
+
+    aws s3api head-bucket --bucket "$BUCKET_NAME" >/dev/null
+    aws s3 ls "$FULL_BUCKET_PATH" >/dev/null
+
+    aws s3 ls "$FULL_BUCKET_PATH" --recursive \
+      | awk '{print $4}' \
+      | xargs -n1 basename \
+      | sed 's/\.[^.]*$//' \
+      | grep -v 'appspec' \
+      | jq -R . \
+      | jq -s -c .
 
 
 lambda-get-directories:

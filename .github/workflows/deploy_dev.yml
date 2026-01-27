@@ -61,10 +61,9 @@ jobs:
   deploy:
     uses: ./.github/workflows/deploy.yml
     needs:
-      - get_build
       - setup
     with:
       environment: dev
       lambda_version: ${{ needs.get_build.outputs.lambda_version }}
       lambda_bucket: ${{ needs.get_build.outputs.lambda_bucket }}
-      matrix: ${{ needs.setup.outputs.lambdas_dirs }}
+      matrix: ${{ needs.get_build.outputs.lambda_version_files }}
