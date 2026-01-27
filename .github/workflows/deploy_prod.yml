@@ -12,15 +12,15 @@ jobs:
     uses: ./.github/workflows/build_get.yml
     with:
       environment: ci
-      version: 0.4.0
+      version: 0.5.0
 
   infra:
     needs: 
       - get_build
     uses: ./.github/workflows/infra.yml
     with:
-      environment: dev
-      infra_version: ${{ github.sha }}
+      environment: prod
+      infra_version: 0.5.0
       lambda_bucket: ${{ needs.get_build.outputs.lambda_bucket }}
       matrix: ${{ needs.get_build.outputs.lambda_version_files }}
 
@@ -30,7 +30,7 @@ jobs:
       - get_build
       - infra
     with:
-      environment: dev
+      environment: prod
       lambda_version: ${{ needs.get_build.outputs.lambda_version }}
       lambda_bucket: ${{ needs.get_build.outputs.lambda_bucket }}
       matrix: ${{ needs.get_build.outputs.lambda_version_files }}
