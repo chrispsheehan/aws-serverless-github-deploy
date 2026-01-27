@@ -9,6 +9,7 @@ LAMBDA_DIR := "lambdas"
 lambda-invoke:
     #!/bin/bash
     set -euo pipefail
+    
     if [[ -z "$LAMBDA_NAME" ]]; then
         echo "Error: LAMBDA_NAME environment variable is not set."
         exit 1
@@ -226,6 +227,18 @@ lambda-get-code-deploy-group:
 
 lambda-deploy:
     #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "$APP_SPEC_KEY" ]]; then
+        echo "❌ APP_SPEC_KEY environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "$BUCKET_NAME" ]]; then
+        echo "❌ BUCKET_NAME environment variable is not set."
+        exit 1
+    fi
+
     CODE_DEPLOY_APP_NAME=$(just lambda-get-code-deploy-app)
     CODE_DEPLOY_GROUP_NAME=$(just lambda-get-code-deploy-group)
 
@@ -274,6 +287,23 @@ lambda-deploy:
 
 lambda-prune:
     #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "$ALIAS_NAME" ]]; then
+        echo "❌ ALIAS_NAME environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "$FUNCTION_NAME" ]]; then
+        echo "❌ FUNCTION_NAME environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "$AWS_REGION" ]]; then
+        echo "❌ AWS_REGION environment variable is not set."
+        exit 1
+    fi
+
     live_version=$(aws lambda get-alias \
         --function-name "$FUNCTION_NAME" \
         --name "$ALIAS_NAME" \
@@ -298,5 +328,5 @@ lambda-prune:
     fi
     for v in $to_delete; do
         echo "Deleting $FUNCTION_NAME:$v"
-        aws lambda delete-function --function-name "$FUNCTION_NAME" --qualifier "$v" --region "$REGION"
+        aws lambda delete-function --function-name "$FUNCTION_NAME" --qualifier "$v" --region "$AWS_REGION"
     done
