@@ -14,6 +14,9 @@ on:
       lambda_version:
         description: "Valid lambda version"
         value: ${{ inputs.version }}
+      lambda_version_files:
+        description: "List of lambda version files"
+        value: ${{ jobs.lambdas.outputs.lambda_version_files }}
 
 concurrency: # only run one instance of workflow at any one time
   group: ${{ github.workflow }}-${{ inputs.environment }}
