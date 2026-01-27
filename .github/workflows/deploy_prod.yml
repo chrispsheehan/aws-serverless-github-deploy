@@ -1,0 +1,36 @@
+name: Prod Deploy
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: write
+
+jobs:
+  get_build:
+    uses: ./.github/workflows/build_get.yml
+    with:
+      environment: ci
+      version: 0.5.0
+
+  infra:
+    needs: 
+      - get_build
+    uses: ./.github/workflows/infra.yml
+    with:
+      environment: prod
+      infra_version: 0.5.0
+      lambda_bucket: ${{ needs.get_build.outputs.lambda_bucket }}
+      matrix: ${{ needs.get_build.outputs.lambda_version_files }}
+
+  deploy:
+    uses: ./.github/workflows/deploy.yml
+    needs: 
+      - get_build
+      - infra
+    with:
+      environment: prod
+      lambda_version: ${{ needs.get_build.outputs.lambda_version }}
+      lambda_bucket: ${{ needs.get_build.outputs.lambda_bucket }}
+      matrix: ${{ needs.get_build.outputs.lambda_version_files }}

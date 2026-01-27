@@ -1,0 +1,66 @@
+name: Dev Deploy
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: write
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      lambdas_dirs: ${{ steps.lambdas_dirs.outputs.just_outputs }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get lambdas Directories
+        id: lambdas_dirs
+        uses: chrispsheehan/just-aws-oidc-action@0.3.0
+        with:
+          just_action: lambda-get-directories
+
+  code:
+    uses: ./.github/workflows/infra_releases.yml
+    with:
+      environment: dev
+      infra_version: ${{ github.sha }}
+
+  infra:
+    needs: 
+      - code
+      - setup
+    uses: ./.github/workflows/infra.yml
+    with:
+      environment: dev
+      infra_version: ${{ github.sha }}
+      lambda_bucket: ${{ needs.code.outputs.lambda_bucket }}
+      matrix: ${{ needs.setup.outputs.lambdas_dirs }}
+
+  build:
+    uses: ./.github/workflows/build.yml
+    needs: 
+      - code
+      - setup
+    with:
+      environment: dev
+      version: ${{ github.sha }}
+      matrix: ${{ needs.setup.outputs.lambdas_dirs }}
+
+  get_build:
+    needs: build
+    uses: ./.github/workflows/build_get.yml
+    with:
+      environment: dev
+      version: ${{ github.sha }}
+
+  deploy:
+    uses: ./.github/workflows/deploy.yml
+    needs:
+      - get_build
+    with:
+      environment: dev
+      lambda_version: ${{ needs.get_build.outputs.lambda_version }}
+      lambda_bucket: ${{ needs.get_build.outputs.lambda_bucket }}
+      matrix: ${{ needs.get_build.outputs.lambda_version_files }}

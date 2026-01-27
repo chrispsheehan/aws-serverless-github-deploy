@@ -8,7 +8,8 @@ locals {
     "apigateway:*",
     "codedeploy:*",
     "application-autoscaling:*",
-    "cloudwatch:*"
+    "cloudwatch:*",
+    "sqs:*"
   ]
 }
 

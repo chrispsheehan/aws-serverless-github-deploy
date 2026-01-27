@@ -3,21 +3,26 @@ _default:
 
 
 PROJECT_DIR := justfile_directory()
+LAMBDA_DIR := "lambdas"
 
-clean-terragrunt-cache:
-    @echo "Cleaning up .terraform directories in {{PROJECT_DIR}}..."
-    find {{PROJECT_DIR}} -type d -name ".terraform" -exec rm -rf {} +
-    @echo "Cleaning up .terraform.lock.hcl files in {{PROJECT_DIR}}..."
-    find {{PROJECT_DIR}} -type f -name ".terraform.lock.hcl" -exec rm -f {} +
-    @echo "Cleaning up .terragrunt-cache directories in {{PROJECT_DIR}}..."
-    find {{PROJECT_DIR}} -type d -name ".terragrunt-cache" -exec rm -rf {} +
-    @echo "Cleaning up terragrunt-debug.tfvars.json files in {{PROJECT_DIR}}..."
-    find {{PROJECT_DIR}} -type f -name "terragrunt-debug.tfvars.json" -exec rm -f {} +
+
+tf-lint-check:
+    #!/bin/bash
+    set -euo pipefail
+    find infra/modules -type f -name '*.tf' -print0 \
+      | xargs -0 -n1 dirname \
+      | sort -u \
+      | while read -r dir; do
+          echo "🔍 Running tflint in $dir"
+          tflint --chdir="$dir" --force
+        done
+
 
 
 lambda-invoke:
     #!/bin/bash
     set -euo pipefail
+
     if [[ -z "$LAMBDA_NAME" ]]; then
         echo "Error: LAMBDA_NAME environment variable is not set."
         exit 1
@@ -107,46 +112,95 @@ check-version:
     fi
 
 
-backend-upload:
+get-version-files:
     #!/usr/bin/env bash
     set -euo pipefail
 
-    BACKEND_DIR="{{justfile_directory()}}/backend"
+    if [[ -z "$BUCKET_NAME" ]]; then
+        echo "❌ BUCKET_NAME environment variable is not set."
+        exit 1
+    fi
 
-    echo "📤 Uploading .zip files from $BACKEND_DIR to s3://$BUCKET_NAME/$VERSION/"
+    if [[ -z "$VERSION" ]]; then
+        echo "❌ VERSION environment variable is not set."
+        exit 1
+    fi
 
-    aws s3 cp "$BACKEND_DIR" "s3://$BUCKET_NAME/$VERSION/" \
-        --recursive \
-        --exclude "*" \
-        --include "*.zip" \
-        --storage-class STANDARD
+    FULL_BUCKET_PATH="s3://$BUCKET_NAME/$VERSION/"
+
+    aws s3api head-bucket --bucket "$BUCKET_NAME" >/dev/null
+    aws s3 ls "$FULL_BUCKET_PATH" >/dev/null
+
+    aws s3 ls "$FULL_BUCKET_PATH" --recursive \
+      | awk '{print $4}' \
+      | xargs -n1 basename \
+      | sed 's/\.[^.]*$//' \
+      | grep -v 'appspec' \
+      | jq -R . \
+      | jq -s -c .
 
 
-backend-build:
+lambda-get-directories:
     #!/usr/bin/env bash
     set -euo pipefail
+    find "{{LAMBDA_DIR}}" -mindepth 1 -maxdepth 1 -type d \
+      | xargs -I{} basename "{}" \
+      | jq -R . \
+      | jq -s -c .
+
+
+lambda-build:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "$LAMBDA_NAME" ]]; then
+        echo "❌ LAMBDA_NAME environment variable is not set."
+        exit 1
+    fi
 
     python3 -m venv venv
     source venv/bin/activate
 
-    BACKEND_DIR="{{justfile_directory()}}/backend"
-    BACKEND_BUILD_DIR="$BACKEND_DIR/build"
+    LAMBDA_BUILD_DIR="{{PROJECT_DIR}}/{{LAMBDA_DIR}}/build"
 
     echo "🔄 Cleaning previous builds..."
-    rm -rf $BACKEND_BUILD_DIR
+    rm -rf $LAMBDA_BUILD_DIR
 
-    for dir in $(find "$BACKEND_DIR" -mindepth 1 -maxdepth 1 -type d); do
-        app_name=$(basename "$dir")
-        echo "📦 Building $app_name Lambda..."
-        mkdir -p "$BACKEND_BUILD_DIR/$app_name"
-        pip install --target "$BACKEND_BUILD_DIR/$app_name" -r "$dir/requirements.txt"
-        cp "$dir"/*.py "$BACKEND_BUILD_DIR/$app_name/"
-        (
-            cd "$BACKEND_BUILD_DIR/$app_name"
-            zip -r "../../$app_name.zip" . > /dev/null
-        )
-        echo "✅ Done: backend/$app_name.zip"
-    done
+    echo "📦 Building $LAMBDA_NAME Lambda..."
+    pip install --target "$LAMBDA_BUILD_DIR/$LAMBDA_NAME" -r "{{PROJECT_DIR}}/{{LAMBDA_DIR}}/$LAMBDA_NAME/requirements.txt"
+    cp "{{PROJECT_DIR}}/{{LAMBDA_DIR}}/$LAMBDA_NAME"/*.py "$LAMBDA_BUILD_DIR/$LAMBDA_NAME/"
+    (
+        cd "$LAMBDA_BUILD_DIR/$LAMBDA_NAME"
+        zip -r "../../$LAMBDA_NAME.zip" . > /dev/null
+    )
+    echo "✅ Done: lambdas/$LAMBDA_NAME.zip"
+
+
+lambda-upload:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "$LAMBDA_NAME" ]]; then
+        echo "❌ LAMBDA_NAME environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "$BUCKET_NAME" ]]; then
+        echo "❌ BUCKET_NAME environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "$VERSION" ]]; then
+        echo "❌ VERSION environment variable is not set."
+        exit 1
+    fi
+
+    LAMBDA_ZIP="{{PROJECT_DIR}}/{{LAMBDA_DIR}}/$LAMBDA_NAME.zip"
+    echo "📤 Uploading $LAMBDA_ZIP to s3://$BUCKET_NAME/$VERSION/$LAMBDA_NAME.zip"
+
+    aws s3 cp "$LAMBDA_ZIP" "s3://$BUCKET_NAME/$VERSION/$LAMBDA_NAME.zip" \
+        --storage-class STANDARD
+
 
 lambda-get-version:
     #!/usr/bin/env bash
@@ -186,8 +240,49 @@ lambda-upload-bundle:
     aws s3 cp $LOCAL_APP_SPEC_ZIP "s3://${BUCKET_NAME}/${APP_SPEC_KEY}"
 
 
+lambda-get-function-arn:
+    #!/usr/bin/env bash
+    aws lambda get-function \
+        --function-name $FUNCTION_NAME \
+        --query 'Configuration.FunctionArn' \
+        --output text
+
+
+lambda-get-code-deploy-app:
+    #!/usr/bin/env bash
+    FUNCTION_ARN=$(just lambda-get-function-arn)
+    aws lambda list-tags \
+        --resource "$FUNCTION_ARN" \
+        --query 'Tags.CodeDeployApplication' \
+        --output text
+
+
+lambda-get-code-deploy-group:
+    #!/usr/bin/env bash
+    FUNCTION_ARN=$(just lambda-get-function-arn)
+    aws lambda list-tags \
+        --resource "$FUNCTION_ARN" \
+        --query 'Tags.CodeDeployGroup' \
+        --output text
+
+
 lambda-deploy:
     #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "$APP_SPEC_KEY" ]]; then
+        echo "❌ APP_SPEC_KEY environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "$BUCKET_NAME" ]]; then
+        echo "❌ BUCKET_NAME environment variable is not set."
+        exit 1
+    fi
+
+    CODE_DEPLOY_APP_NAME=$(just lambda-get-code-deploy-app)
+    CODE_DEPLOY_GROUP_NAME=$(just lambda-get-code-deploy-group)
+
     DEPLOYMENT_ID=$(aws deploy create-deployment \
         --application-name "$CODE_DEPLOY_APP_NAME" \
         --deployment-group-name "$CODE_DEPLOY_GROUP_NAME" \
@@ -233,6 +328,23 @@ lambda-deploy:
 
 lambda-prune:
     #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "$ALIAS_NAME" ]]; then
+        echo "❌ ALIAS_NAME environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "$FUNCTION_NAME" ]]; then
+        echo "❌ FUNCTION_NAME environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "$AWS_REGION" ]]; then
+        echo "❌ AWS_REGION environment variable is not set."
+        exit 1
+    fi
+
     live_version=$(aws lambda get-alias \
         --function-name "$FUNCTION_NAME" \
         --name "$ALIAS_NAME" \
@@ -257,5 +369,5 @@ lambda-prune:
     fi
     for v in $to_delete; do
         echo "Deleting $FUNCTION_NAME:$v"
-        aws lambda delete-function --function-name "$FUNCTION_NAME" --qualifier "$v" --region "$REGION"
+        aws lambda delete-function --function-name "$FUNCTION_NAME" --qualifier "$v" --region "$AWS_REGION"
     done

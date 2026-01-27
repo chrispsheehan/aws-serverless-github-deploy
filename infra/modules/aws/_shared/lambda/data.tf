@@ -2,6 +2,12 @@ data "aws_s3_bucket" "lambda_code" {
   bucket = var.lambda_bucket
 }
 
+data "archive_file" "bootstrap_lambda" {
+  type        = "zip"
+  source_file = "${path.module}/bootstrap/index.py"
+  output_path = "${path.module}/${local.lambda_bootstrap_zip_key}"
+}
+
 data "aws_iam_policy_document" "assume_role" {
   statement {
     effect = "Allow"
@@ -49,7 +55,7 @@ data "aws_iam_policy_document" "codedeploy_lambda" {
     effect  = "Allow"
     actions = ["s3:GetObject", "s3:GetObjectVersion"]
     resources = [
-      "arn:aws:s3:::${data.aws_s3_bucket.lambda_code.bucket}/${var.lambda_version}/*"
+      "arn:aws:s3:::${data.aws_s3_bucket.lambda_code.bucket}/*"
     ]
   }
 
@@ -59,11 +65,6 @@ data "aws_iam_policy_document" "codedeploy_lambda" {
     effect    = "Allow"
     actions   = ["s3:ListBucket", "s3:GetBucketLocation"]
     resources = ["arn:aws:s3:::${data.aws_s3_bucket.lambda_code.bucket}"]
-    condition {
-      test     = "StringLike"
-      variable = "s3:prefix"
-      values   = ["${var.lambda_version}/*"]
-    }
   }
 
   statement {
@@ -74,20 +75,3 @@ data "aws_iam_policy_document" "codedeploy_lambda" {
   }
 }
 
-data "aws_iam_policy_document" "lambda_iam_policy" {
-  statement {
-    sid = "AllowLambdaCloudwatchLogGroupPut"
-
-    actions = [
-      "logs:CreateLogStream",
-      "logs:PutLogEvents"
-    ]
-
-    effect = "Allow"
-
-    resources = [
-      "${aws_cloudwatch_log_group.lambda_cloudwatch_group.arn}",
-      "${aws_cloudwatch_log_group.lambda_cloudwatch_group.arn}:*"
-    ]
-  }
-}

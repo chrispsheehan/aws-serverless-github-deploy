@@ -1,0 +1,49 @@
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: environment reference i.e. 'prod' or 'dev'
+        required: true
+        type: string
+      infra_version:
+        description: "Version of infrastructure (terraform) to be deployed"
+        required: true
+        type: string
+      lambda_bucket:
+        description: "Bucket containing lambda zips"
+        required: true
+        type: string
+      matrix:
+        required: false
+        type: string
+        default: "[]"
+
+
+concurrency: # only run one instance of workflow at any one time
+  group: infra-${{ inputs.environment }}
+  cancel-in-progress: false
+
+permissions:
+  id-token: write
+  contents: write
+
+env:
+  AWS_OIDC_ROLE_ARN: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/aws-serverless-github-deploy-${{ inputs.environment }}-github-oidc-role
+
+jobs:
+  lambdas:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        value: ${{ fromJson(inputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.infra_version }}
+
+      - name: Deploy ${{ matrix.value }} infra
+        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.value }}

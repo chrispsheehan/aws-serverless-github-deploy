@@ -23,27 +23,50 @@ env:
   AWS_OIDC_ROLE_ARN: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/aws-serverless-github-deploy-${{ inputs.environment }}-github-oidc-role
 
 jobs:
-  api:
+  setup:
     runs-on: ubuntu-latest
+    outputs:
+      lambda_dirs: ${{ steps.lambda_dirs.outputs.just_outputs }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Destroy backend
-        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.0
+      - uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          tg_directory: infra/live/${{ inputs.environment }}/aws/api
+          tg_directory: infra/live/${{ inputs.environment }}/aws/oidc
+
+      - name: Get Lambda Directories
+        id: lambda_dirs
+        uses: chrispsheehan/just-aws-oidc-action@0.3.0
+        with:
+          just_action: lambda-get-directories
+
+  lambdas:
+    needs: setup
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        value: ${{ fromJson(needs.setup.outputs.lambda_dirs) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy ${{ matrix.value }} infra
+        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.value }}
           tg_action: destroy
 
   build:
     needs:
-      - api
+      - lambdas
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
       - name: Destroy code
-        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.0
+        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/code_bucket
