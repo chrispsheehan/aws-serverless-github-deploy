@@ -87,7 +87,7 @@ jobs:
           echo "$COMMITS" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-  apps:
+  get-apps:
     runs-on: ubuntu-latest
     outputs:
       lambdas_dirs: ${{ steps.lambdas_dirs.outputs.just_outputs }}
@@ -102,8 +102,9 @@ jobs:
 
   build:
     needs:
+      - create-tag
       - get-next-tag
-      - apps
+      - get-apps
     uses: ./.github/workflows/build.yml
     permissions:
       id-token: write
@@ -111,7 +112,7 @@ jobs:
     with:
       environment: ci
       version: ${{ needs.get-next-tag.outputs.tag }}
-      matrix: ${{ needs.apps.outputs.lambdas_dirs }}
+      matrix: ${{ needs.get-apps.outputs.lambdas_dirs }}
 
   release:
     runs-on: ubuntu-latest
