@@ -6,6 +6,19 @@ PROJECT_DIR := justfile_directory()
 LAMBDA_DIR := "lambdas"
 
 
+tf-link-check:
+    #!/bin/bash
+    set -euo pipefail
+    find infra/modules -type f -name '*.tf' -print0 \
+      | xargs -0 -n1 dirname \
+      | sort -u \
+      | while read -r dir; do
+          echo "🔍 Running tflint in $dir"
+          tflint --chdir="$dir" --force
+        done
+
+
+
 lambda-invoke:
     #!/bin/bash
     set -euo pipefail
