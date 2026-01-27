@@ -62,7 +62,6 @@ jobs:
     timeout-minutes: 2
     steps:
       - uses: actions/checkout@v4
-      - uses: extractions/setup-just@v3
       - uses: hashicorp/setup-terraform@v3
       - uses: autero1/action-terragrunt@v1.3.2
         with:
@@ -76,6 +75,24 @@ jobs:
         run: terragrunt hclfmt --terragrunt-check
         working-directory: infra
 
+  lint-terraform:
+    needs: check
+    runs-on: ubuntu-latest
+    if: ${{ needs.check.outputs.terraform == 'true' }}
+    name: Run terraform lint checks
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: terraform-linters/setup-tflint@v4
+
+      - name: Init TFLint
+        run: tflint --init
+
+      - name: "Run terraform lint checks"
+        uses: chrispsheehan/just-aws-oidc-action@0.3.0
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          just_action: tf-lint-check
 
   setup-lambdas:
     if: ${{ needs.check.outputs.lambdas == 'true' }}

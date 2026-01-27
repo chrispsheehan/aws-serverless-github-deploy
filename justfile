@@ -6,7 +6,7 @@ PROJECT_DIR := justfile_directory()
 LAMBDA_DIR := "lambdas"
 
 
-tf-link-check:
+tf-lint-check:
     #!/bin/bash
     set -euo pipefail
     find infra/modules -type f -name '*.tf' -print0 \

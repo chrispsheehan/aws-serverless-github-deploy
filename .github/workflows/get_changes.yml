@@ -9,6 +9,9 @@ on:
         default: "main"
         type: string
     outputs:
+      terraform:
+        description: "Whether terraform files changed"
+        value: ${{ jobs.changes.outputs.terraform == 'true' }}
       terragrunt:
         description: "Whether terragrunt files changed"
         value: ${{ jobs.changes.outputs.terragrunt == 'true' }}
@@ -23,6 +26,7 @@ jobs:
   changes:
     runs-on: ubuntu-latest
     outputs:
+      terraform: ${{ steps.filter.outputs.terraform }}
       terragrunt: ${{ steps.filter.outputs.terragrunt }}
       github: ${{ steps.filter.outputs.github }}
       frontend: ${{ steps.filter.outputs.frontend }}
@@ -39,6 +43,8 @@ jobs:
         uses: dorny/paths-filter@v3
         with:
           filters: |
+            terraform:
+              - 'infra/modules/**'
             terragrunt:
               - 'infra/**'
             github:
@@ -48,6 +54,9 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           list-files: none
           initial-fetch-depth: 100
+
+      - shell: bash
+        run: echo "terraform changes - ${{ steps.filter.outputs.terraform }}"
 
       - shell: bash
         run: echo "terragrunt changes - ${{ steps.filter.outputs.terragrunt }}"
