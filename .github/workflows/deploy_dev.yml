@@ -61,12 +61,10 @@ jobs:
   deploy:
     uses: ./.github/workflows/deploy.yml
     needs:
-      - code 
-      - build
-      - infra
+      - get_build
       - setup
     with:
       environment: dev
-      lambda_version: ${{ github.sha }}
-      lambda_bucket: ${{ needs.code.outputs.lambda_bucket }}
+      lambda_version: ${{ needs.get_build.outputs.lambda_version }}
+      lambda_bucket: ${{ needs.get_build.outputs.lambda_bucket }}
       matrix: ${{ needs.setup.outputs.lambdas_dirs }}

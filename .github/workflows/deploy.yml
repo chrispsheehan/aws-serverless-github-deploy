@@ -36,21 +36,7 @@ env:
   AWS_REGION: eu-west-2
 
 jobs:
-  check:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: check Lambda version
-        uses: chrispsheehan/just-aws-oidc-action@0.3.0
-        env:
-          BUCKET_NAME: ${{ inputs.lambda_bucket }}
-          VERSION: ${{ inputs.lambda_version }}
-        with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          just_action: check-version
-
   lambdas:
-    needs: check
     runs-on: ubuntu-latest
     strategy:
       fail-fast: true
