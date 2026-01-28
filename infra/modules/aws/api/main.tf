@@ -7,28 +7,32 @@ module "lambda_api" {
 
   lambda_name = "api"
 
+  environment_variables = {
+    DEBUG_DELAY_MS = 1000
+  }
+
   deployment_config = {
     strategy = "all_at_once"
   }
 
-  provisioned_config = {
-    fixed = 0 # cold starts only
-  }
+  # provisioned_config = {
+  #   fixed = 0 # cold starts only
+  # }
 
   # provisioned_config = {
   #   fixed                = 1 # always have 1 lambda ready to go
   #   reserved_concurrency = 2 # only allow 2 concurrent executions THIS ALSO SERVES AS A LIMIT TO AVOID THROTTLING
   # }
 
-  # provisioned_config = {
-  #   auto_scale = {
-  #     max                        = 5
-  #     min                        = 0
-  #     trigger_percent            = 70
-  #     scale_in_cooldown_seconds  = 60
-  #     scale_out_cooldown_seconds = 60
-  #   }
-  # }
+  provisioned_config = {
+    auto_scale = {
+      max                        = 5
+      min                        = 0
+      trigger_percent            = 70
+      scale_in_cooldown_seconds  = 60
+      scale_out_cooldown_seconds = 60
+    }
+  }
 }
 
 resource "aws_apigatewayv2_api" "http_api" {

@@ -34,6 +34,10 @@ resource "aws_lambda_function" "lambda" {
   # publish ONE immutable version so we can create an alias
   publish = true
 
+  environment {
+    variables = var.environment_variables
+  }
+
   # tags for identifying the code deploy app and its deployment config. Used in CI/CD pipelines.
   tags = {
     CodeDeployApplication = aws_codedeploy_app.app.name
