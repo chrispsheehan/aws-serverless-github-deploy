@@ -4,7 +4,7 @@ resource "aws_iam_role" "iam_for_lambda" {
 }
 
 resource "aws_iam_policy" "lambda_cloudwatch_logs" {
-  name   = "${var.project_name}-${var.environment}-lambda-cloudwatch-logs"
+  name   = "${local.lambda_name}-logs"
   policy = data.aws_iam_policy_document.lambda_cloudwatch_logs.json
 }
 
