@@ -148,6 +148,14 @@ resource "aws_codedeploy_deployment_group" "dg" {
     enabled = true
     events  = ["DEPLOYMENT_FAILURE", "DEPLOYMENT_STOP_ON_ALARM"]
   }
+
+  dynamic "alarm_configuration" {
+    for_each = length(var.codedeploy_alarm_names) > 0 ? [1] : []
+    content {
+      enabled = true
+      alarms  = var.codedeploy_alarm_names
+    }
+  }
 }
 
 resource "aws_appautoscaling_target" "pc_target" {

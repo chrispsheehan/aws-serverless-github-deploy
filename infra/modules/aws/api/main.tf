@@ -5,7 +5,7 @@ module "lambda_api" {
   environment   = var.environment
   lambda_bucket = var.lambda_bucket
 
-  lambda_name = "api"
+  lambda_name = local.lambda_name
 
   environment_variables = {
     DEBUG_DELAY_MS = 500
@@ -14,6 +14,9 @@ module "lambda_api" {
   deployment_config = {
     strategy = "all_at_once"
   }
+  codedeploy_alarm_names = [
+    local.api_5xx_alarm_name
+  ]
 
   provisioned_config = {
     fixed = 0 # cold starts only
@@ -74,3 +77,48 @@ resource "aws_lambda_permission" "allow_invoke" {
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_apigatewayv2_api.http_api.execution_arn}/*/*" # all routes/stages
 }
+
+resource "aws_cloudwatch_metric_alarm" "api_5xx_rate" {
+  alarm_name          = local.api_5xx_alarm_name
+  alarm_description   = "HTTP API (v2) 5xx error rate > 0.5% for 1 minute"
+  comparison_operator = "GreaterThanThreshold"
+  threshold           = 0.5
+  evaluation_periods  = 1
+  datapoints_to_alarm = 1
+  treat_missing_data  = "notBreaching"
+  actions_enabled     = true
+
+  metric_query {
+    id          = "e"
+    expression  = "(m5xx / mcount) * 100"
+    label       = "5xxErrorRate"
+    return_data = true
+  }
+
+  metric_query {
+    id = "m5xx"
+    metric {
+      namespace   = "AWS/ApiGateway"
+      metric_name = "5XXError"
+      period      = 60
+      stat        = "Sum"
+      dimensions = {
+        ApiId = aws_apigatewayv2_api.http_api.id
+      }
+    }
+  }
+
+  metric_query {
+    id = "mcount"
+    metric {
+      namespace   = "AWS/ApiGateway"
+      metric_name = "Count"
+      period      = 60
+      stat        = "Sum"
+      dimensions = {
+        ApiId = aws_apigatewayv2_api.http_api.id
+      }
+    }
+  }
+}
+
