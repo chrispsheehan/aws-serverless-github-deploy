@@ -372,3 +372,21 @@ lambda-prune:
         aws lambda delete-function --function-name "$FUNCTION_NAME" --qualifier "$v" --region "$AWS_REGION"
     done
 
+test-api-deploy-500s:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "$API_URL" ]]; then
+        echo "❌ API_URL environment variable is not set."
+        exit 1
+    fi
+
+    echo "Sending requests to $API_URL to trigger 500 errors..."
+
+    for i in {1..90}; do
+        RESPONSE_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$API_URL/trigger-500")
+        echo "Request $i: Received HTTP status code $RESPONSE_CODE"
+        sleep 1
+    done
+
+    echo "Finished sending requests."
