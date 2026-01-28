@@ -372,37 +372,3 @@ lambda-prune:
         aws lambda delete-function --function-name "$FUNCTION_NAME" --qualifier "$v" --region "$AWS_REGION"
     done
 
-watch-lambda-autoscale:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    DURATION=180
-    CONCURRENCY=20
-    URL=https://slt6v1u8n4.execute-api.eu-west-2.amazonaws.com
-
-    END_TIME=$(( $(date +%s) + $DURATION ))
-
-    echo "🚀 Lambda autoscaling test"
-    echo "   URL:         $URL"
-    echo "   Duration:    $DURATION seconds"
-    echo "   Concurrency: $CONCURRENCY"
-    echo
-
-    while [[ $(date +%s) -lt "$END_TIME" ]]; do
-      seq 1 $CONCURRENCY \
-        | xargs -n1 -P $CONCURRENCY -I{} \
-            curl -s "$URL/" \
-        | jq -r '.env_id'
-    done \
-      | sort \
-      | uniq -c
-
-    echo
-    echo "🧊 Distinct Lambda environments:"
-    while [[ $(date +%s) -lt "$END_TIME" ]]; do
-      seq 1 $CONCURRENCY \
-        | xargs -n1 -P $CONCURRENCY -I{} \
-            curl -s "$URL/" \
-        | jq -r '.env_id'
-    done \
-      | sort \
-      | uniq
