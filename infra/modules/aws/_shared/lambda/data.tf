@@ -75,3 +75,15 @@ data "aws_iam_policy_document" "codedeploy_lambda" {
   }
 }
 
+data "aws_iam_policy_document" "lambda_cloudwatch_logs" {
+  statement {
+    effect = "Allow"
+    actions = [
+      "logs:CreateLogStream",
+      "logs:PutLogEvents",
+    ]
+    resources = [
+      "${aws_cloudwatch_log_group.lambda_cloudwatch_group.arn}:*"
+    ]
+  }
+}

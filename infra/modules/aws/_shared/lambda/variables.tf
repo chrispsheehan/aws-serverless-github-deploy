@@ -21,6 +21,12 @@ variable "lambda_name" {
   type        = string
   description = "Must match the name of the zip - formed in /lambdas directory i.e. /lambdas/api = 'api'"
 }
+
+variable "environment_variables" {
+  description = "Environment variables for the Lambda function"
+  type        = map(string)
+  default     = {}
+}
 ### end of dynamic vars required for resources ###
 
 
