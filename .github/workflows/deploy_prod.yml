@@ -28,7 +28,7 @@ jobs:
     uses: ./.github/workflows/deploy.yml
     needs: 
       - get_build
-      - infra
+      - infra # this is only to ensure infra runs before deploy no dependencies on infra outputs i.e. infra is managed separately
     with:
       environment: prod
       lambda_version: ${{ needs.get_build.outputs.lambda_version }}
