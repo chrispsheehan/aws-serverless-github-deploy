@@ -108,7 +108,9 @@ resource "aws_iam_role_policy" "cd_lambda" {
 }
 
 resource "aws_codedeploy_deployment_config" "lambda_config" {
-  deployment_config_name = "${local.lambda_name}-${local.deploy_config_suffix}"
+  for_each = toset([local.deployment_config_name]) # to prevent DeploymentConfigInUseException
+
+  deployment_config_name = each.value
   compute_platform       = local.compute_platform
 
   traffic_routing_config {
@@ -147,7 +149,7 @@ resource "aws_codedeploy_deployment_group" "dg" {
     deployment_option = "WITH_TRAFFIC_CONTROL"
   }
 
-  deployment_config_name = aws_codedeploy_deployment_config.lambda_config.deployment_config_name
+  deployment_config_name = local.deployment_config_name
 
   auto_rollback_configuration {
     enabled = true

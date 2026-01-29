@@ -25,12 +25,13 @@ locals {
     var.deployment_config.strategy == local.deploy_all_at_once_type
     ? local.deploy_strategy
     : format(
-        "%s-%dpct-%dmin",
-        local.deploy_strategy,
-        local.deploy_config.percent,
-        local.deploy_config.minutes
-      )
+      "%s-%dpct-%dmin",
+      local.deploy_strategy,
+      local.deploy_config.percent,
+      local.deploy_config.minutes
+    )
   ))
+  deployment_config_name = "${local.lambda_name}-deploy-${local.deploy_config_suffix}"
 
   fixed_mode      = try(var.provisioned_config.fixed != null, true) && try(var.provisioned_config.fixed > 0, false)
   auto_scale_mode = try(var.provisioned_config.auto_scale != null, false)
