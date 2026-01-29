@@ -22,7 +22,7 @@ locals {
     minutes = var.deployment_config.interval_minutes
   }
   deploy_config_suffix = lower((
-    var.deployment_config.strategy == local.deploy_all_at_once_type
+    var.deployment_config.strategy == "all_at_once"
     ? local.deploy_strategy
     : "${local.deploy_strategy}-${local.deploy_config.percent}-${local.deploy_config.minutes}"
   ))
