@@ -108,7 +108,7 @@ resource "aws_iam_role_policy" "cd_lambda" {
 }
 
 resource "aws_codedeploy_deployment_config" "lambda_config" {
-  deployment_config_name = "${local.lambda_name}-${local.deploy_config_suffix}" # we do this to avoid DeploymentConfigInUseException
+  deployment_config_name = "${local.lambda_name}-${local.deploy_config_suffix}"
   compute_platform       = local.compute_platform
 
   traffic_routing_config {
@@ -129,6 +129,11 @@ resource "aws_codedeploy_deployment_config" "lambda_config" {
         interval   = local.deploy_config.minutes
       }
     }
+  }
+
+  lifecycle {
+    # don't try to delete old configs automatically to prevent DeploymentConfigInUseException
+    prevent_destroy = true
   }
 }
 
