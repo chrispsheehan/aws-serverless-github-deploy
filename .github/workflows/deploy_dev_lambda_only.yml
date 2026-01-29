@@ -1,4 +1,5 @@
-name: Dev Deploy
+name: Dev Deploy Lambda Only
+# This allows us to deploy only lambda changes to dev without touching infra.
 
 on:
   workflow_dispatch:
@@ -21,27 +22,9 @@ jobs:
         with:
           just_action: lambda-get-directories
 
-  code:
-    uses: ./.github/workflows/infra_releases.yml
-    with:
-      environment: dev
-      infra_version: ${{ github.sha }}
-
-  infra:
-    needs: 
-      - code
-      - setup
-    uses: ./.github/workflows/infra.yml
-    with:
-      environment: dev
-      infra_version: ${{ github.sha }}
-      lambda_bucket: ${{ needs.code.outputs.lambda_bucket }}
-      matrix: ${{ needs.setup.outputs.lambdas_dirs }}
-
   build:
     uses: ./.github/workflows/build.yml
     needs: 
-      - code
       - setup
     with:
       environment: dev
@@ -59,7 +42,6 @@ jobs:
     uses: ./.github/workflows/deploy.yml
     needs:
       - get_build
-      - infra
     with:
       environment: dev
       lambda_version: ${{ needs.get_build.outputs.lambda_version }}

@@ -1,4 +1,4 @@
-name: Prod Deploy
+name: Prod Deploy Infra and Lambda
 
 on:
   workflow_dispatch:
