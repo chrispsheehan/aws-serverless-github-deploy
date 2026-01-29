@@ -24,12 +24,7 @@ locals {
   deploy_config_suffix = lower((
     var.deployment_config.strategy == local.deploy_all_at_once_type
     ? local.deploy_strategy
-    : format(
-      "%s-%dpct-%dmin",
-      local.deploy_strategy,
-      local.deploy_config.percent,
-      local.deploy_config.minutes
-    )
+    : "${local.deploy_strategy}-${local.deploy_config.percent}-${local.deploy_config.minutes}"
   ))
   deployment_config_name = "${local.lambda_name}-deploy-${local.deploy_config_suffix}"
 
