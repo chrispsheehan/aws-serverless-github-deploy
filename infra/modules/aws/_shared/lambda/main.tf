@@ -132,11 +132,6 @@ resource "aws_codedeploy_deployment_config" "lambda_config" {
       }
     }
   }
-
-  lifecycle {
-    # don't try to delete old configs automatically to prevent DeploymentConfigInUseException
-    prevent_destroy = true
-  }
 }
 
 resource "aws_codedeploy_deployment_group" "dg" {
