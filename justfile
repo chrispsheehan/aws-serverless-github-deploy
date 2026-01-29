@@ -270,6 +270,11 @@ lambda-deploy:
     #!/usr/bin/env bash
     set -euo pipefail
 
+    if [[ -z "$FUNCTION_NAME" ]]; then
+        echo "❌ FUNCTION_NAME environment variable is not set."
+        exit 1
+    fi
+
     if [[ -z "$APP_SPEC_KEY" ]]; then
         echo "❌ APP_SPEC_KEY environment variable is not set."
         exit 1
@@ -324,6 +329,30 @@ lambda-deploy:
 
     echo "❌ Deployment $DEPLOYMENT_ID did not complete within expected time."
     exit 1
+
+
+lambda-disable-auto-rollback:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "$FUNCTION_NAME" ]]; then
+        echo "❌ FUNCTION_NAME environment variable is not set."
+        exit 1
+    fi
+
+    CODE_DEPLOY_APP_NAME=$(just lambda-get-code-deploy-app)
+    CODE_DEPLOY_GROUP_NAME=$(just lambda-get-code-deploy-group)
+
+    aws deploy update-deployment-group \
+        --application-name "$CODE_DEPLOY_APP_NAME" \
+        --current-deployment-group-name "$CODE_DEPLOY_GROUP_NAME" \
+        --auto-rollback-configuration '{
+            "enabled": false,
+            "events": []
+        }'
+
+    echo "🔒 Deployment $CODE_DEPLOY_APP_NAME completed. Auto-rollback disabled."
+
 
 
 lambda-prune:
@@ -390,3 +419,5 @@ test-api-deploy-500s:
     done
 
     echo "Finished sending requests."
+
+
