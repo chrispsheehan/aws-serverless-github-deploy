@@ -412,7 +412,7 @@ test-api-deploy-500s:
 
     echo "Sending requests to $API_URL to trigger 500 errors..."
 
-    END=$((SECONDS+90))
+    END=$((SECONDS+180))
 
     while [ $SECONDS -lt $END ]; do
         curl -s -o /dev/null "$API_URL/error"
