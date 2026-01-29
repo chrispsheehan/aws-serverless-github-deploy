@@ -108,9 +108,7 @@ resource "aws_iam_role_policy" "cd_lambda" {
 }
 
 resource "aws_codedeploy_deployment_config" "lambda_config" {
-  for_each = toset([local.deployment_config_name]) # to prevent DeploymentConfigInUseException
-
-  deployment_config_name = each.value
+  deployment_config_name = local.deployment_config_name
   compute_platform       = local.compute_platform
 
   traffic_routing_config {
@@ -135,8 +133,10 @@ resource "aws_codedeploy_deployment_config" "lambda_config" {
 }
 
 resource "aws_codedeploy_deployment_group" "dg" {
+  depends_on = [aws_codedeploy_deployment_config.lambda_config]  # to prevent DeploymentConfigInUseException
+
   app_name              = aws_codedeploy_app.app.name
-  deployment_group_name = "${local.lambda_name}-dg"
+  deployment_group_name = "${local.deployment_config_name}-dg"
   service_role_arn      = aws_iam_role.code_deploy_role.arn
 
   deployment_style {
@@ -157,6 +157,10 @@ resource "aws_codedeploy_deployment_group" "dg" {
       enabled = true
       alarms  = var.codedeploy_alarm_names
     }
+  }
+
+  lifecycle {
+    create_before_destroy = true  # to prevent DeploymentConfigInUseException
   }
 }
 
