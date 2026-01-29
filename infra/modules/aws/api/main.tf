@@ -12,8 +12,11 @@ module "lambda_api" {
   }
 
   deployment_config = {
-    strategy = "all_at_once"
+    strategy         = "canary"
+    percentage       = 10
+    interval_minutes = 1
   }
+
   codedeploy_alarm_names = [
     local.api_5xx_alarm_name
   ]
@@ -79,46 +82,60 @@ resource "aws_lambda_permission" "allow_invoke" {
 }
 
 resource "aws_cloudwatch_metric_alarm" "api_5xx_rate" {
-  alarm_name          = local.api_5xx_alarm_name
-  alarm_description   = "HTTP API (v2) 5xx error rate > 0.5% for 1 minute"
+  alarm_name        = local.api_5xx_alarm_name
+  alarm_description = "HTTP API (v2) 5xx error rate > 0.5% for 1 minute"
+  actions_enabled   = true
+
   comparison_operator = "GreaterThanThreshold"
   threshold           = 0.5
   evaluation_periods  = 1
   datapoints_to_alarm = 1
   treat_missing_data  = "notBreaching"
-  actions_enabled     = true
 
+  #
+  # Metric math: (5xx / count) * 100
+  # Guarded to avoid NaN/Inf when count is 0 or very low
+  #
   metric_query {
     id          = "e"
-    expression  = "(m5xx / mcount) * 100"
     label       = "5xxErrorRate"
     return_data = true
+    expression  = "IF(mcount < 1, 0, (m5xx / mcount) * 100)"
   }
 
+  #
+  # API Gateway v2 – 5XX errors
+  #
   metric_query {
     id = "m5xx"
     metric {
       namespace   = "AWS/ApiGateway"
-      metric_name = "5XXError"
-      period      = 60
+      metric_name = local.apigw_http_5xx_metric
       stat        = "Sum"
+      period      = 60
+
       dimensions = {
         ApiId = aws_apigatewayv2_api.http_api.id
+        Stage = aws_apigatewayv2_stage.default.name
       }
     }
   }
 
+  #
+  # API Gateway v2 – total request count
+  #
   metric_query {
     id = "mcount"
     metric {
       namespace   = "AWS/ApiGateway"
       metric_name = "Count"
-      period      = 60
       stat        = "Sum"
+      period      = 60
+
       dimensions = {
         ApiId = aws_apigatewayv2_api.http_api.id
+        Stage = aws_apigatewayv2_stage.default.name
       }
     }
   }
 }
-

@@ -412,10 +412,10 @@ test-api-deploy-500s:
 
     echo "Sending requests to $API_URL to trigger 500 errors..."
 
-    for i in {1..90}; do
-        RESPONSE_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$API_URL/trigger-500")
-        echo "Request $i: Received HTTP status code $RESPONSE_CODE"
-        sleep 1
+    END=$((SECONDS+90))
+
+    while [ $SECONDS -lt $END ]; do
+        curl -s -o /dev/null "$API_URL/error"
     done
 
     echo "Finished sending requests."
