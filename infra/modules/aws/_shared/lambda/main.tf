@@ -108,7 +108,7 @@ resource "aws_iam_role_policy" "cd_lambda" {
 }
 
 resource "aws_codedeploy_deployment_config" "lambda_config" {
-  deployment_config_name = "${local.lambda_name}-deploy-config"
+  deployment_config_name = "${local.lambda_name}-${local.deploy_config_suffix}" # we do this to avoid DeploymentConfigInUseException
   compute_platform       = local.compute_platform
 
   traffic_routing_config {

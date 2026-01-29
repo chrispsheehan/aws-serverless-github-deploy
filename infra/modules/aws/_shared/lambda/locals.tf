@@ -15,11 +15,22 @@ locals {
     canary      = local.deploy_canary_type
     linear      = local.deploy_linear_type
   }
+  deploy_strategy = local.deploy_config_type_map[var.deployment_config.strategy]
   deploy_config = {
-    type    = local.deploy_config_type_map[var.deployment_config.strategy]
+    type    = local.deploy_strategy
     percent = var.deployment_config.percentage
     minutes = var.deployment_config.interval_minutes
   }
+  deploy_config_suffix = lower((
+    var.deployment_config.strategy == local.deploy_all_at_once_type
+    ? local.deploy_strategy
+    : format(
+        "%s-%dpct-%dmin",
+        local.deploy_strategy,
+        local.deploy_config.percent,
+        local.deploy_config.minutes
+      )
+  ))
 
   fixed_mode      = try(var.provisioned_config.fixed != null, true) && try(var.provisioned_config.fixed > 0, false)
   auto_scale_mode = try(var.provisioned_config.auto_scale != null, false)
