@@ -83,13 +83,13 @@ resource "aws_lambda_permission" "allow_invoke" {
 
 resource "aws_cloudwatch_metric_alarm" "api_5xx_rate" {
   alarm_name        = local.api_5xx_alarm_name
-  alarm_description = "HTTP API (v2) 5xx error rate > 0.5% for 1 minute"
+  alarm_description = "HTTP API (v2) 5xx error rate > ${var.api_5xx_alarm_threshold}% for ${var.api_5xx_alarm_evaluation_periods} minute(s) ${var.api_5xx_alarm_datapoints_to_alarm} times"
   actions_enabled   = true
 
   comparison_operator = "GreaterThanThreshold"
-  threshold           = 0.5
-  evaluation_periods  = 1
-  datapoints_to_alarm = 1
+  threshold           = var.api_5xx_alarm_threshold           # This is the value your metric is compared against
+  evaluation_periods  = var.api_5xx_alarm_evaluation_periods  # This is how many consecutive periods CloudWatch looks at when deciding the alarm state.
+  datapoints_to_alarm = var.api_5xx_alarm_datapoints_to_alarm # This is how many of those evaluated periods must be breaching to trigger ALARM.
   treat_missing_data  = "notBreaching"
 
   #

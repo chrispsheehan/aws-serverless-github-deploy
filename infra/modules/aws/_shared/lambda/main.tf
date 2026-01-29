@@ -133,7 +133,7 @@ resource "aws_codedeploy_deployment_config" "lambda_config" {
 }
 
 resource "aws_codedeploy_deployment_group" "dg" {
-  depends_on = [aws_codedeploy_deployment_config.lambda_config]  # to prevent DeploymentConfigInUseException
+  depends_on = [aws_codedeploy_deployment_config.lambda_config] # to prevent DeploymentConfigInUseException
 
   app_name              = aws_codedeploy_app.app.name
   deployment_group_name = "${local.deployment_config_name}-dg"
@@ -160,7 +160,7 @@ resource "aws_codedeploy_deployment_group" "dg" {
   }
 
   lifecycle {
-    create_before_destroy = true  # to prevent DeploymentConfigInUseException
+    create_before_destroy = true # to prevent DeploymentConfigInUseException
   }
 }
 
