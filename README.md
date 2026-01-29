@@ -109,3 +109,37 @@ deployment_config = {
     percentage       = 10
     interval_minutes = 1
 }
+```
+
+## 🔥↩️ deployment roll-back
+
+- use cloudwatch metrics and alarms to automatically roll-back a deployment
+- create a [cloudwatch_metric_alarm](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudwatch_metric_alarm) resource and pass in as per below
+
+```hcl
+  codedeploy_alarm_names = [
+    local.api_5xx_alarm_name
+  ]
+```
+- if the alarm triggers during a deployment you will see the below in the CI
+
+```
+📦 Running: lambda-deploy
+🚀 Started deployment: d-40UUQH3DF
+Attempt 1: Deployment status is InProgress
+Attempt 2: Deployment status is InProgress
+Attempt 3: Deployment status is InProgress
+Attempt 4: Deployment status is InProgress
+Attempt 5: Deployment status is Stopped
+❌ Deployment d-40UUQH3DF failed or was stopped.
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+|                                                                                                                    GetDeployment                                                                                                                    |
++--------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|  ErrorCode   |  ALARM_ACTIVE                                                                                                                                                                                                                        |
+|  ErrorMessage|  One or more alarms have been activated according to the Amazon CloudWatch metrics you selected, and the affected deployments have been stopped. Activated alarms: <dev-aws-serverless-github-deploy-api-api-v2-5xx-rate-critical>   |
+|  Status      |  Stopped                                                                                                                                                                                                                             |
++--------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+error: Recipe `lambda-deploy` failed with exit code 1
+Error: Process completed with exit code 1.
+
+```
