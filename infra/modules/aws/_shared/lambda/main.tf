@@ -4,7 +4,7 @@ resource "aws_iam_role" "iam_for_lambda" {
 }
 
 resource "aws_iam_policy" "lambda_cloudwatch_logs" {
-  name   = "${var.project_name}-${var.environment}-lambda-cloudwatch-logs"
+  name   = "${local.lambda_name}-logs"
   policy = data.aws_iam_policy_document.lambda_cloudwatch_logs.json
 }
 
@@ -108,7 +108,7 @@ resource "aws_iam_role_policy" "cd_lambda" {
 }
 
 resource "aws_codedeploy_deployment_config" "lambda_config" {
-  deployment_config_name = "${local.lambda_name}-deploy-config"
+  deployment_config_name = local.deployment_config_name
   compute_platform       = local.compute_platform
 
   traffic_routing_config {
@@ -133,8 +133,10 @@ resource "aws_codedeploy_deployment_config" "lambda_config" {
 }
 
 resource "aws_codedeploy_deployment_group" "dg" {
+  depends_on = [aws_codedeploy_deployment_config.lambda_config] # to prevent DeploymentConfigInUseException
+
   app_name              = aws_codedeploy_app.app.name
-  deployment_group_name = "${local.lambda_name}-dg"
+  deployment_group_name = "${local.deployment_config_name}-dg"
   service_role_arn      = aws_iam_role.code_deploy_role.arn
 
   deployment_style {
@@ -142,11 +144,23 @@ resource "aws_codedeploy_deployment_group" "dg" {
     deployment_option = "WITH_TRAFFIC_CONTROL"
   }
 
-  deployment_config_name = aws_codedeploy_deployment_config.lambda_config.deployment_config_name
+  deployment_config_name = local.deployment_config_name
 
   auto_rollback_configuration {
     enabled = true
     events  = ["DEPLOYMENT_FAILURE", "DEPLOYMENT_STOP_ON_ALARM"]
+  }
+
+  dynamic "alarm_configuration" {
+    for_each = length(var.codedeploy_alarm_names) > 0 ? [1] : []
+    content {
+      enabled = true
+      alarms  = var.codedeploy_alarm_names
+    }
+  }
+
+  lifecycle {
+    create_before_destroy = true # to prevent DeploymentConfigInUseException
   }
 }
 

@@ -42,6 +42,12 @@ variable "additional_policy_arns" {
   default     = []
 }
 
+variable "codedeploy_alarm_names" {
+  description = "Optional list of CloudWatch alarm names that trigger CodeDeploy rollback"
+  type        = list(string)
+  default     = []
+}
+
 variable "deployment_config" {
   description = "Traffic shifting: all_at_once | canary | linear"
   type = object({

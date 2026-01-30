@@ -36,7 +36,8 @@ module "lambda_example" {
 - we can handle an initial lag while lambda warms up/boots
 ```hcl
 provisioned_config = {
-    fixed = 0
+    fixed                = 0
+    reserved_concurrency = 2 # only allow 2 concurrent executions THIS ALSO SERVES AS A LIMIT TO AVOID THROTTLING
 }
 ```
 
@@ -45,7 +46,8 @@ provisioned_config = {
 - we never want lag due to warm up and can predict traffic
 ```hcl
 provisioned_config = {
-    fixed = 1
+    fixed                = 10
+    reserved_concurrency = 50
 }
 ```
 
@@ -65,12 +67,19 @@ provisioned_config = {
     }
 }
 ```
+- before scaling the lambda alias will match the minmum value
+![a](docs/lambda-config-before.png)
+- when the trigger percent is exceeded the lambda moves into `In progress (1/2)` state as an additional provisioned lambda is added.
+![a](docs/lamba-scaling-up.png)
+- after scaling the lambda alias will show an additional provisioned lambda
+![a](docs/lambda-config-after.png)
+
 
 ## 🚦 types of lambda deploy
 
 ```hcl
 module "lambda_example" {
-  source = "../lambda"
+  source = "../_shared/lambda"
   ...
   deployment_config = var.your_deployment_config
 }
@@ -109,3 +118,41 @@ deployment_config = {
     percentage       = 10
     interval_minutes = 1
 }
+```
+
+## 🔥↩️ deployment roll-back
+
+- use cloudwatch metrics and alarms to automatically roll-back a deployment
+- create a [cloudwatch_metric_alarm](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudwatch_metric_alarm) resource and pass in as per below
+
+```hcl
+module "lambda_example" {
+  source = "../_shared/lambda"
+  ...
+  codedeploy_alarm_names = [
+    local.api_5xx_alarm_name
+  ]
+}
+```
+- if the alarm triggers during a deployment you will see the below in the CI
+
+```
+📦 Running: lambda-deploy
+🚀 Started deployment: d-40UUQH3DF
+Attempt 1: Deployment status is InProgress
+Attempt 2: Deployment status is InProgress
+Attempt 3: Deployment status is InProgress
+Attempt 4: Deployment status is InProgress
+Attempt 5: Deployment status is Stopped
+❌ Deployment d-40UUQH3DF failed or was stopped.
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+|                                                                                                                    GetDeployment                                                                                                                    |
++--------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|  ErrorCode   |  ALARM_ACTIVE                                                                                                                                                                                                                        |
+|  ErrorMessage|  One or more alarms have been activated according to the Amazon CloudWatch metrics you selected, and the affected deployments have been stopped. Activated alarms: <dev-aws-serverless-github-deploy-api-api-v2-5xx-rate-critical>   |
+|  Status      |  Stopped                                                                                                                                                                                                                             |
++--------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+error: Recipe `lambda-deploy` failed with exit code 1
+Error: Process completed with exit code 1.
+
+```

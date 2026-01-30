@@ -270,6 +270,11 @@ lambda-deploy:
     #!/usr/bin/env bash
     set -euo pipefail
 
+    if [[ -z "$FUNCTION_NAME" ]]; then
+        echo "❌ FUNCTION_NAME environment variable is not set."
+        exit 1
+    fi
+
     if [[ -z "$APP_SPEC_KEY" ]]; then
         echo "❌ APP_SPEC_KEY environment variable is not set."
         exit 1
@@ -372,37 +377,24 @@ lambda-prune:
         aws lambda delete-function --function-name "$FUNCTION_NAME" --qualifier "$v" --region "$AWS_REGION"
     done
 
-watch-lambda-autoscale:
+
+test-api-deploy-500s:
     #!/usr/bin/env bash
     set -euo pipefail
-    DURATION=180
-    CONCURRENCY=20
-    URL=https://slt6v1u8n4.execute-api.eu-west-2.amazonaws.com
 
-    END_TIME=$(( $(date +%s) + $DURATION ))
+    if [[ -z "$API_URL" ]]; then
+        echo "❌ API_URL environment variable is not set."
+        exit 1
+    fi
 
-    echo "🚀 Lambda autoscaling test"
-    echo "   URL:         $URL"
-    echo "   Duration:    $DURATION seconds"
-    echo "   Concurrency: $CONCURRENCY"
-    echo
+    echo "Sending requests to $API_URL to trigger 500 errors..."
 
-    while [[ $(date +%s) -lt "$END_TIME" ]]; do
-      seq 1 $CONCURRENCY \
-        | xargs -n1 -P $CONCURRENCY -I{} \
-            curl -s "$URL/" \
-        | jq -r '.env_id'
-    done \
-      | sort \
-      | uniq -c
+    END=$((SECONDS+180))
 
-    echo
-    echo "🧊 Distinct Lambda environments:"
-    while [[ $(date +%s) -lt "$END_TIME" ]]; do
-      seq 1 $CONCURRENCY \
-        | xargs -n1 -P $CONCURRENCY -I{} \
-            curl -s "$URL/" \
-        | jq -r '.env_id'
-    done \
-      | sort \
-      | uniq
+    while [ $SECONDS -lt $END ]; do
+        curl -s -o /dev/null "$API_URL/error"
+    done
+
+    echo "Finished sending requests."
+
+

@@ -4,7 +4,7 @@ locals {
   compute_platform = "Lambda"
 
   lambda_bootstrap_zip_key = "bootstrap/bootstrap-lambda.zip"
-  lambda_name              = "${var.environment}-${var.project_name}-${var.lambda_name}"
+  lambda_name              = var.lambda_name
 
   deploy_all_at_once_type = "AllAtOnce"
   deploy_canary_type      = "TimeBasedCanary"
@@ -15,11 +15,18 @@ locals {
     canary      = local.deploy_canary_type
     linear      = local.deploy_linear_type
   }
+  deploy_strategy = local.deploy_config_type_map[var.deployment_config.strategy]
   deploy_config = {
-    type    = local.deploy_config_type_map[var.deployment_config.strategy]
+    type    = local.deploy_strategy
     percent = var.deployment_config.percentage
     minutes = var.deployment_config.interval_minutes
   }
+  deploy_config_suffix = lower((
+    var.deployment_config.strategy == "all_at_once"
+    ? local.deploy_strategy
+    : "${local.deploy_strategy}-${local.deploy_config.percent}-${local.deploy_config.minutes}"
+  ))
+  deployment_config_name = "${local.lambda_name}-deploy-${local.deploy_config_suffix}"
 
   fixed_mode      = try(var.provisioned_config.fixed != null, true) && try(var.provisioned_config.fixed > 0, false)
   auto_scale_mode = try(var.provisioned_config.auto_scale != null, false)

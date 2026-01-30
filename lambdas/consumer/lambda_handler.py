@@ -1,8 +1,10 @@
 import json
+import os
+from time import time
 from typing import List, Dict
 
-CHUNK_SIZE = 50
-
+CHUNK_SIZE = 5
+DEBUG_DELAY_MS = int(os.getenv("DEBUG_DELAY_MS", "0"))
 
 def chunk(items: List[Dict], size: int):
     """Yield successive chunks from a list."""
@@ -37,6 +39,9 @@ def process_chunk(records: List[Dict]) -> List[str]:
     for record in records:
         try:
             process_message(record)
+            # Optional delay to force concurrency during testing
+            if DEBUG_DELAY_MS > 0:
+                time.sleep(DEBUG_DELAY_MS / 1000.0)
         except Exception as exc:
             print(f"Failed processing message {record['messageId']}: {exc}")
             failed_message_ids.append(record["messageId"])

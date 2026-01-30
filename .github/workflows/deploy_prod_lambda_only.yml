@@ -1,0 +1,28 @@
+name: Prod Deploy Lambda Only
+# This allows us to deploy only lambda changes to prod found in the version s3 folder (only).
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: write
+
+jobs:
+  get_build:
+    uses: ./.github/workflows/build_get.yml
+    with:
+      environment: ci
+      version: 0.5.1
+
+  deploy:
+    uses: ./.github/workflows/deploy.yml
+    needs: 
+      - get_build
+    with:
+      environment: prod
+      lambda_version: ${{ needs.get_build.outputs.lambda_version }}
+      lambda_bucket: ${{ needs.get_build.outputs.lambda_bucket }}
+      matrix: ${{ needs.get_build.outputs.lambda_version_files }}
+      # we can also define a lambda-only deployment here if needed, as below
+      # matrix: '["api"]'
