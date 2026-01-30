@@ -2,6 +2,10 @@ output "sqs_queue_name" {
   value = aws_sqs_queue.queue.name
 }
 
+output "dead_letter_queue_name" {
+  value = aws_sqs_queue.dlq.name
+}
+
 output "sqs_queue_arn" {
   value = aws_sqs_queue.queue.arn
 }
