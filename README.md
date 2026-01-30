@@ -36,7 +36,8 @@ module "lambda_example" {
 - we can handle an initial lag while lambda warms up/boots
 ```hcl
 provisioned_config = {
-    fixed = 0
+    fixed                = 0
+    reserved_concurrency = 2 # only allow 2 concurrent executions THIS ALSO SERVES AS A LIMIT TO AVOID THROTTLING
 }
 ```
 
@@ -45,7 +46,8 @@ provisioned_config = {
 - we never want lag due to warm up and can predict traffic
 ```hcl
 provisioned_config = {
-    fixed = 1
+    fixed                = 10
+    reserved_concurrency = 50
 }
 ```
 
@@ -70,7 +72,7 @@ provisioned_config = {
 
 ```hcl
 module "lambda_example" {
-  source = "../lambda"
+  source = "../_shared/lambda"
   ...
   deployment_config = var.your_deployment_config
 }
@@ -118,7 +120,7 @@ deployment_config = {
 
 ```hcl
 module "lambda_example" {
-  source = "../lambda"
+  source = "../_shared/lambda"
   ...
   codedeploy_alarm_names = [
     local.api_5xx_alarm_name

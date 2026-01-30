@@ -22,25 +22,16 @@ module "lambda_api" {
   ]
 
   provisioned_config = {
-    fixed = 0 # cold starts only
+    auto_scale = {
+      max                        = 2
+      min                        = 1 # always have 1 lambda ready to go
+      trigger_percent            = 20
+      scale_in_cooldown_seconds  = 60
+      scale_out_cooldown_seconds = 60
+    }
+
+    reserved_concurrency = 10 # limit the amount of concurrent executions to avoid throttling, but allow some bursting
   }
-
-  # provisioned_config = {
-  #   fixed                = 1 # always have 1 lambda ready to go
-  #   reserved_concurrency = 2 # only allow 2 concurrent executions THIS ALSO SERVES AS A LIMIT TO AVOID THROTTLING
-  # }
-
-  # provisioned_config = {
-  #   auto_scale = {
-  #     max                        = 2
-  #     min                        = 1 # always have 1 lambda ready to go
-  #     trigger_percent            = 20
-  #     scale_in_cooldown_seconds  = 60
-  #     scale_out_cooldown_seconds = 60
-  #   }
-
-  #   reserved_concurrency = 10 # limit the amount of concurrent executions to avoid throttling, but allow some bursting
-  # }
 }
 
 resource "aws_apigatewayv2_api" "http_api" {

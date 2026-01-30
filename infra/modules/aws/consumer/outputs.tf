@@ -13,3 +13,7 @@ output "lambda_function_name" {
 output "lambda_alias_name" {
   value = module.lambda_consumer.alias_name
 }
+
+output "sqs_queue_url" {
+  value = module.sqs_queue.sqs_queue_url
+}
