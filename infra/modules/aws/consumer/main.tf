@@ -20,6 +20,10 @@ module "lambda_consumer" {
     strategy = "all_at_once"
   }
 
+  codedeploy_alarm_names = [
+    local.sqs_dlq_name
+  ]
+
   provisioned_config = {
     sqs_scale = {
       min                        = 1
@@ -37,7 +41,8 @@ module "lambda_consumer" {
 module "sqs_queue" {
   source = "../_shared/sqs"
 
-  sqs_queue_name = "${var.project_name}-${var.environment}-consumer-queue"
+  sqs_queue_name = local.sqs_queue_name
+  sqs_dlq_name   = local.sqs_dlq_name
 }
 
 resource "aws_lambda_event_source_mapping" "sqs" {
@@ -48,4 +53,25 @@ resource "aws_lambda_event_source_mapping" "sqs" {
   maximum_batching_window_in_seconds = 10
 
   function_response_types = ["ReportBatchItemFailures"]
+}
+
+resource "aws_cloudwatch_metric_alarm" "dlq_messages_present" {
+  alarm_name        = local.sqs_dlq_name
+  alarm_description = "Messages present in DLQ ${local.sqs_dlq_name}"
+  actions_enabled   = true
+
+  namespace           = "AWS/SQS"
+  metric_name         = "ApproximateNumberOfMessagesVisible"
+  statistic           = "Sum"
+  period              = 60
+  evaluation_periods  = 1
+  datapoints_to_alarm = 1
+
+  comparison_operator = "GreaterThanThreshold"
+  threshold           = 0
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    QueueName = module.sqs_queue.dead_letter_queue_name
+  }
 }
