@@ -156,3 +156,10 @@ error: Recipe `lambda-deploy` failed with exit code 1
 Error: Process completed with exit code 1.
 
 ```
+
+## 🚢 Deployment strategies
+
+- Infrastructure and feature code deployments (via codedeploy) are completely decoupled.
+- Initial infrastructure deployments deploys `infra/modules/aws/_shared/lambda/bootstrap/index.py` which serves as a place-holder.
+- The code deploy app and group are also deployed, which is the mechanism used to deploy the real builds.
+- Subsequent re-runs of the infrastructure deployments will not update the code.
