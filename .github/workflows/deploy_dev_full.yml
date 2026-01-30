@@ -2,6 +2,9 @@ name: Dev Deploy Infra and Lambda
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - auto-roll-back
 
 permissions:
   id-token: write
