@@ -60,6 +60,7 @@ jobs:
           tg_action: destroy
 
   build:
+    if: inputs.environment != 'prod'
     needs:
       - lambdas
     runs-on: ubuntu-latest
