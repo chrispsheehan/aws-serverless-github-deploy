@@ -64,14 +64,14 @@ resource "aws_cloudwatch_metric_alarm" "dlq_messages_present" {
   metric_name         = "ApproximateNumberOfMessagesVisible"
   statistic           = "Sum"
   period              = 60
-  evaluation_periods  = 1
-  datapoints_to_alarm = 1
+  evaluation_periods  = var.sqs_dlq_alarm_evaluation_periods
+  datapoints_to_alarm = var.sqs_dlq_alarm_datapoints_to_alarm
 
   comparison_operator = "GreaterThanThreshold"
-  threshold           = 0
+  threshold           = var.sqs_dlq_alarm_threshold
   treat_missing_data  = "notBreaching"
 
   dimensions = {
-    QueueName = module.sqs_queue.dead_letter_queue_name
+    QueueName = local.sqs_dlq_name
   }
 }
