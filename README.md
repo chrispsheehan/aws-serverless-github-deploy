@@ -157,7 +157,7 @@ Error: Process completed with exit code 1.
 
 ```
 
-## 🚢 Deployment strategies
+## 🚢 deployment strategies
 
 - Infrastructure and feature code deployments (via codedeploy) are completely decoupled.
 - Initial infrastructure deployments deploys `infra/modules/aws/_shared/lambda/bootstrap/index.py` which serves as a place-holder.
