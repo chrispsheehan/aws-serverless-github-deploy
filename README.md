@@ -67,6 +67,13 @@ provisioned_config = {
     }
 }
 ```
+- before scaling the lambda alias will match the minmum value
+![a](docs/lambda-config-before.png)
+- when the trigger percent is exceeded the lambda moves into `In progress (1/2)` state as an additional provisioned lambda is added.
+![a](docs/lamba-scaling-up.png)
+- after scaling the lambda alias will show an additional provisioned lambda
+![a](docs/lambda-config-after.png)
+
 
 ## 🚦 types of lambda deploy
 
