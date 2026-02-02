@@ -17,7 +17,9 @@ module "lambda_consumer" {
   ]
 
   deployment_config = {
-    strategy = "all_at_once"
+    strategy         = "canary"
+    percentage       = 10
+    interval_minutes = 3 # this is > the alarm evaluation period to ensure we catch the alarm if it triggers
   }
 
   codedeploy_alarm_names = [

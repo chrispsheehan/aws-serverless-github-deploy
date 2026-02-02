@@ -11,8 +11,8 @@ on:
           - dev
           - prod
 
-concurrency: # only run one instance of workflow at any one time
-  group: ${{ github.workflow }}-${{ inputs.environment }}
+concurrency: # only run destroy when no other deploy/destroy is running for the same environment
+  group: deploy-${{ inputs.environment }}
   cancel-in-progress: false
 
 permissions:

@@ -17,3 +17,7 @@ output "lambda_alias_name" {
 output "sqs_queue_url" {
   value = module.sqs_queue.sqs_queue_url
 }
+
+output "dead_letter_queue_url" {
+  value = module.sqs_queue.dead_letter_queue_url
+}
