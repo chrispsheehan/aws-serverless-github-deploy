@@ -3,7 +3,7 @@ include {
 }
 
 inputs = {
-  sqs_dlq_alarm_threshold           = 0
+  sqs_dlq_alarm_threshold           = 5
   sqs_dlq_alarm_evaluation_periods  = 1
   sqs_dlq_alarm_datapoints_to_alarm = 1
 }
