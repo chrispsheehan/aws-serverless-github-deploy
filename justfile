@@ -398,3 +398,24 @@ test-api-deploy-500s:
     echo "Finished sending requests."
 
 
+test-send-dlq-messages:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "$SQS_DLQ_QUEUE_URL" ]]; then
+        echo "❌ SQS_DLQ_QUEUE_URL environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "$AWS_REGION" ]]; then
+        echo "❌ AWS_REGION environment variable is not set."
+        exit 1
+    fi
+
+    echo "Sending messages to SQS DLQ at $SQS_DLQ_QUEUE_URL..."
+
+    for i in {1..10}; do
+        aws sqs send-message --region $AWS_REGION --queue-url "$SQS_DLQ_QUEUE_URL" --message-body "Test message $i"
+    done
+
+    echo "Finished sending messages."
