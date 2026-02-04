@@ -270,6 +270,7 @@ lambda-get-code-deploy-group:
         --query 'Tags.CodeDeployGroup' \
         --output text
 
+
 lambda-get-code-deploy-alarms:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -281,6 +282,28 @@ lambda-get-code-deploy-alarms:
         --query 'Tags.CodeDeployAlarms' \
         --output text \
     | jq -c '.'
+
+
+lambda-get-code-deploy-alarms:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    ALARMS_JSON=$(just lambda-get-code-deploy-alarms-json)
+
+    # Convert JSON array to space-separated list
+    ALARMS=$(echo "$ALARMS_JSON" | jq -r '.[]')
+
+    # Reset each alarm to OK
+    for ALARM_NAME in $ALARMS; do
+        echo "Setting alarm to OK: $ALARM_NAME"
+        aws cloudwatch set-alarm-state \
+            --alarm-name "$ALARM_NAME" \
+            --state-value OK \
+            --state-reason "Reset by CI/CD"
+    done
+
+    # Output alarm names so they can be captured
+    echo $ALARMS
 
 
 lambda-deploy:
