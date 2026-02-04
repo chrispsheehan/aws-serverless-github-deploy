@@ -53,6 +53,7 @@ resource "aws_lambda_function" "lambda" {
     CodeDeployApplication = aws_codedeploy_app.app.name
     CodeDeployGroup       = aws_codedeploy_deployment_group.dg.deployment_group_name
     DeploymentStrategy    = local.deploy_config.type
+    CodeDeployAlarms      = length(var.codedeploy_alarm_names) > 0 ? jsonencode(var.codedeploy_alarm_names) : "[]"
   }
 
   lifecycle {

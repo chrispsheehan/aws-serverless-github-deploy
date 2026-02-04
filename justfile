@@ -242,6 +242,11 @@ lambda-upload-bundle:
 
 lambda-get-function-arn:
     #!/usr/bin/env bash
+    if [[ -z "$FUNCTION_NAME" ]]; then
+        echo "❌ FUNCTION_NAME environment variable is not set."
+        exit 1
+    fi
+
     aws lambda get-function \
         --function-name $FUNCTION_NAME \
         --query 'Configuration.FunctionArn' \
@@ -264,6 +269,18 @@ lambda-get-code-deploy-group:
         --resource "$FUNCTION_ARN" \
         --query 'Tags.CodeDeployGroup' \
         --output text
+
+lambda-get-code-deploy-alarms:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    FUNCTION_ARN=$(just lambda-get-function-arn)
+
+    aws lambda list-tags \
+        --resource "$FUNCTION_ARN" \
+        --query 'Tags.CodeDeployAlarms' \
+        --output text \
+    | jq -c '.'
 
 
 lambda-deploy:
