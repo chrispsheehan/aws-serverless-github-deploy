@@ -24,6 +24,26 @@ variable "deployment_config" {
   })
 }
 
+variable "provisioned_config" {
+  description = "Either fixed provisioned concurrency (fixed) or autoscaled (auto_scale); omit/zero = none"
+  type = object({
+    fixed                = optional(number) # 0/omit = off, >0 = fixed PC
+    reserved_concurrency = optional(number) # 0/omit = no concurrency limit, >0 = limited concurrency
+
+    auto_scale = optional(object({
+      min                        = number
+      max                        = number
+      trigger_percent            = optional(number)
+      scale_in_cooldown_seconds  = optional(number)
+      scale_out_cooldown_seconds = optional(number)
+    }))
+  })
+  default = {
+    fixed                = 0
+    reserved_concurrency = 1
+  }
+}
+
 variable "api_5xx_alarm_threshold" {
   type        = number
   description = "The threshold for the API 5xx error rate alarm"
