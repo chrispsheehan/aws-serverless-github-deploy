@@ -4,8 +4,8 @@ include {
 
 inputs = {
   api_5xx_alarm_threshold           = 20.0
-  sqs_dlq_alarm_evaluation_periods  = 3
-  sqs_dlq_alarm_datapoints_to_alarm = 3
+  api_5xx_alarm_evaluation_periods  = 3
+  api_5xx_alarm_datapoints_to_alarm = 3
 }
 
 terraform {
