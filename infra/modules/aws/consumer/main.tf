@@ -57,19 +57,20 @@ resource "aws_lambda_event_source_mapping" "sqs" {
   function_response_types = ["ReportBatchItemFailures"]
 }
 
-resource "aws_cloudwatch_metric_alarm" "dlq_messages_present" {
+resource "aws_cloudwatch_metric_alarm" "dlq_new_messages" {
   alarm_name        = local.sqs_dlq_name
-  alarm_description = "Messages present in DLQ ${local.sqs_dlq_name}"
+  alarm_description = "New messages sent to DLQ ${local.sqs_dlq_name}"
   actions_enabled   = true
 
-  namespace           = "AWS/SQS"
-  metric_name         = "ApproximateNumberOfMessagesVisible"
-  statistic           = "Sum"
-  period              = 60
+  namespace   = "AWS/SQS"
+  metric_name = "NumberOfMessagesSent"
+  statistic   = "Sum"
+  period      = 60
+
   evaluation_periods  = var.sqs_dlq_alarm_evaluation_periods
   datapoints_to_alarm = var.sqs_dlq_alarm_datapoints_to_alarm
 
-  comparison_operator = "GreaterThanThreshold"
+  comparison_operator = "GreaterThanOrEqualToThreshold"
   threshold           = var.sqs_dlq_alarm_threshold
   treat_missing_data  = "notBreaching"
 
@@ -77,3 +78,4 @@ resource "aws_cloudwatch_metric_alarm" "dlq_messages_present" {
     QueueName = local.sqs_dlq_name
   }
 }
+
