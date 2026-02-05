@@ -16,11 +16,7 @@ module "lambda_consumer" {
     module.sqs_queue.sqs_queue_read_policy_arn
   ]
 
-  deployment_config = {
-    strategy         = "canary"
-    percentage       = 10
-    interval_minutes = 5 # this should be > the CloudWatch alarm evaluation period to ensure we catch the alarm if it triggers
-  }
+  deployment_config = var.deployment_config
 
   codedeploy_alarm_names = [
     local.sqs_dlq_name

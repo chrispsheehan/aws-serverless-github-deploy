@@ -15,6 +15,15 @@ variable "lambda_bucket" {
 }
 ### end of static vars set in root.hcl ###
 
+variable "deployment_config" {
+  description = "Traffic shifting: all_at_once | canary | linear"
+  type = object({
+    strategy         = string           # all_at_once | canary | linear
+    percentage       = optional(number) # 1..99 (req for canary/linear)
+    interval_minutes = optional(number) # >=1  (req for canary/linear)
+  })
+}
+
 variable "sqs_dlq_alarm_threshold" {
   type        = number
   description = "The threshold for the SQS DLQ alarm"
