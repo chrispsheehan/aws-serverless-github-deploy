@@ -14,7 +14,7 @@ module "lambda_api" {
   deployment_config = {
     strategy         = "canary"
     percentage       = 10
-    interval_minutes = local.codedeploy_interval_mins
+    interval_minutes = 5 # this should be > the CloudWatch alarm evaluation period to ensure we catch the alarm if it triggers
   }
 
   codedeploy_alarm_names = [

@@ -104,13 +104,13 @@ jobs:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           just_action: lambda-upload-bundle
 
-      # - name: Set Alarms to OK for CodeDeploy (if applicable)
-      #   uses: chrispsheehan/just-aws-oidc-action@0.3.0
-      #   env:
-      #     FUNCTION_NAME: ${{ steps.get_infra_detail.outputs.lambda_function_name }}
-      #   with:
-      #     aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-      #     just_action: lambda-set-code-deploy-alarms
+      - name: Set Alarms to OK for CodeDeploy (if applicable)
+        uses: chrispsheehan/just-aws-oidc-action@0.3.0
+        env:
+          FUNCTION_NAME: ${{ steps.get_infra_detail.outputs.lambda_function_name }}
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          just_action: lambda-set-code-deploy-alarms
 
       - name: Run CodeDeploy
         uses: chrispsheehan/just-aws-oidc-action@0.3.0
