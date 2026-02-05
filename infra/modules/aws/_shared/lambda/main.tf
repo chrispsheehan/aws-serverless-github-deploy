@@ -49,12 +49,14 @@ resource "aws_lambda_function" "lambda" {
   }
 
   # tags for identifying the code deploy app and its deployment config. Used in CI/CD pipelines.
-  tags = {
-    CodeDeployApplication = aws_codedeploy_app.app.name
-    CodeDeployGroup       = aws_codedeploy_deployment_group.dg.deployment_group_name
-    DeploymentStrategy    = local.deploy_config.type
-    CodeDeployAlarms      = length(var.codedeploy_alarm_names) > 0 ? jsonencode(var.codedeploy_alarm_names) : "[]"
-  }
+  tags = merge(
+    {
+      CodeDeployApplication = aws_codedeploy_app.app.name
+      CodeDeployGroup       = aws_codedeploy_deployment_group.dg.deployment_group_name
+      DeploymentStrategy    = local.deploy_config.type
+    },
+    local.codedeploy_alarm_tags
+  )
 
   lifecycle {
     # Do not update on changes to the initial s3 file version

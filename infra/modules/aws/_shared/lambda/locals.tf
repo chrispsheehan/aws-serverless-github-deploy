@@ -44,4 +44,9 @@ locals {
   pc_trigger_percent             = try(var.provisioned_config.auto_scale.trigger_percent, 70) / 100
   pc_sqs_target_visible_messages = try(var.provisioned_config.sqs_scale.visible_messages, 0)
   pc_sqs_queue_name              = try(var.provisioned_config.sqs_scale.queue_name, "")
+
+  codedeploy_alarm_tags = {
+    for idx, alarm in var.codedeploy_alarm_names :
+    "CodeDeployAlarm${idx + 1}" => alarm
+  }
 }

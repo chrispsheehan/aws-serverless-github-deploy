@@ -279,16 +279,21 @@ lambda-get-code-deploy-alarms:
 
     aws lambda list-tags \
         --resource "$FUNCTION_ARN" \
-        --query 'Tags.CodeDeployAlarms' \
-        --output text \
-    | jq -c '.'
+        --query 'Tags' \
+        --output json \
+    | jq -c '
+        to_entries
+        | map(select(.key | test("^CodeDeployAlarm[0-9]+$")))
+        | sort_by(.key | sub("^CodeDeployAlarm"; "") | tonumber)
+        | map(.value)
+      '
 
 
 lambda-set-code-deploy-alarms:
     #!/usr/bin/env bash
     set -euo pipefail
 
-    ALARMS_JSON=$(just lambda-get-code-deploy-alarms-json)
+    ALARMS_JSON=$(just lambda-get-code-deploy-alarms)
 
     # Convert JSON array to space-separated list
     ALARMS=$(echo "$ALARMS_JSON" | jq -r '.[]')
@@ -301,9 +306,6 @@ lambda-set-code-deploy-alarms:
             --state-value OK \
             --state-reason "Reset by CI/CD"
     done
-
-    # Output alarm names so they can be captured
-    echo $ALARMS
 
 
 lambda-deploy:
