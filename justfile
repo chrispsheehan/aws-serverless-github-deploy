@@ -336,7 +336,7 @@ lambda-deploy:
         --s3-location bucket=$BUCKET_NAME,key=$APP_SPEC_KEY,bundleType=zip \
         --query "deploymentId" --output text)
 
-    echo "🚀 Started deployment: $DEPLOYMENT_ID"
+    echo "🚀 Started deployment: $DEPLOYMENT_ID App Spec File: $BUCKET_NAME/$APP_SPEC_KEY"
 
     if [[ -z "$DEPLOYMENT_ID" || "$DEPLOYMENT_ID" == "None" ]]; then
         echo "❌ Failed to create deployment — no deployment ID returned."
