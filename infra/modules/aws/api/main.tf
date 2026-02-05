@@ -14,7 +14,7 @@ module "lambda_api" {
   deployment_config = {
     strategy         = "canary"
     percentage       = 10
-    interval_minutes = 3 # this is > the alarm evaluation period to ensure we catch the alarm if it triggers
+    interval_minutes = local.codedeploy_interval_mins
   }
 
   codedeploy_alarm_names = [
