@@ -284,7 +284,7 @@ lambda-get-code-deploy-alarms:
     | jq -c '.'
 
 
-lambda-get-code-deploy-alarms:
+lambda-set-code-deploy-alarms:
     #!/usr/bin/env bash
     set -euo pipefail
 
