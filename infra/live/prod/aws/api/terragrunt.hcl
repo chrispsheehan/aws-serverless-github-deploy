@@ -10,19 +10,19 @@ inputs = {
   deployment_config = {
     strategy         = "canary"
     percentage       = 10
-    interval_minutes = 5 # this should be > the CloudWatch alarm evaluation period to ensure we catch the alarm if it triggers
+    interval_minutes = 5
   }
 
   provisioned_config = {
     auto_scale = {
       max                        = 2
-      min                        = 1 # always have 1 lambda ready to go
+      min                        = 1
       trigger_percent            = 20
       scale_in_cooldown_seconds  = 60
       scale_out_cooldown_seconds = 60
     }
 
-    reserved_concurrency = 10 # limit the amount of concurrent executions to avoid throttling, but allow some bursting
+    reserved_concurrency = 10
   }
 }
 
