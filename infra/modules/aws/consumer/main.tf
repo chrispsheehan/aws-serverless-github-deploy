@@ -19,7 +19,7 @@ module "lambda_consumer" {
   deployment_config = var.deployment_config
 
   codedeploy_alarm_names = [
-    local.sqs_dlq_name
+    aws_cloudwatch_metric_alarm.dlq_new_messages.alarm_name
   ]
 
   provisioned_config = var.provisioned_config
