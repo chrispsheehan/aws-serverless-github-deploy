@@ -15,6 +15,11 @@ variable "lambda_bucket" {
 }
 ### end of static vars set in root.hcl ###
 
+variable "sqs_queue_name" {
+  type        = string
+  description = "The name of the SQS queue"
+}
+
 variable "deployment_config" {
   description = "Traffic shifting: all_at_once | canary | linear"
   type = object({
@@ -22,6 +27,27 @@ variable "deployment_config" {
     percentage       = optional(number) # 1..99 (req for canary/linear)
     interval_minutes = optional(number) # >=1  (req for canary/linear)
   })
+}
+
+variable "provisioned_config" {
+  description = "Either fixed provisioned concurrency (fixed) or autoscaled (auto_scale); omit/zero = none"
+  type = object({
+    fixed                = optional(number) # 0/omit = off, >0 = fixed PC
+    reserved_concurrency = optional(number) # 0/omit = no concurrency limit, >0 = limited concurrency
+
+    sqs_scale = optional(object({
+      min                        = number
+      max                        = number
+      visible_messages           = number
+      queue_name                 = optional(string)
+      scale_in_cooldown_seconds  = optional(number)
+      scale_out_cooldown_seconds = optional(number)
+    }))
+  })
+  default = {
+    fixed                = 0
+    reserved_concurrency = 1
+  }
 }
 
 variable "sqs_dlq_alarm_threshold" {

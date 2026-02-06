@@ -22,16 +22,7 @@ module "lambda_consumer" {
     local.sqs_dlq_name
   ]
 
-  provisioned_config = {
-    sqs_scale = {
-      min                        = 1
-      max                        = 5
-      visible_messages           = 10
-      queue_name                 = module.sqs_queue.sqs_queue_name
-      scale_in_cooldown_seconds  = 60
-      scale_out_cooldown_seconds = 60
-    }
-  }
+  provisioned_config = var.provisioned_config
 }
 
 # configure a deadletter queue (DLQ) for the SQS queue used by the Lambda consumer
