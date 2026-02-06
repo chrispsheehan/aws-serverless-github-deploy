@@ -14,7 +14,7 @@ module "lambda_api" {
   deployment_config = var.deployment_config
 
   codedeploy_alarm_names = [
-    aws_cloudwatch_metric_alarm.api_5xx_rate.alarm_name
+    local.api_5xx_alarm_name
   ]
 
   provisioned_config = var.provisioned_config
