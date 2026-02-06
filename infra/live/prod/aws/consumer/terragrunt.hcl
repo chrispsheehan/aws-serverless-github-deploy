@@ -3,21 +3,20 @@ include {
 }
 
 locals {
-  aws_account_id = get_aws_account_id()
-  sqs_queue_name = "${local.aws_account_id}-dev-serverless-consumer-queue"
+  sqs_queue_name = "serverless-consumer-queue"
 }
 
 inputs = {
   sqs_queue_name = local.sqs_queue_name
 
-  sqs_dlq_alarm_threshold           = 5
+  sqs_dlq_alarm_threshold           = 5 # fail when there are 5 messages in the DLQ
   sqs_dlq_alarm_evaluation_periods  = 3
   sqs_dlq_alarm_datapoints_to_alarm = 3
 
   deployment_config = {
     strategy         = "canary"
     percentage       = 10
-    interval_minutes = 5
+    interval_minutes = 3 # this should be > the CloudWatch alarm evaluation period to ensure we catch the alarm if it triggers
   }
 
   provisioned_config = {
