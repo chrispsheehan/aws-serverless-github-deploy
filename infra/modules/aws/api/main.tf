@@ -11,27 +11,13 @@ module "lambda_api" {
     DEBUG_DELAY_MS = 500
   }
 
-  deployment_config = {
-    strategy         = "canary"
-    percentage       = 10
-    interval_minutes = 3 # this is > the alarm evaluation period to ensure we catch the alarm if it triggers
-  }
+  deployment_config = var.deployment_config
 
   codedeploy_alarm_names = [
     local.api_5xx_alarm_name
   ]
 
-  provisioned_config = {
-    auto_scale = {
-      max                        = 2
-      min                        = 1 # always have 1 lambda ready to go
-      trigger_percent            = 20
-      scale_in_cooldown_seconds  = 60
-      scale_out_cooldown_seconds = 60
-    }
-
-    reserved_concurrency = 10 # limit the amount of concurrent executions to avoid throttling, but allow some bursting
-  }
+  provisioned_config = var.provisioned_config
 }
 
 resource "aws_apigatewayv2_api" "http_api" {
@@ -103,7 +89,7 @@ resource "aws_cloudwatch_metric_alarm" "api_5xx_rate" {
       namespace   = "AWS/ApiGateway"
       metric_name = local.apigw_http_5xx_metric
       stat        = "Sum"
-      period      = 60
+      period      = 60 # most aws metrics are emitted at 1-minute intervals, so using a shorter period can lead to more volatile alarms
 
       dimensions = {
         ApiId = aws_apigatewayv2_api.http_api.id

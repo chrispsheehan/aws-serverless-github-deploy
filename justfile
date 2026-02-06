@@ -242,6 +242,11 @@ lambda-upload-bundle:
 
 lambda-get-function-arn:
     #!/usr/bin/env bash
+    if [[ -z "$FUNCTION_NAME" ]]; then
+        echo "❌ FUNCTION_NAME environment variable is not set."
+        exit 1
+    fi
+
     aws lambda get-function \
         --function-name $FUNCTION_NAME \
         --query 'Configuration.FunctionArn' \
@@ -264,6 +269,43 @@ lambda-get-code-deploy-group:
         --resource "$FUNCTION_ARN" \
         --query 'Tags.CodeDeployGroup' \
         --output text
+
+
+lambda-get-code-deploy-alarms:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    FUNCTION_ARN=$(just lambda-get-function-arn)
+
+    aws lambda list-tags \
+        --resource "$FUNCTION_ARN" \
+        --query 'Tags' \
+        --output json \
+    | jq -c '
+        to_entries
+        | map(select(.key | test("^CodeDeployAlarm[0-9]+$")))
+        | sort_by(.key | sub("^CodeDeployAlarm"; "") | tonumber)
+        | map(.value)
+      '
+
+
+lambda-set-code-deploy-alarms:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    ALARMS_JSON=$(just lambda-get-code-deploy-alarms)
+
+    # Convert JSON array to space-separated list
+    ALARMS=$(echo "$ALARMS_JSON" | jq -r '.[]')
+
+    # Reset each alarm to OK
+    for ALARM_NAME in $ALARMS; do
+        echo "Setting alarm to OK: $ALARM_NAME"
+        aws cloudwatch set-alarm-state \
+            --alarm-name "$ALARM_NAME" \
+            --state-value OK \
+            --state-reason "Reset by CI/CD"
+    done
 
 
 lambda-deploy:
@@ -294,7 +336,10 @@ lambda-deploy:
         --s3-location bucket=$BUCKET_NAME,key=$APP_SPEC_KEY,bundleType=zip \
         --query "deploymentId" --output text)
 
-    echo "🚀 Started deployment: $DEPLOYMENT_ID"
+    echo "🚀 Deployment started: $DEPLOYMENT_ID"
+    echo "🏷️ CodeDeploy App: $CODE_DEPLOY_APP_NAME | Group: $CODE_DEPLOY_GROUP_NAME"
+    echo "📦 AppSpec artifact: s3://$BUCKET_NAME/$APP_SPEC_KEY"
+    echo "⏳ Monitoring deployment status…"
 
     if [[ -z "$DEPLOYMENT_ID" || "$DEPLOYMENT_ID" == "None" ]]; then
         echo "❌ Failed to create deployment — no deployment ID returned."
@@ -414,8 +459,9 @@ test-send-dlq-messages:
 
     echo "Sending messages to SQS DLQ at $SQS_DLQ_QUEUE_URL..."
 
-    for i in {1..10}; do
+    for i in {1..180}; do
         aws sqs send-message --region $AWS_REGION --queue-url "$SQS_DLQ_QUEUE_URL" --message-body "Test message $i"
+        sleep 1
     done
 
     echo "Finished sending messages."
