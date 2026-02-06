@@ -336,7 +336,10 @@ lambda-deploy:
         --s3-location bucket=$BUCKET_NAME,key=$APP_SPEC_KEY,bundleType=zip \
         --query "deploymentId" --output text)
 
-    echo "🚀 Started deployment: $DEPLOYMENT_ID App Spec File: $BUCKET_NAME/$APP_SPEC_KEY"
+    echo "🚀 Deployment started: $DEPLOYMENT_ID"
+    echo "🏷️  CodeDeploy App: $CODE_DEPLOY_APP_NAME | Group: $CODE_DEPLOY_GROUP_NAME"
+    echo "📦 AppSpec artifact: s3://$BUCKET_NAME/$APP_SPEC_KEY"
+    echo "⏳ Monitoring deployment status…"
 
     if [[ -z "$DEPLOYMENT_ID" || "$DEPLOYMENT_ID" == "None" ]]; then
         echo "❌ Failed to create deployment — no deployment ID returned."
