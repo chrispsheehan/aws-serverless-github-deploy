@@ -4,7 +4,7 @@ include {
 
 inputs = {
   api_5xx_alarm_threshold           = 20.0
-  api_5xx_alarm_evaluation_periods  = 1
+  api_5xx_alarm_evaluation_periods  = 2
   api_5xx_alarm_datapoints_to_alarm = 2
 
   deployment_config = {

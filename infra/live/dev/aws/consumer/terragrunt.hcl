@@ -11,7 +11,7 @@ inputs = {
   sqs_queue_name = local.sqs_queue_name
 
   sqs_dlq_alarm_threshold           = 5
-  sqs_dlq_alarm_evaluation_periods  = 1
+  sqs_dlq_alarm_evaluation_periods  = 2
   sqs_dlq_alarm_datapoints_to_alarm = 2
 
   deployment_config = {
