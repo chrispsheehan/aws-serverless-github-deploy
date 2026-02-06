@@ -15,7 +15,9 @@ inputs = {
   sqs_dlq_alarm_datapoints_to_alarm = 1
 
   deployment_config = {
-    strategy = "all_at_once"
+    strategy         = "canary"
+    percentage       = 50
+    interval_minutes = 3 # this should be > the CloudWatch alarm evaluation period to ensure we catch the alarm if it triggers
   }
 
   provisioned_config = {
