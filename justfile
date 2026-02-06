@@ -337,7 +337,7 @@ lambda-deploy:
         --query "deploymentId" --output text)
 
     echo "🚀 Deployment started: $DEPLOYMENT_ID"
-    echo "🏷️  CodeDeploy App: $CODE_DEPLOY_APP_NAME | Group: $CODE_DEPLOY_GROUP_NAME"
+    echo "🏷️ CodeDeploy App: $CODE_DEPLOY_APP_NAME | Group: $CODE_DEPLOY_GROUP_NAME"
     echo "📦 AppSpec artifact: s3://$BUCKET_NAME/$APP_SPEC_KEY"
     echo "⏳ Monitoring deployment status…"
 
