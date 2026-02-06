@@ -52,7 +52,7 @@ variable "provisioned_config" {
 
 variable "sqs_dlq_alarm_threshold" {
   type        = number
-  description = "The threshold for the SQS DLQ alarm"
+  description = "Age in seconds, e.g. 300 for 5 minutes of messages in the DLQ, to trigger the alarm"
 }
 
 variable "sqs_dlq_alarm_evaluation_periods" {

@@ -459,8 +459,9 @@ test-send-dlq-messages:
 
     echo "Sending messages to SQS DLQ at $SQS_DLQ_QUEUE_URL..."
 
-    for i in {1..10}; do
+    for i in {1..180}; do
         aws sqs send-message --region $AWS_REGION --queue-url "$SQS_DLQ_QUEUE_URL" --message-body "Test message $i"
+        sleep 1
     done
 
     echo "Finished sending messages."

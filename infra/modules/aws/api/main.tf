@@ -89,7 +89,7 @@ resource "aws_cloudwatch_metric_alarm" "api_5xx_rate" {
       namespace   = "AWS/ApiGateway"
       metric_name = local.apigw_http_5xx_metric
       stat        = "Sum"
-      period      = 60
+      period      = 60 # most aws metrics are emitted at 1-minute intervals, so using a shorter period can lead to more volatile alarms
 
       dimensions = {
         ApiId = aws_apigatewayv2_api.http_api.id

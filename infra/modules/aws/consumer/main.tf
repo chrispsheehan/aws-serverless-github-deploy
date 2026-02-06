@@ -45,14 +45,14 @@ resource "aws_lambda_event_source_mapping" "sqs" {
 }
 
 resource "aws_cloudwatch_metric_alarm" "dlq_new_messages" {
-  alarm_name        = local.sqs_dlq_name
+  alarm_name        = "${local.sqs_dlq_name}-new-messages"
   alarm_description = "New messages sent to DLQ ${local.sqs_dlq_name}"
   actions_enabled   = true
 
   namespace   = "AWS/SQS"
   metric_name = "NumberOfMessagesSent"
   statistic   = "Sum"
-  period      = 60
+  period      = 60 # most aws metrics are emitted at 1-minute intervals, so using a shorter period can lead to more volatile alarms
 
   evaluation_periods  = var.sqs_dlq_alarm_evaluation_periods
   datapoints_to_alarm = var.sqs_dlq_alarm_datapoints_to_alarm
@@ -65,4 +65,3 @@ resource "aws_cloudwatch_metric_alarm" "dlq_new_messages" {
     QueueName = local.sqs_dlq_name
   }
 }
-
