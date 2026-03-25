@@ -187,8 +187,8 @@ resource "aws_appautoscaling_policy" "pc_policy" {
 
   target_tracking_scaling_policy_configuration {
     target_value       = local.pc_trigger_percent
-    scale_in_cooldown  = local.pc_min_capacity
-    scale_out_cooldown = local.pc_max_capacity
+    scale_in_cooldown  = local.pc_scale_in_cooldown_seconds
+    scale_out_cooldown = local.pc_scale_out_cooldown_seconds
     predefined_metric_specification {
       predefined_metric_type = "LambdaProvisionedConcurrencyUtilization"
     }
