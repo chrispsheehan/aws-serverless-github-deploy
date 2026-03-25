@@ -1,17 +1,17 @@
 output "cloudwatch_log_group" {
-  value = module.lambda_consumer.cloudwatch_log_group
+  value = module.lambda_worker.cloudwatch_log_group
 }
 
 output "lambda_arn" {
-  value = module.lambda_consumer.arn
+  value = module.lambda_worker.arn
 }
 
 output "lambda_function_name" {
-  value = module.lambda_consumer.function_name
+  value = module.lambda_worker.function_name
 }
 
 output "lambda_alias_name" {
-  value = module.lambda_consumer.alias_name
+  value = module.lambda_worker.alias_name
 }
 
 output "sqs_queue_url" {

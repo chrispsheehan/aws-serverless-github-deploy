@@ -1,4 +1,4 @@
-module "lambda_consumer" {
+module "lambda_worker" {
   source = "../_shared/lambda"
 
   project_name  = var.project_name
@@ -25,7 +25,7 @@ module "lambda_consumer" {
   provisioned_config = var.provisioned_config
 }
 
-# configure a deadletter queue (DLQ) for the SQS queue used by the Lambda consumer
+# configure a deadletter queue (DLQ) for the SQS queue used by the Lambda worker
 
 module "sqs_queue" {
   source = "../_shared/sqs"
@@ -36,7 +36,7 @@ module "sqs_queue" {
 
 resource "aws_lambda_event_source_mapping" "sqs" {
   event_source_arn = module.sqs_queue.sqs_queue_arn
-  function_name    = module.lambda_consumer.function_name
+  function_name    = module.lambda_worker.function_name
 
   batch_size                         = local.sqs_chunk_size
   maximum_batching_window_in_seconds = 10
