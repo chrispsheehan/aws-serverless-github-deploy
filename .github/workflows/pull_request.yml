@@ -93,6 +93,21 @@ jobs:
         with:
           just_action: tf-lint-check
 
+  check-lambda-naming:
+    needs: check
+    runs-on: ubuntu-latest
+    name: Check lambda directory naming uses underscores
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fail if any lambda directory uses hyphens
+        run: |
+          bad_dirs=$(find lambdas -mindepth 1 -maxdepth 1 -type d -name '*-*')
+          if [ -n "$bad_dirs" ]; then
+            echo "::error::❌ Lambda directories must use underscores, not hyphens: $bad_dirs"
+            exit 1
+          fi
+          echo "✅ All lambda directories use underscores."
+
   setup-lambdas:
     if: ${{ needs.check.outputs.lambdas == 'true' }}
     needs: check
