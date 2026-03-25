@@ -143,6 +143,7 @@ lambda-get-directories:
     set -euo pipefail
     find "{{LAMBDA_DIR}}" -mindepth 1 -maxdepth 1 -type d \
       | xargs -I{} basename "{}" \
+      | tr '-' '_' \
       | jq -R . \
       | jq -s -c .
 
