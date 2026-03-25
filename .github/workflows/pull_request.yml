@@ -63,9 +63,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: hashicorp/setup-terraform@v3
-      - uses: autero1/action-terragrunt@v1.3.2
+      - uses: autero1/action-terragrunt@v3.0.2
         with:
-          terragrunt_version: 0.45.10
+          terragrunt-version: 0.45.10
 
       - name: Terraform fmt check
         run: terraform fmt -check -recursive
