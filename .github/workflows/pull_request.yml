@@ -91,7 +91,6 @@ jobs:
       - name: "Run terraform lint checks"
         uses: chrispsheehan/just-aws-oidc-action@0.3.0
         with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           just_action: tf-lint-check
 
   setup-lambdas:
@@ -126,5 +125,4 @@ jobs:
         env:
           LAMBDA_NAME: ${{ matrix.value }}
         with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           just_action: lambda-build
