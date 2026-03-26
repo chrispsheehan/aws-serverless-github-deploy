@@ -24,9 +24,8 @@ jobs:
           fetch-depth: 0
       - name: Get current tag
         id: get_tag
-        # this fails on first run when no tag exist - fix later 
         run: |
-          CURRENT_TAG=$(git describe --tags --abbrev=0)
+          CURRENT_TAG=$(git describe --tags --abbrev=0 || echo "v0.0.0")
           echo "CURRENT_TAG=${CURRENT_TAG}" >> $GITHUB_OUTPUT
 
   get-next-tag:
@@ -42,7 +41,7 @@ jobs:
       # Only commits with types like fix:, feat:, or breaking changes (feat!: or commits including a BREAKING CHANGE note) will cause the version to increment.
       - name: Get next version
         id: get_next_version
-        uses: thenativeweb/get-next-version@2.6.3
+        uses: thenativeweb/get-next-version@2.7.1
 
       - name: Show the next version
         run: |

@@ -1,6 +1,5 @@
-import json
 import os
-from time import time
+import time
 from typing import List, Dict
 
 CHUNK_SIZE = 5

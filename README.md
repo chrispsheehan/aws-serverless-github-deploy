@@ -138,7 +138,7 @@ module "lambda_example" {
 
 ```
 📦 Running: lambda-deploy
-🚀 Started deployment: d-40UUQH3DF
+🚀 Deployment started: d-40UUQH3DF
 Attempt 1: Deployment status is InProgress
 Attempt 2: Deployment status is InProgress
 Attempt 3: Deployment status is InProgress

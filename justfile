@@ -63,8 +63,6 @@ branch name:
     git fetch origin
     git checkout main
     git pull origin
-    git branch --set-upstream-to=origin/main {{ name }}
-    git pull
     git checkout -b {{ name }}
     git push -u origin {{ name }}
 
@@ -104,7 +102,7 @@ check-version:
     fi
 
     FILES=$(aws s3 ls $FULL_BUCKET_NAME --recursive | wc -l | xargs)
-    if [ -n "$FILES" ]; then
+    if [ "$FILES" -gt 0 ]; then
         echo "✅ $FILES file(s) found in $FULL_BUCKET_NAME"
     else
         echo "❌ No files found under $FULL_BUCKET_NAME"
@@ -145,6 +143,7 @@ lambda-get-directories:
     set -euo pipefail
     find "{{LAMBDA_DIR}}" -mindepth 1 -maxdepth 1 -type d \
       | xargs -I{} basename "{}" \
+      | tr '-' '_' \
       | jq -R . \
       | jq -s -c .
 
@@ -336,15 +335,15 @@ lambda-deploy:
         --s3-location bucket=$BUCKET_NAME,key=$APP_SPEC_KEY,bundleType=zip \
         --query "deploymentId" --output text)
 
-    echo "🚀 Deployment started: $DEPLOYMENT_ID"
-    echo "🏷️ CodeDeploy App: $CODE_DEPLOY_APP_NAME | Group: $CODE_DEPLOY_GROUP_NAME"
-    echo "📦 AppSpec artifact: s3://$BUCKET_NAME/$APP_SPEC_KEY"
-    echo "⏳ Monitoring deployment status…"
-
     if [[ -z "$DEPLOYMENT_ID" || "$DEPLOYMENT_ID" == "None" ]]; then
         echo "❌ Failed to create deployment — no deployment ID returned."
         exit 1
     fi
+
+    echo "🚀 Deployment started: $DEPLOYMENT_ID"
+    echo "🏷️ CodeDeploy App: $CODE_DEPLOY_APP_NAME | Group: $CODE_DEPLOY_GROUP_NAME"
+    echo "📦 AppSpec artifact: s3://$BUCKET_NAME/$APP_SPEC_KEY"
+    echo "⏳ Monitoring deployment status…"
 
     MAX_ATTEMPTS=40       # ~10 minutes at 15s interval
     SLEEP_INTERVAL=15     # seconds

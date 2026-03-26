@@ -3,19 +3,19 @@ include {
 }
 
 locals {
-  sqs_queue_name = "serverless-consumer-queue"
+  sqs_queue_name = "dev-serverless-lambda-worker-queue"
 }
 
 inputs = {
   sqs_queue_name = local.sqs_queue_name
 
-  sqs_dlq_alarm_threshold           = 5 # fail when there are 5 messages in the DLQ
-  sqs_dlq_alarm_evaluation_periods  = 3
-  sqs_dlq_alarm_datapoints_to_alarm = 3
+  sqs_dlq_alarm_threshold           = 1 # fail when any messages are in the DLQ (quick fail for testing)
+  sqs_dlq_alarm_evaluation_periods  = 1
+  sqs_dlq_alarm_datapoints_to_alarm = 1
 
   deployment_config = {
     strategy         = "canary"
-    percentage       = 10
+    percentage       = 50
     interval_minutes = 3 # this should be > the CloudWatch alarm evaluation period to ensure we catch the alarm if it triggers
   }
 
@@ -32,5 +32,5 @@ inputs = {
 }
 
 terraform {
-  source = "../../../../modules//aws//consumer"
+  source = "../../../../modules//aws//lambda_worker"
 }
