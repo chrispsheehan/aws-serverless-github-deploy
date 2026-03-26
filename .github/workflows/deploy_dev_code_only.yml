@@ -1,12 +1,20 @@
-name: Dev Deploy Lambda Only
-# This allows us to deploy only lambda changes to dev without touching infra.
+name: Dev Deploy Code Only
+# This allows us to deploy only code changes to dev without touching infra.
 
 on:
   workflow_dispatch:
+    inputs:
+      infra_version:
+        description: "Git ref to deploy"
+        required: false
+        default: ""
 
 permissions:
   id-token: write
   contents: write
+
+env:
+  VERSION: ${{ inputs.infra_version != '' && inputs.infra_version || github.sha }}
 
 jobs:
   setup:
@@ -24,11 +32,11 @@ jobs:
 
   build:
     uses: ./.github/workflows/build.yml
-    needs: 
+    needs:
       - setup
     with:
       environment: dev
-      version: ${{ github.sha }}
+      version: ${{ inputs.infra_version != '' && inputs.infra_version || github.sha }}
       matrix: ${{ needs.setup.outputs.lambdas_dirs }}
 
   get_build:
@@ -36,7 +44,7 @@ jobs:
     uses: ./.github/workflows/build_get.yml
     with:
       environment: dev
-      version: ${{ github.sha }}
+      version: ${{ inputs.infra_version != '' && inputs.infra_version || github.sha }}
 
   deploy:
     uses: ./.github/workflows/deploy.yml

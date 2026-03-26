@@ -47,6 +47,26 @@ jobs:
         run: |
           echo "bucket_lambda=$(echo $TG_OUTPUTS | jq -r '.bucket_lambda.value')" >> $GITHUB_OUTPUT
 
+  frontend:
+    needs: bucket
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Build frontend
+        uses: chrispsheehan/just-aws-oidc-action@0.3.0
+        with:
+          just_action: frontend-build
+
+      - name: Upload frontend
+        uses: chrispsheehan/just-aws-oidc-action@0.3.0
+        env:
+          BUCKET_NAME: ${{ needs.bucket.outputs.lambda_bucket_name }}
+          VERSION: ${{ inputs.version }}
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          just_action: frontend-upload
+
   lambdas:
     needs: bucket
     runs-on: ubuntu-latest

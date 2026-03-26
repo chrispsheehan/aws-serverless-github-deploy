@@ -442,8 +442,37 @@ frontend-upload:
         exit 1
     fi
 
-    aws s3 sync {{PROJECT_DIR}}/dist "s3://$BUCKET_NAME" --delete
-    echo "✅ Frontend uploaded to s3://$BUCKET_NAME"
+    if [[ -z "$VERSION" ]]; then
+        echo "❌ VERSION environment variable is not set."
+        exit 1
+    fi
+
+    aws s3 sync {{PROJECT_DIR}}/dist "s3://$BUCKET_NAME/$VERSION/frontend/"
+    echo "✅ Frontend uploaded to s3://$BUCKET_NAME/$VERSION/frontend/"
+
+
+frontend-deploy:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "$BUCKET_NAME" ]]; then
+        echo "❌ BUCKET_NAME environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "$VERSION" ]]; then
+        echo "❌ VERSION environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "$WEBSITE_BUCKET" ]]; then
+        echo "❌ WEBSITE_BUCKET environment variable is not set."
+        exit 1
+    fi
+
+    aws s3 sync "s3://$BUCKET_NAME/$VERSION/frontend/" "s3://$WEBSITE_BUCKET/" --delete
+    echo "✅ Frontend deployed to s3://$WEBSITE_BUCKET"
+    just frontend-invalidate
 
 
 frontend-invalidate:
