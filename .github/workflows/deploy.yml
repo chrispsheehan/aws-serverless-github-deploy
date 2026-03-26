@@ -43,7 +43,7 @@ jobs:
       matrix:
         value: ${{ fromJson(inputs.matrix) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Set AppSpec paths
         id: appspec
         shell: bash

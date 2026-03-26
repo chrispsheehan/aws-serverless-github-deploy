@@ -29,7 +29,7 @@ jobs:
     outputs:
       lambda_dirs: ${{ steps.lambda_dirs.outputs.just_outputs }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
         with:
@@ -50,7 +50,7 @@ jobs:
       matrix:
         value: ${{ fromJson(needs.setup.outputs.lambda_dirs) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Deploy ${{ matrix.value }} infra
         uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
@@ -65,7 +65,7 @@ jobs:
       - lambdas
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Destroy code
         uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1

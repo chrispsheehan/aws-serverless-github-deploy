@@ -37,7 +37,7 @@ jobs:
       lambda_version_files: ${{ steps.get_build_files.outputs.just_outputs }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.version }}
 

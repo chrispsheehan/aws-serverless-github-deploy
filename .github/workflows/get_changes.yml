@@ -33,7 +33,7 @@ jobs:
       lambdas: ${{ steps.filter.outputs.lambdas }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ inputs.ref }}
           fetch-depth: 0
