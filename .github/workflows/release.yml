@@ -19,7 +19,7 @@ jobs:
     outputs:
       current_tag: ${{ steps.get_tag.outputs.CURRENT_TAG }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - name: Get current tag
@@ -34,7 +34,7 @@ jobs:
       tag: ${{ steps.get_next_version.outputs.version }}
       has-next-version: ${{ steps.get_next_version.outputs.hasNextVersion }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -55,7 +55,7 @@ jobs:
     env:
       TAG: ${{ needs.get-next-tag.outputs.tag }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Create new tag
         run: |
           echo "Tagging $TAG"
@@ -75,7 +75,7 @@ jobs:
       TAG: ${{ needs.get-next-tag.outputs.tag }}
       CURRENT_TAG: ${{ needs.get-current-tag.outputs.current_tag }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - name: Get commit messages
@@ -91,7 +91,7 @@ jobs:
     outputs:
       lambdas_dirs: ${{ steps.lambdas_dirs.outputs.just_outputs }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Get lambdas Directories
         id: lambdas_dirs
         uses: chrispsheehan/just-aws-oidc-action@0.3.0
@@ -124,7 +124,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.get-next-tag.outputs.tag }}

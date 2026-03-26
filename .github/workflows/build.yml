@@ -30,7 +30,7 @@ jobs:
     outputs:
       lambda_bucket_name: ${{ steps.get_bucket_name.outputs.bucket_lambda }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Get lambda code bucket
         id: deploy_bucket
@@ -55,7 +55,7 @@ jobs:
       matrix:
         value: ${{ fromJson(inputs.matrix) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: "Build ${{ matrix.value }} Lambda"
         uses: chrispsheehan/just-aws-oidc-action@0.3.0

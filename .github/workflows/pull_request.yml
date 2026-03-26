@@ -48,7 +48,7 @@ jobs:
     name: Run github formatting checks
     timeout-minutes: 2
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: raven-actions/actionlint@v2
         with:
           shellcheck: false
@@ -61,7 +61,7 @@ jobs:
     name: Run terragrunt formatting checks
     timeout-minutes: 2
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: hashicorp/setup-terraform@v3
       - uses: autero1/action-terragrunt@v3.0.2
         with:
@@ -82,7 +82,7 @@ jobs:
     name: Run terraform lint checks
     timeout-minutes: 2
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: terraform-linters/setup-tflint@v4
 
       - name: Init TFLint
@@ -98,7 +98,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Check lambda directory naming uses underscores
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Fail if any lambda directory uses hyphens
         run: |
           bad_dirs=$(find lambdas -mindepth 1 -maxdepth 1 -type d -name '*-*')
@@ -115,7 +115,7 @@ jobs:
     outputs:
       lambda_dirs: ${{ steps.lambda_dirs.outputs.just_outputs }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Get Lambda Directories
         id: lambda_dirs
         uses: chrispsheehan/just-aws-oidc-action@0.3.0
@@ -133,7 +133,7 @@ jobs:
       matrix:
         value: ${{ fromJson(needs.setup-lambdas.outputs.lambda_dirs) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: "Build ${{ matrix.value }} Lambda"
         uses: chrispsheehan/just-aws-oidc-action@0.3.0

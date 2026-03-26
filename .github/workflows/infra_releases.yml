@@ -31,7 +31,7 @@ jobs:
     outputs:
       lambda_bucket_name: ${{ steps.get_bucket_name.outputs.bucket_lambda }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.infra_version }}
 
