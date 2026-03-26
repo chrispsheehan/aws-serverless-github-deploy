@@ -9,7 +9,8 @@ locals {
     "codedeploy:*",
     "application-autoscaling:*",
     "cloudwatch:*",
-    "sqs:*"
+    "sqs:*",
+    "cloudfront:*"
   ]
 }
 
