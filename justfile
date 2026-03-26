@@ -4,6 +4,7 @@ _default:
 
 PROJECT_DIR := justfile_directory()
 LAMBDA_DIR := "lambdas"
+FRONTEND_DIR := "frontend"
 
 
 tf-lint-check:
@@ -420,6 +421,68 @@ lambda-prune:
         echo "Deleting $FUNCTION_NAME:$v"
         aws lambda delete-function --function-name "$FUNCTION_NAME" --qualifier "$v" --region "$AWS_REGION"
     done
+
+
+frontend-build:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "🔄 Cleaning previous builds..."
+    rm -rf {{PROJECT_DIR}}/{{FRONTEND_DIR}}/dist
+    echo "📦 Building frontend..."
+    npm install --prefix {{FRONTEND_DIR}}
+    npm run build --prefix {{FRONTEND_DIR}}
+
+
+frontend-upload:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "$BUCKET_NAME" ]]; then
+        echo "❌ BUCKET_NAME environment variable is not set."
+        exit 1
+    fi
+
+    aws s3 sync {{PROJECT_DIR}}/dist "s3://$BUCKET_NAME" --delete
+    echo "✅ Frontend uploaded to s3://$BUCKET_NAME"
+
+
+frontend-invalidate:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [[ -z "$DISTRIBUTION_ID" ]]; then
+        echo "Error: VERSION environment variable is not set."
+        exit 1
+    fi
+
+    MAX_ATTEMPTS=18
+    SLEEP_INTERVAL=10
+
+    echo "🔄 Creating CloudFront invalidation..."
+    INVALIDATION_ID=$(aws cloudfront create-invalidation \
+        --distribution-id "$DISTRIBUTION_ID" \
+        --paths "/*" \
+        --query 'Invalidation.Id' \
+        --output text)
+
+    for ((i=1; i<=MAX_ATTEMPTS; i++)); do
+    STATUS=$(aws cloudfront get-invalidation \
+        --distribution-id "$DISTRIBUTION_ID" \
+        --id "$INVALIDATION_ID" \
+        --query 'Invalidation.Status' \
+        --output text)
+
+    echo "Attempt $i: Invalidation status is $STATUS"
+
+    if [[ "$STATUS" == "Completed" ]]; then
+        echo "✅ Invalidation $INVALIDATION_ID completed successfully."
+        exit 0
+    fi
+
+    sleep "$SLEEP_INTERVAL"
+    done
+
+    echo "❌ Invalidation $INVALIDATION_ID did not complete within expected time."
+    exit 1
 
 
 test-api-deploy-500s:
