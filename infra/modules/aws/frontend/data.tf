@@ -28,4 +28,17 @@ data "aws_cloudfront_response_headers_policy" "response_headers" {
   name = local.response_headers_policy_id
 }
 
+data "aws_cloudfront_cache_policy" "caching_disabled" {
+  name = local.caching_disabled_id
+}
+
 data "aws_caller_identity" "current" {}
+
+data "terraform_remote_state" "api" {
+  backend = "s3"
+  config = {
+    bucket = var.state_bucket
+    key    = "${var.environment}/aws/api/terraform.tfstate"
+    region = var.aws_region
+  }
+}

@@ -8,9 +8,13 @@ variable "environment" {
   type        = string
   description = "Environment reference used in naming resources i.e. 'dev'"
 }
-### end of static vars set in root.hcl ###
-
-variable "api_invoke_url" {
+variable "aws_region" {
   type        = string
-  description = "The API Gateway v2 invoke URL (https://...)"
+  description = "AWS region"
 }
+
+variable "state_bucket" {
+  type        = string
+  description = "S3 bucket used for Terraform remote state"
+}
+### end of static vars set in root.hcl ###
