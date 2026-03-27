@@ -8,6 +8,10 @@ on:
         description: "Git ref to deploy"
         required: false
         default: ""
+      frontend_version:
+        description: "Frontend version to deploy (defaults to infra_version)"
+        required: false
+        default: ""
 
 permissions:
   id-token: write
@@ -36,7 +40,8 @@ jobs:
       - setup
     with:
       environment: dev
-      version: ${{ inputs.infra_version != '' && inputs.infra_version || github.sha }}
+      lambda_version: ${{ inputs.infra_version != '' && inputs.infra_version || github.sha }}
+      frontend_version: ${{ inputs.frontend_version }}
       matrix: ${{ needs.setup.outputs.lambdas_dirs }}
 
   get_build:
@@ -44,7 +49,8 @@ jobs:
     uses: ./.github/workflows/build_get.yml
     with:
       environment: dev
-      version: ${{ inputs.infra_version != '' && inputs.infra_version || github.sha }}
+      lambda_version: ${{ inputs.infra_version != '' && inputs.infra_version || github.sha }}
+      frontend_version: ${{ inputs.frontend_version }}
 
   deploy:
     uses: ./.github/workflows/deploy.yml
@@ -53,5 +59,5 @@ jobs:
     with:
       environment: dev
       lambda_version: ${{ needs.get_build.outputs.lambda_version }}
-      lambda_bucket: ${{ needs.get_build.outputs.lambda_bucket }}
+      code_bucket: ${{ needs.get_build.outputs.code_bucket }}
       matrix: ${{ needs.get_build.outputs.lambda_version_files }}

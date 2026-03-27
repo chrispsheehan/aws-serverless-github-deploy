@@ -90,7 +90,7 @@ check-version:
     #!/usr/bin/env bash
     set -euo pipefail
 
-    FULL_BUCKET_NAME="$BUCKET_NAME/$VERSION/"
+    FULL_BUCKET_NAME="$BUCKET_NAME/lambdas/$VERSION/"
 
     if ! aws s3api head-bucket --bucket "$BUCKET_NAME" >/dev/null 2>&1; then
         echo "❌ The bucket '$BUCKET_NAME' does not exist or is inaccessible."
@@ -125,7 +125,7 @@ get-version-files:
         exit 1
     fi
 
-    FULL_BUCKET_PATH="s3://$BUCKET_NAME/$VERSION/"
+    FULL_BUCKET_PATH="s3://$BUCKET_NAME/lambdas/$VERSION/"
 
     aws s3api head-bucket --bucket "$BUCKET_NAME" >/dev/null
     aws s3 ls "$FULL_BUCKET_PATH" >/dev/null
@@ -196,9 +196,9 @@ lambda-upload:
     fi
 
     LAMBDA_ZIP="{{PROJECT_DIR}}/{{LAMBDA_DIR}}/$LAMBDA_NAME.zip"
-    echo "📤 Uploading $LAMBDA_ZIP to s3://$BUCKET_NAME/$VERSION/$LAMBDA_NAME.zip"
+    echo "📤 Uploading $LAMBDA_ZIP to s3://$BUCKET_NAME/lambdas/$VERSION/$LAMBDA_NAME.zip"
 
-    aws s3 cp "$LAMBDA_ZIP" "s3://$BUCKET_NAME/$VERSION/$LAMBDA_NAME.zip" \
+    aws s3 cp "$LAMBDA_ZIP" "s3://$BUCKET_NAME/lambdas/$VERSION/$LAMBDA_NAME.zip" \
         --storage-class STANDARD
 
 
@@ -447,8 +447,29 @@ frontend-upload:
         exit 1
     fi
 
-    aws s3 sync {{PROJECT_DIR}}/dist "s3://$BUCKET_NAME/$VERSION/frontend/"
-    echo "✅ Frontend uploaded to s3://$BUCKET_NAME/$VERSION/frontend/"
+    cd {{PROJECT_DIR}}/dist
+    zip -r {{PROJECT_DIR}}/frontend.zip .
+    aws s3 cp {{PROJECT_DIR}}/frontend.zip "s3://$BUCKET_NAME/frontend/$VERSION/frontend.zip"
+    echo "✅ Frontend uploaded to s3://$BUCKET_NAME/frontend/$VERSION/frontend.zip"
+
+
+frontend-check-version:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "$BUCKET_NAME" ]]; then
+        echo "❌ BUCKET_NAME environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "$VERSION" ]]; then
+        echo "❌ VERSION environment variable is not set."
+        exit 1
+    fi
+
+    aws s3 ls "s3://$BUCKET_NAME/frontend/$VERSION/frontend.zip" \
+        && echo "✅ frontend.zip found at s3://$BUCKET_NAME/frontend/$VERSION/frontend.zip" \
+        || (echo "❌ frontend.zip not found at s3://$BUCKET_NAME/frontend/$VERSION/frontend.zip" && exit 1)
 
 
 frontend-deploy:
@@ -470,7 +491,10 @@ frontend-deploy:
         exit 1
     fi
 
-    aws s3 sync "s3://$BUCKET_NAME/$VERSION/frontend/" "s3://$WEBSITE_BUCKET/" --delete
+    TMPDIR=$(mktemp -d)
+    aws s3 cp "s3://$BUCKET_NAME/frontend/$VERSION/frontend.zip" "$TMPDIR/frontend.zip"
+    unzip -q "$TMPDIR/frontend.zip" -d "$TMPDIR/dist"
+    aws s3 sync "$TMPDIR/dist/" "s3://$WEBSITE_BUCKET/" --delete
     echo "✅ Frontend deployed to s3://$WEBSITE_BUCKET"
     just frontend-invalidate
 

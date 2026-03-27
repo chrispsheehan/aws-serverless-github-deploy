@@ -9,7 +9,7 @@ on:
         description: "Version of infrastructure (terraform) to be deployed"
         required: true
         type: string
-      lambda_bucket:
+      code_bucket:
         description: "Bucket containing lambda zips"
         required: true
         type: string

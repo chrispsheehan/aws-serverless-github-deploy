@@ -4,19 +4,29 @@ on:
       environment:
         required: true
         type: string
-      version:
+      lambda_version:
         required: true
         type: string
+      frontend_version:
+        required: false
+        type: string
+        default: ""
     outputs:
-      lambda_bucket:
+      code_bucket:
         description: "Bucket containing lambda zips"
-        value: ${{ jobs.lambdas.outputs.lambda_bucket_name }}
+        value: ${{ jobs.lambdas.outputs.code_bucket_name }}
       lambda_version:
         description: "Valid lambda version"
-        value: ${{ inputs.version }}
+        value: ${{ inputs.lambda_version }}
       lambda_version_files:
         description: "List of lambda version files"
         value: ${{ jobs.lambdas.outputs.lambda_version_files }}
+      frontend_bucket:
+        description: "Bucket containing frontend zip"
+        value: ${{ jobs.frontend.outputs.frontend_bucket_name }}
+      frontend_version:
+        description: "Valid frontend version"
+        value: ${{ inputs.frontend_version != '' && inputs.frontend_version || inputs.lambda_version }}
 
 concurrency: # only run one instance of workflow at any one time
   group: ${{ github.workflow }}-${{ inputs.environment }}
@@ -30,16 +40,49 @@ env:
   AWS_OIDC_ROLE_ARN: "arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/aws-serverless-github-deploy-${{ inputs.environment }}-github-oidc-role"
 
 jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    outputs:
+      frontend_bucket_name: ${{ steps.get_bucket_name.outputs.bucket }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.lambda_version }}
+
+      - name: Get code bucket outputs
+        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+        id: code_action
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          tg_directory: infra/live/${{ inputs.environment }}/aws/code_bucket
+          tg_action: init
+
+      - name: Get bucket name
+        id: get_bucket_name
+        env:
+          TG_OUTPUTS: ${{ steps.code_action.outputs.tg_outputs }}
+        run: |
+          echo "bucket=$(echo $TG_OUTPUTS | jq -r '.bucket.value')" >> $GITHUB_OUTPUT
+
+      - name: Check frontend version exists
+        uses: chrispsheehan/just-aws-oidc-action@0.3.0
+        env:
+          BUCKET_NAME: ${{ steps.get_bucket_name.outputs.bucket }}
+          VERSION: ${{ inputs.frontend_version != '' && inputs.frontend_version || inputs.lambda_version }}
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          just_action: frontend-check-version
+
   lambdas:
     runs-on: ubuntu-latest
     outputs:
-      lambda_bucket_name: ${{ steps.get_bucket_name.outputs.bucket_lambda }}
+      code_bucket_name: ${{ steps.get_bucket_name.outputs.bucket }}
       lambda_version_files: ${{ steps.get_build_files.outputs.just_outputs }}
 
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: ${{ inputs.version }}
+          ref: ${{ inputs.lambda_version }}
 
       - name: Get code bucket outputs
         uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
@@ -54,13 +97,13 @@ jobs:
         env:
           TG_OUTPUTS: ${{ steps.code_action.outputs.tg_outputs }}
         run: |
-          echo "bucket_lambda=$(echo $TG_OUTPUTS | jq -r '.bucket_lambda.value')" >> $GITHUB_OUTPUT
+          echo "bucket=$(echo $TG_OUTPUTS | jq -r '.bucket.value')" >> $GITHUB_OUTPUT
 
       - name: Check Lambda version exists
         uses: chrispsheehan/just-aws-oidc-action@0.3.0
         env:
-          BUCKET_NAME: ${{ steps.get_bucket_name.outputs.bucket_lambda }}
-          VERSION: ${{ inputs.version }}
+          BUCKET_NAME: ${{ steps.get_bucket_name.outputs.bucket }}
+          VERSION: ${{ inputs.lambda_version }}
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           just_action: check-version
@@ -69,8 +112,8 @@ jobs:
         id: get_build_files
         uses: chrispsheehan/just-aws-oidc-action@0.3.0
         env:
-          BUCKET_NAME: ${{ steps.get_bucket_name.outputs.bucket_lambda }}
-          VERSION: ${{ inputs.version }}
+          BUCKET_NAME: ${{ steps.get_bucket_name.outputs.bucket }}
+          VERSION: ${{ inputs.lambda_version }}
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           just_action: get-version-files

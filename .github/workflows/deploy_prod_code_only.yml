@@ -7,6 +7,10 @@ on:
       infra_version:
         description: "Release tag to deploy e.g. 0.7.2"
         required: true
+      frontend_version:
+        description: "Frontend version to deploy (defaults to infra_version)"
+        required: false
+        default: ""
 
 permissions:
   id-token: write
@@ -17,7 +21,8 @@ jobs:
     uses: ./.github/workflows/build_get.yml
     with:
       environment: ci
-      version: ${{ inputs.infra_version }}
+      lambda_version: ${{ inputs.infra_version }}
+      frontend_version: ${{ inputs.frontend_version }}
 
   deploy:
     uses: ./.github/workflows/deploy.yml
@@ -26,7 +31,7 @@ jobs:
     with:
       environment: prod
       lambda_version: ${{ needs.get_build.outputs.lambda_version }}
-      lambda_bucket: ${{ needs.get_build.outputs.lambda_bucket }}
+      code_bucket: ${{ needs.get_build.outputs.code_bucket }}
       matrix: ${{ needs.get_build.outputs.lambda_version_files }}
       # we can also define a code-only deployment here if needed, as below
       # matrix: '["api"]'

@@ -12,7 +12,7 @@ jobs:
     uses: ./.github/workflows/build_get.yml
     with:
       environment: ci
-      version: 0.7.2
+      lambda_version: 0.7.2
 
   infra:
     needs: 
@@ -21,7 +21,7 @@ jobs:
     with:
       environment: prod
       infra_version: 0.7.2
-      lambda_bucket: ${{ needs.get_build.outputs.lambda_bucket }}
+      code_bucket: ${{ needs.get_build.outputs.code_bucket }}
       matrix: ${{ needs.get_build.outputs.lambda_version_files }}
 
   deploy:
@@ -32,5 +32,5 @@ jobs:
     with:
       environment: prod
       lambda_version: ${{ needs.get_build.outputs.lambda_version }}
-      lambda_bucket: ${{ needs.get_build.outputs.lambda_bucket }}
+      code_bucket: ${{ needs.get_build.outputs.code_bucket }}
       matrix: ${{ needs.get_build.outputs.lambda_version_files }}

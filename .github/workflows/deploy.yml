@@ -5,7 +5,7 @@ on:
         description: environment reference i.e. 'prod' or 'dev'
         required: true
         type: string
-      lambda_bucket:
+      code_bucket:
         description: "Bucket containing lambda zips"
         required: true
         type: string
@@ -48,8 +48,8 @@ jobs:
         id: appspec
         shell: bash
         run: |
-          lambda_zip_key="${{ inputs.lambda_version }}/${{ matrix.value }}.zip"
-          lambda_appspec_key="${{ inputs.lambda_version }}/${{ matrix.value }}-appspec.zip"
+          lambda_zip_key="lambdas/${{ inputs.lambda_version }}/${{ matrix.value }}.zip"
+          lambda_appspec_key="lambdas/${{ inputs.lambda_version }}/${{ matrix.value }}-appspec.zip"
           echo "lambda_zip_key=$lambda_zip_key" >> $GITHUB_OUTPUT
           echo "lambda_appspec_key=$lambda_appspec_key" >> $GITHUB_OUTPUT
 
@@ -73,7 +73,7 @@ jobs:
         id: publish
         uses: chrispsheehan/just-aws-oidc-action@0.3.0
         env:
-          BUCKET_NAME: ${{ inputs.lambda_bucket }}
+          BUCKET_NAME: ${{ inputs.code_bucket }}
           FUNCTION_NAME: ${{ steps.get_infra_detail.outputs.lambda_function_name }}
           LAMBDA_ZIP_KEY: ${{ steps.appspec.outputs.lambda_zip_key }}
         with:
@@ -93,7 +93,7 @@ jobs:
       - name: Upload AppSpec bundle
         uses: chrispsheehan/just-aws-oidc-action@0.3.0
         env:
-          BUCKET_NAME: ${{ inputs.lambda_bucket }}
+          BUCKET_NAME: ${{ inputs.code_bucket }}
           FUNCTION_NAME: ${{ steps.get_infra_detail.outputs.lambda_function_name }}
           ALIAS_NAME: ${{ steps.get_infra_detail.outputs.lambda_alias_name }}
           CURRENT_VERSION: ${{ steps.get-version.outputs.just_outputs }}
@@ -116,7 +116,7 @@ jobs:
         uses: chrispsheehan/just-aws-oidc-action@0.3.0
         env:
           FUNCTION_NAME: ${{ steps.get_infra_detail.outputs.lambda_function_name }}
-          BUCKET_NAME: ${{ inputs.lambda_bucket }}
+          BUCKET_NAME: ${{ inputs.code_bucket }}
           APP_SPEC_KEY: ${{ steps.appspec.outputs.lambda_appspec_key }}
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
