@@ -1,4 +1,4 @@
-name: Dev Deploy Infra and Lambda
+name: Dev Deploy Infra and Code
 
 on:
   workflow_dispatch:
