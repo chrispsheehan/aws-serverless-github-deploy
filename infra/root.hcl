@@ -19,6 +19,7 @@ locals {
   aws_region       = local.global_vars.inputs.aws_region
   base_reference   = "${local.aws_account_id}-${local.aws_region}-${local.project_name}"
   deploy_role_name = "${local.project_name}-${local.environment}-github-oidc-role"
+  deploy_role_arn  = "arn:aws:iam::${local.aws_account_id}:role/${local.deploy_role_name}"
   state_bucket     = "${local.base_reference}-tfstate"
   state_key        = "${local.environment}/${local.provider}/${local.module}/terraform.tfstate"
   state_lock_table = "${local.project_name}-tf-lockid"
@@ -93,6 +94,7 @@ inputs = merge(
     environment      = local.environment
     github_repo      = local.github_repo
     deploy_role_name = local.deploy_role_name
+    deploy_role_arn  = local.deploy_role_arn
     state_bucket     = local.state_bucket
     state_lock_table = local.state_lock_table
     lambda_bucket    = local.lambda_bucket

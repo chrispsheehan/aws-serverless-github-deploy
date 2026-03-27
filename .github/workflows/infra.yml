@@ -9,11 +9,11 @@ on:
         description: "Version of infrastructure (terraform) to be deployed"
         required: true
         type: string
-      lambda_bucket:
+      code_bucket:
         description: "Bucket containing lambda zips"
         required: true
         type: string
-      matrix:
+      lambda_matrix:
         required: false
         type: string
         default: "[]"
@@ -44,13 +44,27 @@ jobs:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/oidc
 
+  frontend:
+    needs: oidc
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.infra_version }}
+
+      - name: Deploy frontend infra
+        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          tg_directory: infra/live/${{ inputs.environment }}/aws/frontend
+
   lambdas:
     needs: oidc
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false # this is to prevent terraform lock issues
       matrix:
-        value: ${{ fromJson(inputs.matrix) }}
+        value: ${{ fromJson(inputs.lambda_matrix) }}
     steps:
       - uses: actions/checkout@v6
         with:

@@ -1,0 +1,25 @@
+### start of static vars set in root.hcl ###
+variable "project_name" {
+  type        = string
+  description = "Project name used in naming resources"
+}
+
+variable "environment" {
+  type        = string
+  description = "Environment reference used in naming resources i.e. 'dev'"
+}
+variable "aws_region" {
+  type        = string
+  description = "AWS region"
+}
+
+variable "state_bucket" {
+  type        = string
+  description = "S3 bucket used for Terraform remote state"
+}
+
+variable "deploy_role_arn" {
+  type        = string
+  description = "ARN of the OIDC deploy role to grant frontend bucket access"
+}
+### end of static vars set in root.hcl ###

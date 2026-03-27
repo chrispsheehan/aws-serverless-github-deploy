@@ -10,9 +10,9 @@ on:
         required: true
         type: string
     outputs:
-      lambda_bucket:
+      code_bucket:
         description: "Bucket containing lambda zips"
-        value: ${{ jobs.bucket.outputs.lambda_bucket_name }}
+        value: ${{ jobs.bucket.outputs.bucket_name }}
 
 concurrency: # only run one instance of workflow at any one time
   group: ${{ github.workflow }}-${{ inputs.environment }}
@@ -29,7 +29,7 @@ jobs:
   bucket:
     runs-on: ubuntu-latest
     outputs:
-      lambda_bucket_name: ${{ steps.get_bucket_name.outputs.bucket_lambda }}
+      bucket_name: ${{ steps.get_bucket_name.outputs.bucket }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -47,4 +47,4 @@ jobs:
         env:
           TG_OUTPUTS: ${{ steps.deploy_bucket.outputs.tg_outputs  }}
         run: |
-          echo "bucket_lambda=$(echo $TG_OUTPUTS | jq -r '.bucket_lambda.value')" >> $GITHUB_OUTPUT
+          echo "bucket=$(echo $TG_OUTPUTS | jq -r '.bucket.value')" >> $GITHUB_OUTPUT

@@ -124,7 +124,7 @@ jobs:
 
   build-lambdas:
     if: ${{ needs.check.outputs.lambdas == 'true' }}
-    needs: 
+    needs:
       - check
       - setup-lambdas
     runs-on: ubuntu-latest
@@ -141,3 +141,16 @@ jobs:
           LAMBDA_NAME: ${{ matrix.value }}
         with:
           just_action: lambda-build
+
+  build-frontend:
+    if: ${{ needs.check.outputs.frontend == 'true' }}
+    needs: check
+    runs-on: ubuntu-latest
+    name: Build frontend
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - name: "Build"
+        uses: chrispsheehan/just-aws-oidc-action@0.3.0
+        with:
+          just_action: frontend-build

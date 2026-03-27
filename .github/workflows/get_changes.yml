@@ -21,6 +21,9 @@ on:
       lambdas:
         description: "Whether lambdas files changed"
         value: ${{ jobs.changes.outputs.lambdas == 'true' }}
+      frontend:
+        description: "Whether frontend files changed"
+        value: ${{ jobs.changes.outputs.frontend == 'true' }}
 
 jobs:
   changes:
@@ -51,6 +54,8 @@ jobs:
               - '.github/**'
             lambdas:
               - 'lambdas/**'
+            frontend:
+              - 'frontend/**'
           token: ${{ secrets.GITHUB_TOKEN }}
           list-files: none
           initial-fetch-depth: 100
@@ -66,3 +71,6 @@ jobs:
 
       - shell: bash
         run: echo "lambdas changes - ${{ steps.filter.outputs.lambdas }}"
+
+      - shell: bash
+        run: echo "frontend changes - ${{ steps.filter.outputs.frontend }}"

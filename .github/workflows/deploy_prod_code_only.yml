@@ -1,0 +1,37 @@
+name: Prod Deploy Code Only
+# This allows us to deploy only code changes to prod found in the version s3 folder (only).
+
+on:
+  workflow_dispatch:
+    inputs:
+      lambda_version:
+        description: "Lambda release tag to deploy e.g. 0.7.2"
+        required: true
+      frontend_version:
+        description: "Frontend release tag to deploy e.g. 0.7.2"
+        required: true
+
+permissions:
+  id-token: write
+  contents: write
+
+jobs:
+  get_build:
+    uses: ./.github/workflows/build_get.yml
+    with:
+      environment: ci
+      lambda_version: ${{ inputs.lambda_version }}
+      frontend_version: ${{ inputs.frontend_version }}
+
+  deploy:
+    uses: ./.github/workflows/deploy.yml
+    needs:
+      - get_build
+    with:
+      environment: prod
+      code_bucket: ${{ needs.get_build.outputs.code_bucket }}
+      lambda_version: ${{ needs.get_build.outputs.lambda_version }}
+      lambda_matrix: ${{ needs.get_build.outputs.lambda_version_files }}
+      frontend_version: ${{ needs.get_build.outputs.frontend_version }}
+      # we can also define a code-only deployment here if needed, as below
+      # lambda_matrix: '["api"]'

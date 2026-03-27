@@ -1,4 +1,4 @@
-name: Dev Deploy Infra and Lambda
+name: Dev Deploy Infra and Code
 
 on:
   workflow_dispatch:
@@ -35,25 +35,25 @@ jobs:
     with:
       environment: dev
       infra_version: ${{ github.sha }}
-      lambda_bucket: ${{ needs.code.outputs.lambda_bucket }}
-      matrix: ${{ needs.setup.outputs.lambdas_dirs }}
+      code_bucket: ${{ needs.code.outputs.code_bucket }}
+      lambda_matrix: ${{ needs.setup.outputs.lambdas_dirs }}
 
   build:
     uses: ./.github/workflows/build.yml
-    needs: 
+    needs:
       - code
       - setup
     with:
       environment: dev
-      version: ${{ github.sha }}
-      matrix: ${{ needs.setup.outputs.lambdas_dirs }}
+      lambda_version: ${{ github.sha }}
+      lambda_matrix: ${{ needs.setup.outputs.lambdas_dirs }}
 
   get_build:
     needs: build
     uses: ./.github/workflows/build_get.yml
     with:
       environment: dev
-      version: ${{ github.sha }}
+      lambda_version: ${{ github.sha }}
 
   deploy:
     uses: ./.github/workflows/deploy.yml
@@ -62,6 +62,7 @@ jobs:
       - infra
     with:
       environment: dev
+      code_bucket: ${{ needs.get_build.outputs.code_bucket }}
       lambda_version: ${{ needs.get_build.outputs.lambda_version }}
-      lambda_bucket: ${{ needs.get_build.outputs.lambda_bucket }}
-      matrix: ${{ needs.get_build.outputs.lambda_version_files }}
+      lambda_matrix: ${{ needs.get_build.outputs.lambda_version_files }}
+      frontend_version: ${{ needs.get_build.outputs.frontend_version }}

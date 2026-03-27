@@ -4,6 +4,7 @@ _default:
 
 PROJECT_DIR := justfile_directory()
 LAMBDA_DIR := "lambdas"
+FRONTEND_DIR := "frontend"
 
 
 tf-lint-check:
@@ -85,11 +86,11 @@ tg-all op:
     terragrunt run-all {{op}}
 
 
-check-version:
+lambda-check-version:
     #!/usr/bin/env bash
     set -euo pipefail
 
-    FULL_BUCKET_NAME="$BUCKET_NAME/$VERSION/"
+    FULL_BUCKET_NAME="$BUCKET_NAME/lambdas/$VERSION/"
 
     if ! aws s3api head-bucket --bucket "$BUCKET_NAME" >/dev/null 2>&1; then
         echo "❌ The bucket '$BUCKET_NAME' does not exist or is inaccessible."
@@ -124,7 +125,7 @@ get-version-files:
         exit 1
     fi
 
-    FULL_BUCKET_PATH="s3://$BUCKET_NAME/$VERSION/"
+    FULL_BUCKET_PATH="s3://$BUCKET_NAME/lambdas/$VERSION/"
 
     aws s3api head-bucket --bucket "$BUCKET_NAME" >/dev/null
     aws s3 ls "$FULL_BUCKET_PATH" >/dev/null
@@ -195,9 +196,9 @@ lambda-upload:
     fi
 
     LAMBDA_ZIP="{{PROJECT_DIR}}/{{LAMBDA_DIR}}/$LAMBDA_NAME.zip"
-    echo "📤 Uploading $LAMBDA_ZIP to s3://$BUCKET_NAME/$VERSION/$LAMBDA_NAME.zip"
+    echo "📤 Uploading $LAMBDA_ZIP to s3://$BUCKET_NAME/lambdas/$VERSION/$LAMBDA_NAME.zip"
 
-    aws s3 cp "$LAMBDA_ZIP" "s3://$BUCKET_NAME/$VERSION/$LAMBDA_NAME.zip" \
+    aws s3 cp "$LAMBDA_ZIP" "s3://$BUCKET_NAME/lambdas/$VERSION/$LAMBDA_NAME.zip" \
         --storage-class STANDARD
 
 
@@ -420,6 +421,120 @@ lambda-prune:
         echo "Deleting $FUNCTION_NAME:$v"
         aws lambda delete-function --function-name "$FUNCTION_NAME" --qualifier "$v" --region "$AWS_REGION"
     done
+
+
+frontend-build:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "🔄 Cleaning previous builds..."
+    rm -rf {{PROJECT_DIR}}/{{FRONTEND_DIR}}/dist
+    echo "📦 Building frontend..."
+    npm install --prefix {{FRONTEND_DIR}}
+    npm run build --prefix {{FRONTEND_DIR}}
+
+
+frontend-upload:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "$BUCKET_NAME" ]]; then
+        echo "❌ BUCKET_NAME environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "$VERSION" ]]; then
+        echo "❌ VERSION environment variable is not set."
+        exit 1
+    fi
+
+    cd {{PROJECT_DIR}}/dist
+    zip -r {{PROJECT_DIR}}/frontend.zip .
+    aws s3 cp {{PROJECT_DIR}}/frontend.zip "s3://$BUCKET_NAME/frontend/$VERSION/frontend.zip"
+    echo "✅ Frontend uploaded to s3://$BUCKET_NAME/frontend/$VERSION/frontend.zip"
+
+
+frontend-check-version:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "$BUCKET_NAME" ]]; then
+        echo "❌ BUCKET_NAME environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "$VERSION" ]]; then
+        echo "❌ VERSION environment variable is not set."
+        exit 1
+    fi
+
+    aws s3 ls "s3://$BUCKET_NAME/frontend/$VERSION/frontend.zip" \
+        && echo "✅ frontend.zip found at s3://$BUCKET_NAME/frontend/$VERSION/frontend.zip" \
+        || (echo "❌ frontend.zip not found at s3://$BUCKET_NAME/frontend/$VERSION/frontend.zip" && exit 1)
+
+
+frontend-deploy:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "$BUCKET_NAME" ]]; then
+        echo "❌ BUCKET_NAME environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "$VERSION" ]]; then
+        echo "❌ VERSION environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "$WEBSITE_BUCKET" ]]; then
+        echo "❌ WEBSITE_BUCKET environment variable is not set."
+        exit 1
+    fi
+
+    TMPDIR=$(mktemp -d)
+    aws s3 cp "s3://$BUCKET_NAME/frontend/$VERSION/frontend.zip" "$TMPDIR/frontend.zip"
+    unzip -q "$TMPDIR/frontend.zip" -d "$TMPDIR/dist"
+    aws s3 sync "$TMPDIR/dist/" "s3://$WEBSITE_BUCKET/" --delete
+    echo "✅ Frontend deployed to s3://$WEBSITE_BUCKET"
+
+
+frontend-invalidate:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [[ -z "$DISTRIBUTION_ID" ]]; then
+        echo "Error: VERSION environment variable is not set."
+        exit 1
+    fi
+
+    MAX_ATTEMPTS=18
+    SLEEP_INTERVAL=10
+
+    echo "🔄 Creating CloudFront invalidation..."
+    INVALIDATION_ID=$(aws cloudfront create-invalidation \
+        --distribution-id "$DISTRIBUTION_ID" \
+        --paths "/*" \
+        --query 'Invalidation.Id' \
+        --output text)
+
+    for ((i=1; i<=MAX_ATTEMPTS; i++)); do
+    STATUS=$(aws cloudfront get-invalidation \
+        --distribution-id "$DISTRIBUTION_ID" \
+        --id "$INVALIDATION_ID" \
+        --query 'Invalidation.Status' \
+        --output text)
+
+    echo "Attempt $i: Invalidation status is $STATUS"
+
+    if [[ "$STATUS" == "Completed" ]]; then
+        echo "✅ Invalidation $INVALIDATION_ID completed successfully."
+        exit 0
+    fi
+
+    sleep "$SLEEP_INTERVAL"
+    done
+
+    echo "❌ Invalidation $INVALIDATION_ID did not complete within expected time."
+    exit 1
 
 
 test-api-deploy-500s:
