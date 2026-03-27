@@ -1,4 +1,4 @@
-data "aws_iam_policy_document" "cloudfront_oac" {
+data "aws_iam_policy_document" "frontend_bucket_policy" {
   statement {
     actions   = ["s3:GetObject"]
     resources = ["${aws_s3_bucket.frontend.arn}/*"]
@@ -12,6 +12,23 @@ data "aws_iam_policy_document" "cloudfront_oac" {
       test     = "StringEquals"
       variable = "AWS:SourceArn"
       values   = [aws_cloudfront_distribution.frontend.arn]
+    }
+  }
+
+  statement {
+    actions = [
+      "s3:ListBucket",
+      "s3:PutObject",
+      "s3:DeleteObject"
+    ]
+    resources = [
+      aws_s3_bucket.frontend.arn,
+      "${aws_s3_bucket.frontend.arn}/*"
+    ]
+
+    principals {
+      type        = "AWS"
+      identifiers = [var.deploy_role_arn]
     }
   }
 }

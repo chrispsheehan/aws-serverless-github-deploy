@@ -17,4 +17,9 @@ variable "state_bucket" {
   type        = string
   description = "S3 bucket used for Terraform remote state"
 }
+
+variable "deploy_role_arn" {
+  type        = string
+  description = "ARN of the OIDC deploy role to grant frontend bucket access"
+}
 ### end of static vars set in root.hcl ###

@@ -22,7 +22,7 @@ resource "aws_cloudfront_origin_access_control" "frontend" {
 
 resource "aws_s3_bucket_policy" "frontend" {
   bucket = aws_s3_bucket.frontend.id
-  policy = data.aws_iam_policy_document.cloudfront_oac.json
+  policy = data.aws_iam_policy_document.frontend_bucket_policy.json
 }
 
 resource "aws_cloudfront_function" "spa_routing" {
