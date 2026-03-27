@@ -104,6 +104,7 @@ jobs:
       - create-tag
       - get-next-tag
       - get-apps
+      - code
     uses: ./.github/workflows/build.yml
     permissions:
       id-token: write
@@ -112,6 +113,18 @@ jobs:
       environment: ci
       lambda_version: ${{ needs.get-next-tag.outputs.tag }}
       lambda_matrix: ${{ needs.get-apps.outputs.lambdas_dirs }}
+
+  code:
+    needs:
+      - create-tag
+      - get-next-tag
+    uses: ./.github/workflows/infra_releases.yml
+    permissions:
+      id-token: write
+      contents: write
+    with:
+      environment: ci
+      infra_version: ${{ needs.get-next-tag.outputs.tag }}
 
   release:
     runs-on: ubuntu-latest
