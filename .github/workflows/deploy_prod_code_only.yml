@@ -4,13 +4,12 @@ name: Prod Deploy Code Only
 on:
   workflow_dispatch:
     inputs:
-      infra_version:
-        description: "Release tag to deploy e.g. 0.7.2"
+      lambda_version:
+        description: "Lambda release tag to deploy e.g. 0.7.2"
         required: true
       frontend_version:
-        description: "Frontend version to deploy (defaults to infra_version)"
-        required: false
-        default: ""
+        description: "Frontend release tag to deploy e.g. 0.7.2"
+        required: true
 
 permissions:
   id-token: write
@@ -21,7 +20,7 @@ jobs:
     uses: ./.github/workflows/build_get.yml
     with:
       environment: ci
-      lambda_version: ${{ inputs.infra_version }}
+      lambda_version: ${{ inputs.lambda_version }}
       frontend_version: ${{ inputs.frontend_version }}
 
   deploy:

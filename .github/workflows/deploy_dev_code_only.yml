@@ -4,12 +4,8 @@ name: Dev Deploy Code Only
 on:
   workflow_dispatch:
     inputs:
-      infra_version:
+      version:
         description: "Git ref to deploy"
-        required: false
-        default: ""
-      frontend_version:
-        description: "Frontend version to deploy (defaults to infra_version)"
         required: false
         default: ""
 
@@ -18,7 +14,7 @@ permissions:
   contents: write
 
 env:
-  VERSION: ${{ inputs.infra_version != '' && inputs.infra_version || github.sha }}
+  VERSION: ${{ inputs.version != '' && inputs.version || github.sha }}
 
 jobs:
   setup:
@@ -40,8 +36,7 @@ jobs:
       - setup
     with:
       environment: dev
-      lambda_version: ${{ inputs.infra_version != '' && inputs.infra_version || github.sha }}
-      frontend_version: ${{ inputs.frontend_version }}
+      lambda_version: ${{ inputs.version != '' && inputs.version || github.sha }}
       lambda_matrix: ${{ needs.setup.outputs.lambdas_dirs }}
 
   get_build:
@@ -49,8 +44,7 @@ jobs:
     uses: ./.github/workflows/build_get.yml
     with:
       environment: dev
-      lambda_version: ${{ inputs.infra_version != '' && inputs.infra_version || github.sha }}
-      frontend_version: ${{ inputs.frontend_version }}
+      lambda_version: ${{ inputs.version != '' && inputs.version || github.sha }}
 
   deploy:
     uses: ./.github/workflows/deploy.yml
