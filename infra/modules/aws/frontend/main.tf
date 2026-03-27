@@ -67,6 +67,7 @@ resource "aws_cloudfront_distribution" "frontend" {
     viewer_protocol_policy     = "redirect-to-https"
     allowed_methods            = ["GET", "HEAD"]
     cached_methods             = ["GET", "HEAD"]
+    cache_policy_id            = data.aws_cloudfront_cache_policy.caching_optimized.id
     origin_request_policy_id   = data.aws_cloudfront_origin_request_policy.origin_request.id
     response_headers_policy_id = data.aws_cloudfront_response_headers_policy.response_headers.id
 
