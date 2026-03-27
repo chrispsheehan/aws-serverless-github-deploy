@@ -77,7 +77,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        value: ${{ fromJson(inputs.matrix) }}
+        value: ${{ fromJson(inputs.lambda_matrix) }}
     steps:
       - uses: actions/checkout@v6
 
