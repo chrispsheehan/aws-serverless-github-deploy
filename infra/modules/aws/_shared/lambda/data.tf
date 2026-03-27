@@ -1,5 +1,5 @@
-data "aws_s3_bucket" "lambda_code" {
-  bucket = var.lambda_bucket
+data "aws_s3_bucket" "code_bucket" {
+  bucket = var.code_bucket
 }
 
 data "archive_file" "bootstrap_lambda" {
@@ -55,7 +55,7 @@ data "aws_iam_policy_document" "codedeploy_lambda" {
     effect  = "Allow"
     actions = ["s3:GetObject", "s3:GetObjectVersion"]
     resources = [
-      "arn:aws:s3:::${data.aws_s3_bucket.lambda_code.bucket}/*"
+      "arn:aws:s3:::${data.aws_s3_bucket.code_bucket.bucket}/*"
     ]
   }
 
@@ -64,7 +64,7 @@ data "aws_iam_policy_document" "codedeploy_lambda" {
     sid       = "ListArtifactPrefix"
     effect    = "Allow"
     actions   = ["s3:ListBucket", "s3:GetBucketLocation"]
-    resources = ["arn:aws:s3:::${data.aws_s3_bucket.lambda_code.bucket}"]
+    resources = ["arn:aws:s3:::${data.aws_s3_bucket.code_bucket.bucket}"]
   }
 
   statement {

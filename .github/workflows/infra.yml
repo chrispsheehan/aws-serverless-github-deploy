@@ -10,7 +10,7 @@ on:
         required: true
         type: string
       code_bucket:
-        description: "Bucket containing lambda zips"
+        description: "Bucket containing build artifacts"
         required: true
         type: string
       lambda_matrix:

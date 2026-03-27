@@ -1,6 +1,6 @@
 ### start of static vars set in root.hcl ###
-variable "lambda_bucket" {
-  description = "S3 bucket to host lambda code files"
+variable "code_bucket" {
+  description = "S3 bucket to host build artifacts"
   type        = string
 }
 ### end of static vars set in root.hcl ###

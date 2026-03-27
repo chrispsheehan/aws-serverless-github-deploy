@@ -21,7 +21,7 @@ resource "aws_iam_role_policy_attachment" "additional_iam_attachments" {
 }
 
 resource "aws_s3_object" "bootstrap_lambda_zip" {
-  bucket = data.aws_s3_bucket.lambda_code.bucket
+  bucket = data.aws_s3_bucket.code_bucket.bucket
   key    = local.lambda_bootstrap_zip_key
 
   source = data.archive_file.bootstrap_lambda.output_path
@@ -38,7 +38,7 @@ resource "aws_lambda_function" "lambda" {
 
   reserved_concurrent_executions = local.pc_reserved_count
 
-  s3_bucket = data.aws_s3_bucket.lambda_code.bucket
+  s3_bucket = data.aws_s3_bucket.code_bucket.bucket
   s3_key    = aws_s3_object.bootstrap_lambda_zip.key
 
   # publish ONE immutable version so we can create an alias

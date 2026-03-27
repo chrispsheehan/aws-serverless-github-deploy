@@ -3,7 +3,7 @@ module "lambda_worker" {
 
   project_name  = var.project_name
   environment   = var.environment
-  lambda_bucket = var.lambda_bucket
+  code_bucket   = var.code_bucket
 
   lambda_name = local.lambda_name
 
