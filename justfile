@@ -496,7 +496,6 @@ frontend-deploy:
     unzip -q "$TMPDIR/frontend.zip" -d "$TMPDIR/dist"
     aws s3 sync "$TMPDIR/dist/" "s3://$WEBSITE_BUCKET/" --delete
     echo "✅ Frontend deployed to s3://$WEBSITE_BUCKET"
-    just frontend-invalidate
 
 
 frontend-invalidate:

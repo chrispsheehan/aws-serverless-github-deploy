@@ -136,3 +136,44 @@ jobs:
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           just_action: lambda-prune
+
+  frontend:
+    runs-on: ubuntu-latest
+    if: ${{ inputs.frontend_version != '' }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Get frontend infra
+        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+        id: get-infra
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          tg_directory: infra/live/${{ inputs.environment }}/aws/frontend
+          tg_action: init
+
+      - name: Get infra detail
+        id: get_infra_detail
+        env:
+          TG_OUTPUTS: ${{ steps.get-infra.outputs.tg_outputs }}
+        run: |
+          echo "website_bucket=$(echo $TG_OUTPUTS | jq -r '.bucket_name.value')" >> $GITHUB_OUTPUT
+          echo "distribution_id=$(echo $TG_OUTPUTS | jq -r '.cloudfront_distribution_id.value')" >> $GITHUB_OUTPUT
+
+      - name: Deploy frontend
+        uses: chrispsheehan/just-aws-oidc-action@0.3.0
+        env:
+          BUCKET_NAME: ${{ inputs.code_bucket }}
+          VERSION: ${{ inputs.frontend_version }}
+          WEBSITE_BUCKET: ${{ steps.get_infra_detail.outputs.website_bucket }}
+          DISTRIBUTION_ID: ${{ steps.get_infra_detail.outputs.distribution_id }}
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          just_action: frontend-deploy
+
+      - name: Invalidate CloudFront cache
+        uses: chrispsheehan/just-aws-oidc-action@0.3.0
+        env:
+          DISTRIBUTION_ID: ${{ steps.get_infra_detail.outputs.distribution_id }}
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          just_action: frontend-invalidate
