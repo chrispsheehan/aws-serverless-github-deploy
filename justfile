@@ -86,7 +86,7 @@ tg-all op:
     terragrunt run-all {{op}}
 
 
-check-version:
+lambda-check-version:
     #!/usr/bin/env bash
     set -euo pipefail
 

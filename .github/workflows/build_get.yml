@@ -96,7 +96,7 @@ jobs:
           VERSION: ${{ inputs.lambda_version }}
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          just_action: check-version
+          just_action: lambda-check-version
 
       - name: Get build files
         id: get_build_files
