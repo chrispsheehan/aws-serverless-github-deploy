@@ -36,7 +36,7 @@ jobs:
       environment: dev
       infra_version: ${{ github.sha }}
       code_bucket: ${{ needs.code.outputs.code_bucket }}
-      matrix: ${{ needs.setup.outputs.lambdas_dirs }}
+      lambda_matrix: ${{ needs.setup.outputs.lambdas_dirs }}
 
   build:
     uses: ./.github/workflows/build.yml
@@ -46,7 +46,7 @@ jobs:
     with:
       environment: dev
       lambda_version: ${{ github.sha }}
-      matrix: ${{ needs.setup.outputs.lambdas_dirs }}
+      lambda_matrix: ${{ needs.setup.outputs.lambdas_dirs }}
 
   get_build:
     needs: build

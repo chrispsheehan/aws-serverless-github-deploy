@@ -13,7 +13,7 @@ on:
         description: "Bucket containing lambda zips"
         required: true
         type: string
-      matrix:
+      lambda_matrix:
         required: false
         type: string
         default: "[]"
@@ -64,7 +64,7 @@ jobs:
     strategy:
       fail-fast: false # this is to prevent terraform lock issues
       matrix:
-        value: ${{ fromJson(inputs.matrix) }}
+        value: ${{ fromJson(inputs.lambda_matrix) }}
     steps:
       - uses: actions/checkout@v6
         with:

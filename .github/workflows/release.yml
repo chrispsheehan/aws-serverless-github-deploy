@@ -111,7 +111,7 @@ jobs:
     with:
       environment: ci
       lambda_version: ${{ needs.get-next-tag.outputs.tag }}
-      matrix: ${{ needs.get-apps.outputs.lambdas_dirs }}
+      lambda_matrix: ${{ needs.get-apps.outputs.lambdas_dirs }}
 
   release:
     runs-on: ubuntu-latest

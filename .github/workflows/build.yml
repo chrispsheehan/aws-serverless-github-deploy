@@ -11,7 +11,7 @@ on:
         required: false
         type: string
         default: ""
-      matrix:
+      lambda_matrix:
         required: false
         type: string
         default: "[]"
