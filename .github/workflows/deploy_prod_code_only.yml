@@ -30,8 +30,9 @@ jobs:
       - get_build
     with:
       environment: prod
-      lambda_version: ${{ needs.get_build.outputs.lambda_version }}
       code_bucket: ${{ needs.get_build.outputs.code_bucket }}
-      matrix: ${{ needs.get_build.outputs.lambda_version_files }}
+      lambda_version: ${{ needs.get_build.outputs.lambda_version }}
+      lambda_matrix: ${{ needs.get_build.outputs.lambda_version_files }}
+      frontend_version: ${{ needs.get_build.outputs.frontend_version }}
       # we can also define a code-only deployment here if needed, as below
-      # matrix: '["api"]'
+      # lambda_matrix: '["api"]'
