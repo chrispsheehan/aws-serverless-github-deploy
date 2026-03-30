@@ -9,9 +9,9 @@ variable "environment" {
   description = "Environment reference used in naming resources i.e. 'dev'"
 }
 
-variable "lambda_bucket" {
+variable "code_bucket" {
   type        = string
-  description = "Lambda bucket where the code zip(s) are uploaded to"
+  description = "Bucket where deployable code artifacts are uploaded"
 }
 ### end of static vars set in root.hcl ###
 

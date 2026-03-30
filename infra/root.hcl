@@ -26,7 +26,7 @@ locals {
 
   # separate s3 version bucket when dev, otherwise ci
   s3_bucket_base = local.environment == "dev" ? "${local.base_reference}-${local.environment}" : "${local.base_reference}-ci"
-  lambda_bucket  = "${local.s3_bucket_base}-lambda"
+  code_bucket    = "${local.s3_bucket_base}-code"
 }
 
 terraform {
@@ -97,6 +97,6 @@ inputs = merge(
     deploy_role_arn  = local.deploy_role_arn
     state_bucket     = local.state_bucket
     state_lock_table = local.state_lock_table
-    lambda_bucket    = local.lambda_bucket
+    code_bucket      = local.code_bucket
   }
 )

@@ -11,7 +11,7 @@ on:
         type: string
     outputs:
       code_bucket:
-        description: "Bucket containing lambda zips"
+        description: "Bucket containing build artifacts"
         value: ${{ jobs.bucket.outputs.bucket_name }}
 
 concurrency: # only run one instance of workflow at any one time
@@ -35,7 +35,7 @@ jobs:
         with:
           ref: ${{ inputs.infra_version }}
 
-      - name: Deploy lambda code bucket
+      - name: Deploy build artifact bucket
         id: deploy_bucket
         uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
         with:

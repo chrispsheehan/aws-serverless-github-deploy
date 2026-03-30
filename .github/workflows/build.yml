@@ -36,7 +36,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Get lambda code bucket
+      - name: Get build artifact bucket
         id: deploy_bucket
         uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
         with:
