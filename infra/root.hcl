@@ -26,7 +26,7 @@ locals {
 
   # separate s3 version bucket when dev, otherwise ci
   s3_bucket_base = local.environment == "dev" ? "${local.base_reference}-${local.environment}" : "${local.base_reference}-ci"
-  code_bucket    = "${local.s3_bucket_base}-artifacts"
+  code_bucket    = "${local.s3_bucket_base}-code"
 }
 
 terraform {
