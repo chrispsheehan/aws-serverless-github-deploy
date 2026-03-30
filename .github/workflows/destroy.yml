@@ -60,13 +60,15 @@ jobs:
           tg_action: destroy
 
   frontend:
-    needs: setup
+    needs: lambdas
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
 
       - name: Destroy frontend infra
         uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+        env:
+          TF_VAR_api_invoke_url: "https://placeholder.execute-api.us-east-1.amazonaws.com"
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/frontend

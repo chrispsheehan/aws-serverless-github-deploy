@@ -23,3 +23,8 @@ variable "deploy_role_arn" {
   description = "ARN of the OIDC deploy role to grant frontend bucket access"
 }
 ### end of static vars set in root.hcl ###
+
+variable "api_invoke_url" {
+  type        = string
+  description = "Invoke URL of the API Gateway HTTP API"
+}

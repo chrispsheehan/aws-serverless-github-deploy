@@ -52,8 +52,25 @@ jobs:
         with:
           ref: ${{ inputs.infra_version }}
 
+      - name: Get api infra
+        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+        id: get-api
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          tg_directory: infra/live/${{ inputs.environment }}/aws/api
+          tg_action: init
+
+      - name: Get api invoke url
+        id: get_api_vars
+        env:
+          TG_OUTPUTS: ${{ steps.get-api.outputs.tg_outputs }}
+        run: |
+          echo "invoke_url=$(echo $TG_OUTPUTS | jq -r '.invoke_url.value')" >> $GITHUB_OUTPUT
+
       - name: Deploy frontend infra
         uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+        env:
+          TF_VAR_api_invoke_url: ${{ steps.get_api_vars.outputs.invoke_url }}
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/frontend
