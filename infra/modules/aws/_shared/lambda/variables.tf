@@ -4,6 +4,12 @@ variable "aws_lambda_layers_account_id" {
   description = "AWS account ID that publishes the ADOT Lambda layers"
 }
 
+variable "otel_sample_rate" {
+  type        = number
+  description = "OpenTelemetry trace sampling rate — 0.0 = no traces, 1.0 = 100% of traces sampled"
+  default     = 1.0 # 100%
+}
+
 variable "project_name" {
   type        = string
   description = "Project name used in naming resources"

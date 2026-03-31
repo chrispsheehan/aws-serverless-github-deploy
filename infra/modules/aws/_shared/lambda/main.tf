@@ -62,6 +62,8 @@ resource "aws_lambda_function" "lambda" {
   environment {
     variables = merge(var.environment_variables, {
       AWS_LAMBDA_EXEC_WRAPPER = "/opt/otel-instrument"
+      OTEL_TRACES_SAMPLER     = "parentbased_traceidratio"
+      OTEL_TRACES_SAMPLER_ARG = tostring(var.otel_sample_rate)
     })
   }
 
