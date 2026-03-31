@@ -1,10 +1,11 @@
 locals {
   github_token = get_env("GITHUB_TOKEN", "not_set")
 
-  git_remote     = run_cmd("--terragrunt-quiet", "git", "remote", "get-url", "origin")
-  github_repo    = regex("[/:]([-0-9_A-Za-z]*/[-0-9_A-Za-z]*)[^/]*$", local.git_remote)[0]
-  repo_owner     = split("/", local.github_repo)[0]
-  aws_account_id = get_aws_account_id()
+  git_remote                   = run_cmd("--terragrunt-quiet", "git", "remote", "get-url", "origin")
+  github_repo                  = regex("[/:]([-0-9_A-Za-z]*/[-0-9_A-Za-z]*)[^/]*$", local.git_remote)[0]
+  repo_owner                   = split("/", local.github_repo)[0]
+  aws_account_id               = get_aws_account_id()
+  allowed_read_aws_account_ids = [local.aws_account_id]
 
   path_parts  = split("/", get_terragrunt_dir())
   module      = local.path_parts[length(local.path_parts) - 1]
@@ -88,15 +89,16 @@ inputs = merge(
   local.global_vars.inputs,
   local.environment_vars.inputs,
   {
-    aws_account_id   = local.aws_account_id
-    aws_region       = local.aws_region
-    project_name     = local.project_name
-    environment      = local.environment
-    github_repo      = local.github_repo
-    deploy_role_name = local.deploy_role_name
-    deploy_role_arn  = local.deploy_role_arn
-    state_bucket     = local.state_bucket
-    state_lock_table = local.state_lock_table
-    code_bucket      = local.code_bucket
+    aws_account_id               = local.aws_account_id
+    allowed_read_aws_account_ids = local.allowed_read_aws_account_ids
+    aws_region                   = local.aws_region
+    project_name                 = local.project_name
+    environment                  = local.environment
+    github_repo                  = local.github_repo
+    deploy_role_name             = local.deploy_role_name
+    deploy_role_arn              = local.deploy_role_arn
+    state_bucket                 = local.state_bucket
+    state_lock_table             = local.state_lock_table
+    code_bucket                  = local.code_bucket
   }
 )
