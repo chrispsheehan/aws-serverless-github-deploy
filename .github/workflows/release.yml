@@ -121,6 +121,7 @@ jobs:
       lambda_version: ${{ needs.get-next-tag.outputs.tag }}
       lambda_matrix: ${{ needs.get-apps.outputs.lambdas_dirs }}
       ecs_matrix: ${{ needs.get-apps.outputs.ecs_dirs }}
+      ecs_version: ${{ needs.get-next-tag.outputs.tag }}
 
   code:
     needs:

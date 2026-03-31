@@ -8,9 +8,11 @@ on:
         required: true
         type: string
       frontend_version:
-        required: false
+        required: true
         type: string
-        default: ""
+      ecs_version:
+        required: true
+        type: string
       lambda_matrix:
         required: false
         type: string
@@ -113,13 +115,21 @@ jobs:
           role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
           aws-region: eu-west-2
 
-      - name: "Build and push ${{ matrix.value }} ECS image"
+      - name: "Build ${{ matrix.value }} ECS image"
         uses: chrispsheehan/just-aws-oidc-action@0.3.0
         env:
           ECS_NAME: ${{ matrix.value }}
-          IMAGE_URI: ${{ needs.ecr.outputs.repository_url }}:${{ matrix.value }}-${{ inputs.lambda_version }}
+          IMAGE_URI: ${{ needs.ecr.outputs.repository_url }}:${{ matrix.value }}-${{ inputs.ecs_version }}
         with:
           just_action: docker-build
+
+      - name: "Push ${{ matrix.value }} ECS image"
+        uses: chrispsheehan/just-aws-oidc-action@0.3.0
+        env:
+          IMAGE_URI: ${{ needs.ecr.outputs.repository_url }}:${{ matrix.value }}-${{ inputs.ecs_version != '' && inputs.ecs_version || inputs.lambda_version }}
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          just_action: docker-push
 
   lambdas:
     needs: bucket

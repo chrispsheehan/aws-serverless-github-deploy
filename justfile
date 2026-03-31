@@ -161,9 +161,17 @@ docker-build:
     TAG="${IMAGE_URI:-$ECS_NAME}"
     docker build -t "$TAG" "{{PROJECT_DIR}}/{{ECS_DIR}}/$ECS_NAME/"
 
-    if [[ -n "${IMAGE_URI:-}" ]]; then
-        docker push "$TAG"
+
+docker-push:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "${IMAGE_URI:-}" ]]; then
+        echo "❌ IMAGE_URI environment variable is not set."
+        exit 1
     fi
+
+    docker push "$IMAGE_URI"
 
 
 ecs-get-directories:
