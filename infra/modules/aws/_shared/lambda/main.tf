@@ -45,7 +45,7 @@ resource "aws_lambda_function" "lambda" {
   role          = aws_iam_role.iam_for_lambda.arn
   handler       = local.lambda_handler
   runtime       = local.lambda_runtime
-  layers        = [data.aws_lambda_layer_version.otel.arn]
+  layers        = [local.otel_layer_arn]
 
   reserved_concurrent_executions = local.pc_reserved_count
 
