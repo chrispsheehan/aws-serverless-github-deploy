@@ -150,6 +150,18 @@ lambda-get-directories:
       | jq -s -c .
 
     
+docker-build:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "$ECS_NAME" ]]; then
+        echo "❌ ECS_NAME environment variable is not set."
+        exit 1
+    fi
+
+    docker build -t "$ECS_NAME" "{{PROJECT_DIR}}/{{ECS_DIR}}/$ECS_NAME/"
+
+
 ecs-get-directories:
     #!/usr/bin/env bash
     set -euo pipefail

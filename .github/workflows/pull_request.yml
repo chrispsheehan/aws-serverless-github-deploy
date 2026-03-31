@@ -108,8 +108,8 @@ jobs:
           fi
           echo "✅ All lambda directories use underscores."
 
-  setup-lambdas:
-    if: ${{ needs.check.outputs.lambdas == 'true' }}
+  setup:
+    if: ${{ needs.check.outputs.lambdas == 'true' || needs.check.outputs.ecs == 'true' }}
     needs: check
     runs-on: ubuntu-latest
     outputs:
@@ -133,12 +133,12 @@ jobs:
     if: ${{ needs.check.outputs.lambdas == 'true' }}
     needs:
       - check
-      - setup-lambdas
+      - setup
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        value: ${{ fromJson(needs.setup-lambdas.outputs.lambda_dirs) }}
+        value: ${{ fromJson(needs.setup.outputs.lambda_dirs) }}
     steps:
       - uses: actions/checkout@v6
 
@@ -148,6 +148,26 @@ jobs:
           LAMBDA_NAME: ${{ matrix.value }}
         with:
           just_action: lambda-build
+
+  build-ecs:
+    if: ${{ needs.check.outputs.ecs == 'true' }}
+    needs:
+      - check
+      - setup
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        value: ${{ fromJson(needs.setup.outputs.ecs_dirs) }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: "Build ${{ matrix.value }} ECS image"
+        uses: chrispsheehan/just-aws-oidc-action@0.3.0
+        env:
+          ECS_NAME: ${{ matrix.value }}
+        with:
+          just_action: docker-build
 
   build-frontend:
     if: ${{ needs.check.outputs.frontend == 'true' }}
