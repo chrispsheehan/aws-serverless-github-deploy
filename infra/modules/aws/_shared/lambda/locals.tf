@@ -1,5 +1,5 @@
 locals {
-  lambda_runtime = "python3.12"
+  lambda_runtime   = "python3.12"
   lambda_handler   = "lambda_handler.lambda_handler"
   compute_platform = "Lambda"
 
