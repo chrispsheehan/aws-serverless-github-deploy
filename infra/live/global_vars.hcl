@@ -10,8 +10,12 @@ locals {
     "application-autoscaling:*",
     "cloudwatch:*",
     "sqs:*",
+    "sns:*",
     "cloudfront:*",
-    "xray:*"
+    "xray:*",
+    "ec2:*",
+    "ecs:*",
+    "ecr:*"
   ]
 }
 
