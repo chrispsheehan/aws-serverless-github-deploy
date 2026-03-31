@@ -4,6 +4,7 @@ _default:
 
 PROJECT_DIR := justfile_directory()
 LAMBDA_DIR := "lambdas"
+ECS_DIR := "ecs"
 FRONTEND_DIR := "frontend"
 
 
@@ -143,6 +144,16 @@ lambda-get-directories:
     #!/usr/bin/env bash
     set -euo pipefail
     find "{{LAMBDA_DIR}}" -mindepth 1 -maxdepth 1 -type d \
+      | xargs -I{} basename "{}" \
+      | tr '-' '_' \
+      | jq -R . \
+      | jq -s -c .
+
+    
+ecs-get-directories:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    find "{{ECS_DIR}}" -mindepth 1 -maxdepth 1 -type d \
       | xargs -I{} basename "{}" \
       | tr '-' '_' \
       | jq -R . \
