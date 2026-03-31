@@ -41,12 +41,10 @@ resource "aws_iam_role_policy_attachment" "lambda_xray" {
 }
 
 resource "aws_lambda_function" "lambda" {
-  function_name = local.lambda_name
-  role          = aws_iam_role.iam_for_lambda.arn
-  handler       = local.lambda_handler
-  runtime       = local.lambda_runtime
-  layers        = [local.otel_layer_arn]
-
+  function_name                  = local.lambda_name
+  role                           = aws_iam_role.iam_for_lambda.arn
+  handler                        = local.lambda_handler
+  runtime                        = local.lambda_runtime
   reserved_concurrent_executions = local.pc_reserved_count
 
   s3_bucket = data.aws_s3_bucket.code_bucket.bucket
@@ -61,7 +59,6 @@ resource "aws_lambda_function" "lambda" {
 
   environment {
     variables = merge(var.environment_variables, {
-      AWS_LAMBDA_EXEC_WRAPPER = "/opt/otel-instrument"
       OTEL_TRACES_SAMPLER     = "parentbased_traceidratio"
       OTEL_TRACES_SAMPLER_ARG = tostring(var.otel_sample_rate)
     })

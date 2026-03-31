@@ -1,7 +1,5 @@
 locals {
-  lambda_runtime = "python3.12"
-  # Update the layer name and version when upgrading ADOT: https://aws-otel.github.io/docs/getting-started/lambda
-  otel_layer_arn = "arn:aws:lambda:${data.aws_region.current.name}:${var.aws_lambda_layers_account_id}:layer:aws-otel-python-amd64-ver-1-30-0:1"
+  lambda_runtime   = "python3.12"
   lambda_handler   = "lambda_handler.lambda_handler"
   compute_platform = "Lambda"
 

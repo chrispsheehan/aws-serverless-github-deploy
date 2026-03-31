@@ -16,8 +16,6 @@ locals {
 
   project_name = element(split("/", local.github_repo), 1)
 
-  aws_lambda_layers_account_id = "901920570463"
-
   aws_region       = local.global_vars.inputs.aws_region
   base_reference   = "${local.aws_account_id}-${local.aws_region}-${local.project_name}"
   deploy_role_name = "${local.project_name}-${local.environment}-github-oidc-role"
@@ -90,16 +88,15 @@ inputs = merge(
   local.global_vars.inputs,
   local.environment_vars.inputs,
   {
-    aws_account_id               = local.aws_account_id
-    aws_lambda_layers_account_id = local.aws_lambda_layers_account_id
-    aws_region                   = local.aws_region
-    project_name                 = local.project_name
-    environment                  = local.environment
-    github_repo                  = local.github_repo
-    deploy_role_name             = local.deploy_role_name
-    deploy_role_arn              = local.deploy_role_arn
-    state_bucket                 = local.state_bucket
-    state_lock_table             = local.state_lock_table
-    code_bucket                  = local.code_bucket
+    aws_account_id   = local.aws_account_id
+    aws_region       = local.aws_region
+    project_name     = local.project_name
+    environment      = local.environment
+    github_repo      = local.github_repo
+    deploy_role_name = local.deploy_role_name
+    deploy_role_arn  = local.deploy_role_arn
+    state_bucket     = local.state_bucket
+    state_lock_table = local.state_lock_table
+    code_bucket      = local.code_bucket
   }
 )

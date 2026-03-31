@@ -14,11 +14,6 @@ variable "code_bucket" {
   description = "Bucket where deployable code artifacts are uploaded"
 }
 
-variable "aws_lambda_layers_account_id" {
-  type        = string
-  description = "AWS account ID that publishes the ADOT Lambda layers"
-}
-
 variable "otel_sample_rate" {
   type        = number
   description = "OpenTelemetry trace sampling rate — 0.0 = no traces, 1.0 = 100% of traces sampled"
