@@ -1,3 +1,14 @@
+data "aws_iam_policy_document" "lambda_xray" {
+  statement {
+    effect = "Allow"
+    actions = [
+      "xray:PutTraceSegments",
+      "xray:PutTelemetryRecords",
+    ]
+    resources = ["*"]
+  }
+}
+
 data "aws_s3_bucket" "code_bucket" {
   bucket = var.code_bucket
 }

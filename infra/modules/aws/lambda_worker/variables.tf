@@ -13,6 +13,12 @@ variable "code_bucket" {
   type        = string
   description = "Bucket where deployable code artifacts are uploaded"
 }
+
+variable "otel_sample_rate" {
+  type        = number
+  description = "OpenTelemetry trace sampling rate — 0.0 = no traces, 1.0 = 100% of traces sampled"
+  default     = 1.0 # 100%
+}
 ### end of static vars set in root.hcl ###
 
 variable "sqs_queue_name" {

@@ -1,9 +1,10 @@
 module "lambda_api" {
   source = "../_shared/lambda"
 
-  project_name = var.project_name
-  environment  = var.environment
-  code_bucket  = var.code_bucket
+  project_name     = var.project_name
+  environment      = var.environment
+  code_bucket      = var.code_bucket
+  otel_sample_rate = var.otel_sample_rate
 
   lambda_name = local.lambda_name
 
