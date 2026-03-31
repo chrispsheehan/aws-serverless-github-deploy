@@ -114,6 +114,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       lambda_dirs: ${{ steps.lambda_dirs.outputs.just_outputs }}
+      ecs_dirs: ${{ steps.ecs_dirs.outputs.just_outputs }}
     steps:
       - uses: actions/checkout@v6
       - name: Get Lambda Directories
@@ -121,6 +122,12 @@ jobs:
         uses: chrispsheehan/just-aws-oidc-action@0.3.0
         with:
           just_action: lambda-get-directories
+
+      - name: Get ecs Directories
+        id: ecs_dirs
+        uses: chrispsheehan/just-aws-oidc-action@0.3.0
+        with:
+          just_action: ecs-get-directories
 
   build-lambdas:
     if: ${{ needs.check.outputs.lambdas == 'true' }}
