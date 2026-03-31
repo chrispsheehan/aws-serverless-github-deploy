@@ -1,4 +1,9 @@
 ### start of static vars set in root.hcl ###
+variable "aws_lambda_layers_account_id" {
+  type        = string
+  description = "AWS account ID that publishes the ADOT Lambda layers"
+}
+
 variable "project_name" {
   type        = string
   description = "Project name used in naming resources"

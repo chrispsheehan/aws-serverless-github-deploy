@@ -88,7 +88,8 @@ inputs = merge(
   local.global_vars.inputs,
   local.environment_vars.inputs,
   {
-    aws_account_id   = local.aws_account_id
+    aws_account_id        = local.aws_account_id
+    aws_lambda_layers_account_id   = "901920570463"
     aws_region       = local.aws_region
     project_name     = local.project_name
     environment      = local.environment

@@ -1,3 +1,20 @@
+data "aws_region" "current" {}
+
+data "aws_lambda_layer_version" "otel" {
+  layer_name = "arn:aws:lambda:${data.aws_region.current.name}:${var.aws_lambda_layers_account_id}:layer:aws-otel-python-amd64-ver-1-30-0"
+}
+
+data "aws_iam_policy_document" "lambda_xray" {
+  statement {
+    effect = "Allow"
+    actions = [
+      "xray:PutTraceSegments",
+      "xray:PutTelemetryRecords",
+    ]
+    resources = ["*"]
+  }
+}
+
 data "aws_s3_bucket" "code_bucket" {
   bucket = var.code_bucket
 }
