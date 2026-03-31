@@ -43,7 +43,6 @@ jobs:
           just_action: lambda-get-directories
 
   lambdas:
-    needs: setup
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -74,11 +73,22 @@ jobs:
           tg_directory: infra/live/${{ inputs.environment }}/aws/frontend
           tg_action: destroy
 
-  build:
+  cluster:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Destroy cluster infra
+        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          tg_directory: infra/live/${{ inputs.environment }}/aws/cluster
+          tg_action: destroy
+
+  build-bucket:
     if: inputs.environment != 'prod'
     needs:
       - lambdas
-      - frontend
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -88,4 +98,19 @@ jobs:
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/code_bucket
+          tg_action: destroy
+
+  ecr:
+    if: inputs.environment != 'prod'
+    needs:
+      - cluster
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Destroy code
+        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          tg_directory: infra/live/${{ inputs.environment }}/aws/ecr
           tg_action: destroy
