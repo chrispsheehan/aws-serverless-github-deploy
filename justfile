@@ -20,7 +20,6 @@ tf-lint-check:
         done
 
 
-
 lambda-invoke:
     #!/bin/bash
     set -euo pipefail
@@ -159,7 +158,12 @@ docker-build:
         exit 1
     fi
 
-    docker build -t "$ECS_NAME" "{{PROJECT_DIR}}/{{ECS_DIR}}/$ECS_NAME/"
+    TAG="${IMAGE_URI:-$ECS_NAME}"
+    docker build -t "$TAG" "{{PROJECT_DIR}}/{{ECS_DIR}}/$ECS_NAME/"
+
+    if [[ -n "${IMAGE_URI:-}" ]]; then
+        docker push "$TAG"
+    fi
 
 
 ecs-get-directories:

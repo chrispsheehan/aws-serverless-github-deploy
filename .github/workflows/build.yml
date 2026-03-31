@@ -15,6 +15,10 @@ on:
         required: false
         type: string
         default: "[]"
+      ecs_matrix:
+        required: false
+        type: string
+        default: "[]"
 
 concurrency: # only run one instance of workflow at any one time
   group: build-${{ inputs.environment }}
@@ -70,6 +74,52 @@ jobs:
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           just_action: frontend-upload
+
+  ecr:
+    runs-on: ubuntu-latest
+    outputs:
+      repository_url: ${{ steps.get_repository_url.outputs.repository_url }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Get ECR infra
+        id: get-ecr
+        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          tg_directory: infra/live/ci/aws/ecr
+          tg_action: init
+
+      - name: Get ECR repository url
+        id: get_repository_url
+        env:
+          TG_OUTPUTS: ${{ steps.get-ecr.outputs.tg_outputs }}
+        run: |
+          echo "repository_url=$(echo $TG_OUTPUTS | jq -r '.repository_url.value')" >> $GITHUB_OUTPUT
+
+  ecs:
+    needs: ecr
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        value: ${{ fromJson(inputs.ecs_matrix) }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
+          aws-region: eu-west-2
+
+      - name: "Build and push ${{ matrix.value }} ECS image"
+        uses: chrispsheehan/just-aws-oidc-action@0.3.0
+        env:
+          ECS_NAME: ${{ matrix.value }}
+          IMAGE_URI: ${{ needs.ecr.outputs.repository_url }}:${{ matrix.value }}-${{ inputs.lambda_version }}
+        with:
+          just_action: docker-build
 
   lambdas:
     needs: bucket
