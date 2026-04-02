@@ -22,10 +22,14 @@ variable "default_http_listener_arn" {
   type = string
 }
 
-variable "api_vpc_link_id" {
+variable "api_id" {
   type = string
 }
 
-variable "internal_only" {
+variable "vpc_link_id" {
   type = string
+}
+
+variable "use_vpc_link" {
+  type = bool
 }

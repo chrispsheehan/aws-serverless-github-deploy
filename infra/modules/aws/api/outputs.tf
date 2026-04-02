@@ -2,6 +2,18 @@ output "invoke_url" {
   value = aws_apigatewayv2_api.http_api.api_endpoint
 }
 
+output "api_id" {
+  value = aws_apigatewayv2_api.http_api.id
+}
+
+output "vpc_link_id" {
+  value = aws_apigatewayv2_vpc_link.http_api.id
+}
+
+output "vpc_link_security_group_id" {
+  value = aws_security_group.api_vpc_link.id
+}
+
 output "cloudwatch_log_group" {
   value = module.lambda_api.cloudwatch_log_group
 }

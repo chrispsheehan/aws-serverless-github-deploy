@@ -40,8 +40,8 @@ resource "aws_lb_listener_rule" "service" {
 resource "aws_apigatewayv2_route" "block_exact" {
   count = local.vpc_link_count
 
-  api_id    = var.api_vpc_link_id
-  route_key = "ANY /${var.root_path}"
+  api_id    = var.api_id
+  route_key = local.exact_route_key
 
   target = "integrations/${aws_apigatewayv2_integration.block[0].id}"
 }
@@ -49,8 +49,8 @@ resource "aws_apigatewayv2_route" "block_exact" {
 resource "aws_apigatewayv2_route" "block_proxy" {
   count = local.vpc_link_count
 
-  api_id    = var.api_vpc_link_id
-  route_key = "ANY /${var.root_path}/{proxy+}"
+  api_id    = var.api_id
+  route_key = local.proxy_route_key
 
   target = "integrations/${aws_apigatewayv2_integration.block[0].id}"
 }
@@ -58,8 +58,18 @@ resource "aws_apigatewayv2_route" "block_proxy" {
 resource "aws_apigatewayv2_integration" "block" {
   count = local.vpc_link_count
 
-  api_id             = var.api_vpc_link_id
-  integration_type   = "HTTP_PROXY"
-  integration_method = "ANY"
-  integration_uri    = "https://httpbin.org/status/403"
+  api_id                 = var.api_id
+  connection_id          = var.vpc_link_id
+  connection_type        = "VPC_LINK"
+  integration_type       = "HTTP_PROXY"
+  integration_method     = "ANY"
+  integration_uri        = var.default_http_listener_arn
+  payload_format_version = "1.0"
+
+  lifecycle {
+    precondition {
+      condition     = var.vpc_link_id != null && var.vpc_link_id != ""
+      error_message = "vpc_link_id must be set in the shared API stack before using connection_type = \"vpc_link\"."
+    }
+  }
 }

@@ -64,3 +64,8 @@ variable "api_5xx_alarm_datapoints_to_alarm" {
   type        = number
   description = "The number of evaluated periods that must be breaching to trigger ALARM"
 }
+
+variable "vpc_name" {
+  type        = string
+  description = "VPC name tag used to look up private subnets for the shared API Gateway VPC link"
+}
