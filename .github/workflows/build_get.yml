@@ -89,9 +89,9 @@ jobs:
         env:
           TG_OUTPUTS: ${{ steps.get-ecr.outputs.tg_outputs }}
         run: |
-          repository_url=$(echo "$TG_OUTPUTS" | jq -er '.repository_url.value')
+          repository_url=$(echo "$TG_OUTPUTS" | jq -er '.repository_urlxxx.value')
 
-          if [ -z "$repository_url" ] || [ "$repository_url" == null ]; then
+          if [ -z "$repository_url" ] || [ "$repository_url" == "null" ]; then
             echo "::error title=Missing ECR repository URL::Terragrunt output '.repository_url.value' was empty or null for infra/live/${{ inputs.environment }}/aws/ecr"
             exit 1
           fi
