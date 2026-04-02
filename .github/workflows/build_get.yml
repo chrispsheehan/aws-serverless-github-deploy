@@ -92,7 +92,7 @@ jobs:
           echo "🔍 Raw TG_OUTPUTS:"
           echo "$TG_OUTPUTS" | jq .
 
-          repository_url=$(echo "$TG_OUTPUTS" | jq -r '.repository_url.value // empty')
+          repository_url=$(echo "$TG_OUTPUTS" | jq -r '.repository_urlxxxx.value // empty')
 
           if [ -z "$repository_url" ] || [ "$repository_url" = "null" ]; then
             echo "::error title=Missing ECR repository URL::Failed to extract '.repository_url.value' from Terragrunt output for infra/live/${{ inputs.environment }}/aws/ecr"
