@@ -89,14 +89,19 @@ jobs:
         env:
           TG_OUTPUTS: ${{ steps.get-ecr.outputs.tg_outputs }}
         run: |
-          repository_url=$(echo "$TG_OUTPUTS" | jq -er '.repository_urlxxx.value')
+          echo "🔍 Raw TG_OUTPUTS:"
+          echo "$TG_OUTPUTS" | jq .
 
-          if [ -z "$repository_url" ] || [ "$repository_url" == "null" ]; then
-            echo "::error title=Missing ECR repository URL::Terragrunt output '.repository_url.value' was empty or null for infra/live/${{ inputs.environment }}/aws/ecr"
+          repository_url=$(echo "$TG_OUTPUTS" | jq -r '.repository_url.value // empty')
+
+          if [ -z "$repository_url" ] || [ "$repository_url" = "null" ]; then
+            echo "::error title=Missing ECR repository URL::Failed to extract '.repository_url.value' from Terragrunt output for infra/live/${{ inputs.environment }}/aws/ecr"
+            echo "::error::Full TG_OUTPUTS:"
+            echo "$TG_OUTPUTS" | jq .
             exit 1
           fi
 
-          echo "repository_url=$repository_url" >> $GITHUB_OUTPUT
+          echo "repository_url=$repository_url" >> "$GITHUB_OUTPUT"
 
   frontend:
     needs: bucket
