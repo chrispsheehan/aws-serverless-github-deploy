@@ -14,6 +14,11 @@ variable "scan_on_push" {
   default = true
 }
 
+variable "force_delete" {
+  type    = bool
+  default = false
+}
+
 variable "image_expiration_days" {
   description = "Number of days before images are deleted (set to 0 to disable)"
   type        = number
