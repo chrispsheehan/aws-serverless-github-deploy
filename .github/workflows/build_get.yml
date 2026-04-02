@@ -58,14 +58,18 @@ jobs:
         env:
           TG_OUTPUTS: ${{ steps.code_action.outputs.tg_outputs }}
         run: |
-          bucket=$(echo "$TG_OUTPUTS" | jq -er '.bucket.value')
+          echo "🔍 Raw TG_OUTPUTS:"
+          echo "$TG_OUTPUTS" | jq .
+
+          bucket=$(echo "$TG_OUTPUTS" | jq -r '.bucket.value // empty')
 
           if [ -z "$bucket" ] || [ "$bucket" = "null" ]; then
-            echo "::error title=Missing code bucket::Terragrunt output '.bucket.value' was empty or null for infra/live/${{ inputs.environment }}/aws/code_bucket"
+            echo "::error title=Missing code bucket::Failed to extract '.bucket.value' from Terragrunt output for infra/live/${{ inputs.environment }}/aws/code_bucket"
+            echo "::error::Full TG_OUTPUTS:"
             exit 1
           fi
 
-          echo "bucket=$bucket" >> $GITHUB_OUTPUT
+          echo "bucket=$bucket" >> "$GITHUB_OUTPUT"
 
   ecr:
     runs-on: ubuntu-latest
@@ -92,12 +96,11 @@ jobs:
           echo "🔍 Raw TG_OUTPUTS:"
           echo "$TG_OUTPUTS" | jq .
 
-          repository_url=$(echo "$TG_OUTPUTS" | jq -r '.repository_urlxxxx.value // empty')
+          repository_url=$(echo "$TG_OUTPUTS" | jq -r '.repository_url.value // empty')
 
           if [ -z "$repository_url" ] || [ "$repository_url" = "null" ]; then
             echo "::error title=Missing ECR repository URL::Failed to extract '.repository_url.value' from Terragrunt output for infra/live/${{ inputs.environment }}/aws/ecr"
             echo "::error::Full TG_OUTPUTS:"
-            echo "$TG_OUTPUTS" | jq .
             exit 1
           fi
 
