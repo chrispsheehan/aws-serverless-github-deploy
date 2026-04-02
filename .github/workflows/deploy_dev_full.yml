@@ -65,14 +65,14 @@ jobs:
       environment: dev
       lambda_version: ${{ github.sha }}
 
-  deploy:
-    uses: ./.github/workflows/deploy.yml
-    needs:
-      - get_build
-      - infra
-    with:
-      environment: dev
-      lambda_version: ${{ needs.get_build.outputs.lambda_version }}
-      frontend_version: ${{ needs.get_build.outputs.frontend_version }}
-      code_bucket: ${{ needs.get_build.outputs.code_bucket }}
-      lambda_matrix: ${{ needs.get_build.outputs.lambda_version_files }}
+  # deploy:
+  #   uses: ./.github/workflows/deploy.yml
+  #   needs:
+  #     - get_build
+  #     - infra
+  #   with:
+  #     environment: dev
+  #     lambda_version: ${{ needs.get_build.outputs.lambda_version }}
+  #     frontend_version: ${{ needs.get_build.outputs.frontend_version }}
+  #     code_bucket: ${{ needs.get_build.outputs.code_bucket }}
+  #     lambda_matrix: ${{ needs.get_build.outputs.lambda_version_files }}
