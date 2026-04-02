@@ -31,6 +31,7 @@ module "ecs" {
   xray_enabled = var.xray_enabled
   local_tunnel = var.local_tunnel
 
+  wait_for_steady_state = var.wait_for_steady_state
   load_balancers = local.load_balancers
 }
 

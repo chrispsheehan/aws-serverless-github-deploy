@@ -58,9 +58,8 @@ locals {
   )
 
   svc-container = {
-    name        = var.service_name
-    networkMode = "awsvpc"
-    image       = local.image_uri
+    name  = var.service_name
+    image = local.image_uri
 
     portMappings = [
       {
