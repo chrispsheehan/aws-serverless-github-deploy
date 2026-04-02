@@ -59,7 +59,45 @@ jobs:
         env:
           TG_OUTPUTS: ${{ steps.code_action.outputs.tg_outputs }}
         run: |
-          echo "bucket=$(echo $TG_OUTPUTS | jq -r '.bucket.value')" >> $GITHUB_OUTPUT
+          bucket=$(echo "$TG_OUTPUTS" | jq -er '.bucket.value')
+
+          if [ -z "$bucket" ] || [ "$bucket" = "null" ]; then
+            echo "::error title=Missing code bucket::Terragrunt output '.bucket.value' was empty or null for infra/live/${{ inputs.environment }}/aws/code_bucket"
+            exit 1
+          fi
+
+          echo "bucket=$bucket" >> $GITHUB_OUTPUT
+
+  ecr:
+    runs-on: ubuntu-latest
+    outputs:
+      repository_url: ${{ steps.get_repository_url.outputs.repository_url }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.lambda_version }}
+
+      - name: Get ECR infra
+        id: get-ecr
+        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          tg_directory: infra/live/ci/aws/ecr
+          tg_action: init
+
+      - name: Get ECR repository url
+        id: get_repository_url
+        env:
+          TG_OUTPUTS: ${{ steps.get-ecr.outputs.tg_outputs }}
+        run: |
+          repository_url=$(echo "$TG_OUTPUTS" | jq -er '.repository_url.value')
+
+          if [ -z "$repository_url" ] || [ "$repository_url" = "null" ]; then
+            echo "::error title=Missing ECR repository URL::Terragrunt output '.repository_url.value' was empty or null for infra/live/ci/aws/ecr"
+            exit 1
+          fi
+
+          echo "repository_url=$repository_url" >> $GITHUB_OUTPUT
 
   frontend:
     needs: bucket
