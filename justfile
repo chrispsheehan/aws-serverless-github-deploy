@@ -171,6 +171,17 @@ docker-push:
         exit 1
     fi
 
+    registry="${IMAGE_URI%%/*}"
+    aws_region="$(echo "$registry" | cut -d. -f4)"
+
+    if [[ -z "$aws_region" ]]; then
+        echo "❌ Could not determine AWS region from IMAGE_URI: $IMAGE_URI"
+        exit 1
+    fi
+
+    aws ecr get-login-password --region "$aws_region" \
+        | docker login --username AWS --password-stdin "$registry"
+
     docker push "$IMAGE_URI"
 
 
