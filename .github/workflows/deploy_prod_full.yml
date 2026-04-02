@@ -31,7 +31,7 @@ jobs:
       - infra # this is only to ensure infra runs before deploy no dependencies on infra outputs i.e. infra is managed separately
     with:
       environment: prod
-      code_bucket: ${{ needs.get_build.outputs.code_bucket }}
       lambda_version: ${{ needs.get_build.outputs.lambda_version }}
-      lambda_matrix: ${{ needs.get_build.outputs.lambda_version_files }}
       frontend_version: ${{ needs.get_build.outputs.frontend_version }}
+      code_bucket: ${{ needs.get_build.outputs.code_bucket }}
+      lambda_matrix: ${{ needs.get_build.outputs.lambda_version_files }}

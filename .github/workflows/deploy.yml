@@ -5,12 +5,17 @@ on:
         description: environment reference i.e. 'prod' or 'dev'
         required: true
         type: string
-      code_bucket:
-        description: "Bucket containing lambda and frontend zips"
-        required: true
-        type: string
       lambda_version:
         description: "Valid lambda version"
+        required: true
+        type: string
+      frontend_version:
+        description: "Valid frontend version"
+        required: false
+        type: string
+        default: ""
+      code_bucket:
+        description: "Bucket containing lambda and frontend zips"
         required: true
         type: string
       lambda_matrix:
@@ -21,11 +26,6 @@ on:
         description: "Number of lambda versions to keep"
         default: '5'
         type: string
-      frontend_version:
-        description: "Valid frontend version"
-        required: false
-        type: string
-        default: ""
 
 
 concurrency: # only run one instance of workflow at any one time
