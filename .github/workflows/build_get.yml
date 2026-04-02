@@ -10,7 +10,6 @@ on:
       frontend_version:
         required: false
         type: string
-        default: ""
     outputs:
       code_bucket:
         description: "Bucket containing build artifacts"

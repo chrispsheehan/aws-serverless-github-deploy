@@ -13,6 +13,7 @@ jobs:
     with:
       environment: ci
       lambda_version: 0.7.2
+      frontend_version: 0.7.2
 
   infra:
     needs: 

@@ -56,6 +56,7 @@ jobs:
     with:
       environment: dev
       lambda_version: ${{ inputs.version != '' && inputs.version || github.sha }}
+      frontend_version: ${{ inputs.version != '' && inputs.version || github.sha }}
 
   deploy:
     uses: ./.github/workflows/deploy.yml
