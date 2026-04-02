@@ -10,10 +10,19 @@ on:
       frontend_version:
         required: false
         type: string
+      ecs_version:
+        required: false
+        type: string
     outputs:
       code_bucket:
         description: "Bucket containing build artifacts"
         value: ${{ jobs.bucket.outputs.code_bucket_name }}
+      ecs_version:
+        description: "Valid ecs version"
+        value: ${{ inputs.ecs_version != '' && inputs.ecs_version || inputs.lambda_version }}
+      ecs_version_images:
+        description: "List of ecs image names"
+        value: ${{ jobs.images.outputs.ecs_version_images }}
       lambda_version:
         description: "Valid lambda version"
         value: ${{ inputs.lambda_version }}
@@ -105,6 +114,26 @@ jobs:
           fi
 
           echo "repository_url=$repository_url" >> "$GITHUB_OUTPUT"
+
+  images:
+    needs: ecr
+    runs-on: ubuntu-latest
+    outputs:
+      ecs_version_images: ${{ steps.get_version_images.outputs.just_outputs }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.lambda_version }}
+
+      - name: Get ECR version images
+        id: get_version_images
+        uses: chrispsheehan/just-aws-oidc-action@0.3.0
+        env:
+          REPOSITORY_URL: ${{ needs.ecr.outputs.repository_url }}
+          VERSION: ${{ inputs.ecs_version != '' && inputs.ecs_version || inputs.lambda_version }}
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          just_action: get-ecr-version-images
 
   frontend:
     needs: bucket

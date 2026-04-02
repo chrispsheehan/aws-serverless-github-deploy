@@ -139,6 +139,33 @@ get-version-files:
       | jq -s -c .
 
 
+get-ecr-version-images:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "${REPOSITORY_URL:-}" ]]; then
+        echo "❌ REPOSITORY_URL environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "${VERSION:-}" ]]; then
+        echo "❌ VERSION environment variable is not set."
+        exit 1
+    fi
+
+    repository_name="${REPOSITORY_URL#*/}"
+
+    aws ecr describe-images \
+      --repository-name "$repository_name" \
+      --query 'imageDetails[].imageTags[]' \
+      --output text \
+      | tr '\t' '\n' \
+      | grep -- "-$VERSION\$" \
+      | sed "s/-$VERSION$//" \
+      | jq -R . \
+      | jq -s -c .
+
+
 lambda-get-directories:
     #!/usr/bin/env bash
     set -euo pipefail
