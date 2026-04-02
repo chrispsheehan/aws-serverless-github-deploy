@@ -1,19 +1,32 @@
 module "service_consumer" {
   source = "../_shared/service"
 
-  vpc_name   = var.vpc_name
-  aws_region = var.aws_region
+  service_name        = data.terraform_remote_state.task_worker.outputs.service_name
+  task_definition_arn = data.terraform_remote_state.task_worker.outputs.task_definition_arn
+  container_port      = var.container_port
+  root_path           = var.root_path
+  connection_type     = var.connection_type
 
-  state_bucket   = var.state_bucket
-  environment    = var.environment
-  container_port = var.container_port
+  vpc_id             = data.aws_vpc.this.id
+  private_subnet_ids = data.aws_subnets.private.ids
+
+  cluster_id            = data.terraform_remote_state.cluster.outputs.cluster_id
+  cluster_name          = data.terraform_remote_state.cluster.outputs.cluster_name
+  ecs_security_group_id = data.terraform_remote_state.security.outputs.ecs_sg
+
+  default_target_group_arn  = data.terraform_remote_state.network.outputs.default_target_group_arn
+  default_http_listener_arn = data.terraform_remote_state.network.outputs.default_http_listener_arn
+  load_balancer_arn_suffix  = data.terraform_remote_state.network.outputs.load_balancer_arn_suffix
+  target_group_arn_suffix   = data.terraform_remote_state.network.outputs.target_group_arn_suffix
+
+  api_id             = data.terraform_remote_state.api.outputs.api_id
+  vpc_link_id        = data.terraform_remote_state.api.outputs.vpc_link_id
+  internal_invoke_url = data.terraform_remote_state.network.outputs.internal_invoke_url
+  api_invoke_url      = data.terraform_remote_state.api.outputs.invoke_url
 
   xray_enabled = var.xray_enabled
   local_tunnel = var.local_tunnel
-
-  connection_type     = "internal"
-  task_definition_arn = data.terraform_remote_state.task_consumer.outputs.task_definition_arn
-  service_name        = data.terraform_remote_state.task_consumer.outputs.service_name
+  wait_for_steady_state = var.wait_for_steady_state
 
   desired_task_count = 1
   scaling_strategy = {
@@ -25,7 +38,7 @@ module "service_consumer" {
       scale_in_adjustment  = 1   # Remove 1 task
       cooldown_out         = 60  # 1min cooldown (more stable)
       cooldown_in          = 300 # 5min cooldown (prevent flapping)
-      queue_name           = data.terraform_remote_state.sqs_consumer.outputs.sqs_queue_name
+      queue_name           = element(reverse(split("/", data.terraform_remote_state.sqs_consumer.outputs.sqs_queue_url)), 0)
     }
   }
 }

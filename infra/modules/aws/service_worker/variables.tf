@@ -20,7 +20,7 @@ variable "container_port" {
 
 variable "root_path" {
   description = "The path to serve the service from. / is for default /example_service is for subpath"
-  default     = "/"
+  default     = ""
   type        = string
 }
 

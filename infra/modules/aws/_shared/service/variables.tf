@@ -1,19 +1,3 @@
-variable "state_bucket" {
-  type = string
-}
-
-variable "environment" {
-  type = string
-}
-
-variable "aws_region" {
-  type = string
-}
-
-variable "vpc_name" {
-  type = string
-}
-
 variable "service_name" {
   type = string
 }
@@ -23,6 +7,58 @@ variable "container_port" {
 }
 
 variable "task_definition_arn" {
+  type = string
+}
+
+variable "vpc_id" {
+  type = string
+}
+
+variable "private_subnet_ids" {
+  type = list(string)
+}
+
+variable "cluster_id" {
+  type = string
+}
+
+variable "cluster_name" {
+  type = string
+}
+
+variable "ecs_security_group_id" {
+  type = string
+}
+
+variable "default_target_group_arn" {
+  type = string
+}
+
+variable "default_http_listener_arn" {
+  type = string
+}
+
+variable "load_balancer_arn_suffix" {
+  type = string
+}
+
+variable "target_group_arn_suffix" {
+  type = string
+}
+
+variable "api_id" {
+  type = string
+}
+
+variable "vpc_link_id" {
+  type = string
+}
+
+variable "internal_invoke_url" {
+  type = string
+}
+
+variable "api_invoke_url" {
   type = string
 }
 
