@@ -1,7 +1,11 @@
-name: Dev Deploy Infra and Code
+name: Dev Deploy Full
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - ecs
+  
 
 permissions:
   id-token: write
