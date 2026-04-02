@@ -82,7 +82,7 @@ jobs:
         uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          tg_directory: infra/live/ci/aws/ecr
+          tg_directory: infra/live/${{ inputs.environment }}/aws/ecr
           tg_action: init
 
       - name: Get ECR repository url
@@ -92,7 +92,7 @@ jobs:
         run: |
           repository_url=$(echo "$TG_OUTPUTS" | jq -er '.repository_url.value')
 
-          if [ -z "$repository_url" ] || [ "$repository_url" = "null" ]; then
+          if [ -z "$repository_url" ] || [ "$repository_url" == null ]; then
             echo "::error title=Missing ECR repository URL::Terragrunt output '.repository_url.value' was empty or null for infra/live/ci/aws/ecr"
             exit 1
           fi
