@@ -64,7 +64,7 @@ jobs:
 
   get_build:
     needs: build
-    uses: ./.github/workflows/build_get2.yml
+    uses: ./.github/workflows/build_get.yml
     with:
       environment: dev
       lambda_version: ${{ github.sha }}
