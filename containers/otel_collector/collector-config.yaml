@@ -1,0 +1,28 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: ${OTEL_ENDPOINT}
+
+exporters:
+  awsxray:
+    region: ${AWS_REGION}
+
+processors:
+  probabilistic_sampler:
+    hash_seed: 22
+    sampling_percentage: ${OTEL_SAMPLING_PERCENTAGE}
+
+  filter/health:
+    traces:
+      span:
+        - 'name == "GET /health"'
+        - 'attributes["http.target"] == "/health"'
+        - 'attributes["http.path"] == "/health"'
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [filter/health, probabilistic_sampler]
+      exporters: [awsxray]
