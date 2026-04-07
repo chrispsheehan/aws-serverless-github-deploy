@@ -78,4 +78,3 @@ jobs:
       frontend_version: ${{ needs.get_build.outputs.frontend_version }}
       code_bucket: ${{ needs.get_build.outputs.code_bucket }}
       lambda_matrix: ${{ needs.get_build.outputs.lambda_version_files }}
-      ecs_matrix: ${{ needs.get_build.outputs.ecs_version_images }}
