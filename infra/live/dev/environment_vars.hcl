@@ -1,7 +1,7 @@
 locals {
   deploy_branches       = ["*"]
   image_expiration_days = 30
-  force_delete          = var.force_delete
+  force_delete          = true
 }
 
 inputs = {
