@@ -21,9 +21,9 @@ on:
       lambdas:
         description: "Whether lambdas files changed"
         value: ${{ jobs.changes.outputs.lambdas == 'true' }}
-      ecs:
-        description: "Whether ecs files changed"
-        value: ${{ jobs.changes.outputs.ecs == 'true' }}
+      containers:
+        description: "Whether container files changed"
+        value: ${{ jobs.changes.outputs.containers == 'true' }}
       frontend:
         description: "Whether frontend files changed"
         value: ${{ jobs.changes.outputs.frontend == 'true' }}
@@ -37,7 +37,7 @@ jobs:
       github: ${{ steps.filter.outputs.github }}
       frontend: ${{ steps.filter.outputs.frontend }}
       lambdas: ${{ steps.filter.outputs.lambdas }}
-      ecs: ${{ steps.filter.outputs.ecs }}
+      containers: ${{ steps.filter.outputs.containers }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -58,8 +58,8 @@ jobs:
               - '.github/**'
             lambdas:
               - 'lambdas/**'
-            ecs:
-              - 'ecs/**'
+            containers:
+              - 'containers/**'
             frontend:
               - 'frontend/**'
           token: ${{ secrets.GITHUB_TOKEN }}

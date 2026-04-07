@@ -109,12 +109,12 @@ jobs:
           echo "✅ All lambda directories use underscores."
 
   setup:
-    if: ${{ needs.check.outputs.lambdas == 'true' || needs.check.outputs.ecs == 'true' }}
+    if: ${{ needs.check.outputs.lambdas == 'true' || needs.check.outputs.containers == 'true' }}
     needs: check
     runs-on: ubuntu-latest
     outputs:
       lambda_dirs: ${{ steps.lambda_dirs.outputs.just_outputs }}
-      ecs_dirs: ${{ steps.ecs_dirs.outputs.just_outputs }}
+      container_dirs: ${{ steps.container_dirs.outputs.just_outputs }}
     steps:
       - uses: actions/checkout@v6
       - name: Get Lambda Directories
@@ -123,11 +123,11 @@ jobs:
         with:
           just_action: lambda-get-directories
 
-      - name: Get ecs Directories
-        id: ecs_dirs
+      - name: Get container Directories
+        id: container_dirs
         uses: chrispsheehan/just-aws-oidc-action@0.3.0
         with:
-          just_action: ecs-get-directories
+          just_action: container-get-directories
 
   build-lambdas:
     if: ${{ needs.check.outputs.lambdas == 'true' }}
@@ -149,8 +149,8 @@ jobs:
         with:
           just_action: lambda-build
 
-  build-ecs:
-    if: ${{ needs.check.outputs.ecs == 'true' }}
+  build-containers:
+    if: ${{ needs.check.outputs.containers == 'true' }}
     needs:
       - check
       - setup
@@ -158,20 +158,22 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        value: ${{ fromJson(needs.setup.outputs.ecs_dirs) }}
+        value: ${{ fromJson(needs.setup.outputs.container_dirs) }}
     steps:
       - uses: actions/checkout@v6
 
       - name: "Build ${{ matrix.value }} ECS image"
         uses: chrispsheehan/just-aws-oidc-action@0.3.0
         env:
-          ECS_NAME: ${{ matrix.value }}
+          CONTAINER_NAME: ${{ matrix.value }}
         with:
           just_action: docker-build
 
   build-frontend:
     if: ${{ needs.check.outputs.frontend == 'true' }}
-    needs: check
+    needs: 
+      - check
+      - setup
     runs-on: ubuntu-latest
     name: Build frontend
     timeout-minutes: 5

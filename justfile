@@ -4,7 +4,7 @@ _default:
 
 PROJECT_DIR := justfile_directory()
 LAMBDA_DIR := "lambdas"
-ECS_DIR := "ecs"
+CONTAINERS_DIR := "containers"
 FRONTEND_DIR := "frontend"
 
 
@@ -180,13 +180,13 @@ docker-build:
     #!/usr/bin/env bash
     set -euo pipefail
 
-    if [[ -z "$ECS_NAME" ]]; then
-        echo "❌ ECS_NAME environment variable is not set."
+    if [[ -z "$CONTAINER_NAME" ]]; then
+        echo "❌ CONTAINER_NAME environment variable is not set."
         exit 1
     fi
 
-    TAG="${IMAGE_URI:-$ECS_NAME}"
-    docker build -t "$TAG" "{{PROJECT_DIR}}/{{ECS_DIR}}/$ECS_NAME/"
+    TAG="${IMAGE_URI:-$CONTAINER_NAME}"
+    docker build -t "$TAG" "{{PROJECT_DIR}}/{{CONTAINERS_DIR}}/$CONTAINER_NAME/"
 
 
 docker-push:
@@ -212,10 +212,10 @@ docker-push:
     docker push "$IMAGE_URI"
 
 
-ecs-get-directories:
+container-get-directories:
     #!/usr/bin/env bash
     set -euo pipefail
-    find "{{ECS_DIR}}" -mindepth 1 -maxdepth 1 -type d \
+    find "{{CONTAINERS_DIR}}" -mindepth 1 -maxdepth 1 -type d \
       | xargs -I{} basename "{}" \
       | tr '-' '_' \
       | jq -R . \

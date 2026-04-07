@@ -118,7 +118,7 @@ jobs:
       - name: "Build ${{ matrix.value }} ECS image"
         uses: chrispsheehan/just-aws-oidc-action@0.3.0
         env:
-          ECS_NAME: ${{ matrix.value }}
+          CONTAINER_NAME: ${{ matrix.value }}
           IMAGE_URI: ${{ needs.ecr.outputs.repository_url }}:${{ matrix.value }}-${{ inputs.ecs_version }}
         with:
           just_action: docker-build
