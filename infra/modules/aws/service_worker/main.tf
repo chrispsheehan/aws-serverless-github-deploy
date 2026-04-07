@@ -19,13 +19,13 @@ module "service_consumer" {
   load_balancer_arn_suffix  = data.terraform_remote_state.network.outputs.load_balancer_arn_suffix
   target_group_arn_suffix   = data.terraform_remote_state.network.outputs.target_group_arn_suffix
 
-  api_id             = data.terraform_remote_state.api.outputs.api_id
-  vpc_link_id        = data.terraform_remote_state.api.outputs.vpc_link_id
+  api_id              = data.terraform_remote_state.api.outputs.api_id
+  vpc_link_id         = data.terraform_remote_state.api.outputs.vpc_link_id
   internal_invoke_url = data.terraform_remote_state.network.outputs.internal_invoke_url
   api_invoke_url      = data.terraform_remote_state.api.outputs.invoke_url
 
-  xray_enabled = var.xray_enabled
-  local_tunnel = var.local_tunnel
+  xray_enabled          = var.xray_enabled
+  local_tunnel          = var.local_tunnel
   wait_for_steady_state = var.wait_for_steady_state
 
   desired_task_count = 1

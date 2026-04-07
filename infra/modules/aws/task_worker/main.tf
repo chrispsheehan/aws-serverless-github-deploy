@@ -15,7 +15,7 @@ module "task_consumer" {
   local_tunnel = var.local_tunnel
   xray_enabled = var.xray_enabled
 
-  additional_env_vars = []
+  additional_env_vars            = []
   additional_runtime_policy_arns = []
 
   root_path    = ""
