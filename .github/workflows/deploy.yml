@@ -95,7 +95,7 @@ jobs:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           just_action: lambda-get-version
 
-      - name: Upload AppSpec bundle
+      - name: Run CodeDeploy
         uses: chrispsheehan/just-aws-oidc-action@0.3.0
         env:
           BUCKET_NAME: ${{ inputs.code_bucket }}
@@ -107,35 +107,7 @@ jobs:
           APP_SPEC_KEY: ${{ steps.appspec.outputs.lambda_appspec_key }}
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          just_action: lambda-upload-bundle
-
-      - name: Set Alarms to OK for CodeDeploy (if applicable)
-        uses: chrispsheehan/just-aws-oidc-action@0.3.0
-        env:
-          FUNCTION_NAME: ${{ steps.get_infra_detail.outputs.lambda_function_name }}
-        with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          just_action: lambda-set-code-deploy-alarms
-
-      - name: Run CodeDeploy
-        uses: chrispsheehan/just-aws-oidc-action@0.3.0
-        env:
-          FUNCTION_NAME: ${{ steps.get_infra_detail.outputs.lambda_function_name }}
-          BUCKET_NAME: ${{ inputs.code_bucket }}
-          APP_SPEC_KEY: ${{ steps.appspec.outputs.lambda_appspec_key }}
-        with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          just_action: lambda-deploy
-
-      - name: Prune old lambda versions
-        uses: chrispsheehan/just-aws-oidc-action@0.3.0
-        env:
-          KEEP: ${{ inputs.lambda_keep }}
-          FUNCTION_NAME: ${{ steps.get_infra_detail.outputs.lambda_function_name }}
-          ALIAS_NAME: ${{ steps.get_infra_detail.outputs.lambda_alias_name }}
-        with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          just_action: lambda-prune
+          just_action: lambda-upload-bundle lambda-set-code-deploy-alarms lambda-deploy lambda-prune
 
   frontend:
     runs-on: ubuntu-latest
@@ -168,12 +140,4 @@ jobs:
           DISTRIBUTION_ID: ${{ steps.get_infra_detail.outputs.distribution_id }}
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          just_action: frontend-deploy
-
-      - name: Invalidate CloudFront cache
-        uses: chrispsheehan/just-aws-oidc-action@0.3.0
-        env:
-          DISTRIBUTION_ID: ${{ steps.get_infra_detail.outputs.distribution_id }}
-        with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          just_action: frontend-invalidate
+          just_action: frontend-deploy frontend-invalidate
