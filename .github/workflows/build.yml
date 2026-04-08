@@ -63,11 +63,6 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      # - name: Build frontend
-      #   uses: chrispsheehan/just-aws-oidc-action@0.3.0
-      #   with:
-      #     just_action: frontend-build
-
       - name: Upload frontend
         uses: chrispsheehan/just-aws-oidc-action@0.3.0
         env:
@@ -99,7 +94,7 @@ jobs:
         run: |
           echo "repository_url=$(echo $TG_OUTPUTS | jq -r '.repository_url.value')" >> $GITHUB_OUTPUT
 
-  ecs:
+  containers:
     needs: ecr
     runs-on: ubuntu-latest
     strategy:
@@ -118,14 +113,6 @@ jobs:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           just_action: docker-build docker-push
 
-      # - name: "Push ${{ matrix.value }} ECS image"
-      #   uses: chrispsheehan/just-aws-oidc-action@0.3.0
-      #   env:
-      #     IMAGE_URI: ${{ needs.ecr.outputs.repository_url }}:${{ matrix.value }}-${{ inputs.ecs_version != '' && inputs.ecs_version || inputs.lambda_version }}
-      #   with:
-      #     aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-      #     just_action: docker-push
-
   lambdas:
     needs: bucket
     runs-on: ubuntu-latest
@@ -135,13 +122,6 @@ jobs:
         value: ${{ fromJson(inputs.lambda_matrix) }}
     steps:
       - uses: actions/checkout@v6
-
-      # - name: "Build ${{ matrix.value }} Lambda"
-      #   uses: chrispsheehan/just-aws-oidc-action@0.3.0
-      #   env:
-      #     LAMBDA_NAME: ${{ matrix.value }}
-      #   with:
-      #     just_action: lambda-build
 
       - name: "Upload ${{ matrix.value }} Lambda"
         uses: chrispsheehan/just-aws-oidc-action@0.3.0
