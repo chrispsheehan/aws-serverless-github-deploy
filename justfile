@@ -6,6 +6,7 @@ PROJECT_DIR := justfile_directory()
 LAMBDA_DIR := "lambdas"
 CONTAINERS_DIR := "containers"
 FRONTEND_DIR := "frontend"
+EXTRA_CONTAINER_DIRECTORIES := "[\"debug\",\"otel_collector\"]"
 
 
 tf-lint-check:
@@ -186,7 +187,11 @@ docker-build:
     fi
 
     TAG="${IMAGE_URI:-$CONTAINER_NAME}"
-    docker build -t "$TAG" "{{PROJECT_DIR}}/{{CONTAINERS_DIR}}/$CONTAINER_NAME/"
+    docker build \
+      --file "{{PROJECT_DIR}}/Dockerfile" \
+      --target "$CONTAINER_NAME" \
+      -t "$TAG" \
+      "{{PROJECT_DIR}}"
 
 
 docker-push:
@@ -215,11 +220,19 @@ docker-push:
 container-get-directories:
     #!/usr/bin/env bash
     set -euo pipefail
-    find "{{CONTAINERS_DIR}}" -mindepth 1 -maxdepth 1 -type d \
-      | xargs -I{} basename "{}" \
-      | tr '-' '_' \
-      | jq -R . \
-      | jq -s -c .
+
+    found_dirs=$(
+      find "{{CONTAINERS_DIR}}" -mindepth 1 -maxdepth 1 -type d \
+        | xargs -I{} basename "{}" \
+        | tr '-' '_' \
+        | jq -R . \
+        | jq -s -c .
+    )
+
+    jq -cn \
+      --argjson found "$found_dirs" \
+      --argjson extra '{{EXTRA_CONTAINER_DIRECTORIES}}' \
+      '$found + $extra | unique'
 
 
 lambda-build:
