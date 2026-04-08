@@ -108,6 +108,55 @@ jobs:
           fi
           echo "✅ All lambda directories use underscores."
 
+  check-ecs-module-pairs:
+    needs: check
+    runs-on: ubuntu-latest
+    name: Check ECS task/service module pairs
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Fail if task_/service_ pairs are incomplete
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          missing=0
+
+          while IFS= read -r env_dir; do
+            env_name="$(basename "$env_dir")"
+            aws_dir="$env_dir/aws"
+
+            [ -d "$aws_dir" ] || continue
+
+            while IFS= read -r service_dir; do
+              service_name="$(basename "$service_dir")"
+              suffix="${service_name#service_}"
+              task_dir="$aws_dir/task_$suffix"
+
+              if [ ! -d "$task_dir" ]; then
+                echo "::error::❌ Missing task_$suffix for $service_name in $aws_dir"
+                missing=1
+              fi
+            done < <(find "$aws_dir" -mindepth 1 -maxdepth 1 -type d -name 'service_*' | sort)
+
+            while IFS= read -r task_dir; do
+              task_name="$(basename "$task_dir")"
+              suffix="${task_name#task_}"
+              service_dir="$aws_dir/service_$suffix"
+
+              if [ ! -d "$service_dir" ]; then
+                echo "::error::❌ Missing service_$suffix for $task_name in $aws_dir"
+                missing=1
+              fi
+            done < <(find "$aws_dir" -mindepth 1 -maxdepth 1 -type d -name 'task_*' | sort)
+          done < <(find infra/live -mindepth 1 -maxdepth 1 -type d | sort)
+
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+
+          echo "✅ All ECS task_/service_ pairs are present."
+
   setup:
     if: ${{ needs.check.outputs.lambdas == 'true' || needs.check.outputs.containers == 'true' }}
     needs: check
@@ -153,6 +202,7 @@ jobs:
     if: ${{ needs.check.outputs.containers == 'true' }}
     needs:
       - check
+      - check-ecs-module-pairs
       - setup
     runs-on: ubuntu-latest
     strategy:
