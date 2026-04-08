@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       lambdas_dirs: ${{ steps.lambdas_dirs.outputs.just_outputs }}
-      container_dirs: ${{ steps.container_dirs.outputs.just_outputs }}
+      service_dirs: ${{ steps.service_dirs.outputs.just_outputs }}
     steps:
       - uses: actions/checkout@v6
 
@@ -25,11 +25,11 @@ jobs:
         with:
           just_action: lambda-get-directories
 
-      - name: Get container Directories
-        id: container_dirs
+      - name: Get Service Directories
+        id: service_dirs
         uses: chrispsheehan/just-aws-oidc-action@0.3.0
         with:
-          just_action: container-get-directories
+          just_action: service-get-directories
 
   code:
     uses: ./.github/workflows/infra_releases.yml
@@ -59,7 +59,7 @@ jobs:
       frontend_version: ${{ github.sha }}
       ecs_version: ${{ github.sha }}
       lambda_matrix: ${{ needs.setup.outputs.lambdas_dirs }}
-      ecs_matrix: ${{ needs.setup.outputs.container_dirs }}
+      ecs_matrix: ${{ needs.setup.outputs.service_dirs }}
 
   get_build:
     needs: build

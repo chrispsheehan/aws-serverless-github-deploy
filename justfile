@@ -217,17 +217,22 @@ docker-push:
     docker push "$IMAGE_URI"
 
 
+service-get-directories:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    find "{{CONTAINERS_DIR}}" -mindepth 1 -maxdepth 1 -type d \
+      | xargs -I{} basename "{}" \
+      | tr '-' '_' \
+      | jq -R . \
+      | jq -s -c .
+
+
 container-get-directories:
     #!/usr/bin/env bash
     set -euo pipefail
 
-    found_dirs=$(
-      find "{{CONTAINERS_DIR}}" -mindepth 1 -maxdepth 1 -type d \
-        | xargs -I{} basename "{}" \
-        | tr '-' '_' \
-        | jq -R . \
-        | jq -s -c .
-    )
+    found_dirs="$(just --justfile "{{PROJECT_DIR}}/justfile" service-get-directories)"
 
     jq -cn \
       --argjson found "$found_dirs" \
