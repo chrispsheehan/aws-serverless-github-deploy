@@ -255,6 +255,28 @@ service-get-directories:
       | jq -s -c .
 
 
+task-get-directories:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    found_dirs="$(just --justfile "{{PROJECT_DIR}}/justfile" service-get-directories)"
+
+    jq -cn \
+      --argjson found "$found_dirs" \
+      '$found | map("task_" + .)'
+
+
+ecs-service-get-directories:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    found_dirs="$(just --justfile "{{PROJECT_DIR}}/justfile" service-get-directories)"
+
+    jq -cn \
+      --argjson found "$found_dirs" \
+      '$found | map("service_" + .)'
+
+
 container-get-directories:
     #!/usr/bin/env bash
     set -euo pipefail
