@@ -3,18 +3,10 @@ name: Dev Deploy Code Only
 
 on:
   workflow_dispatch:
-    inputs:
-      version:
-        description: "Git ref to deploy"
-        required: false
-        default: ""
 
 permissions:
   id-token: write
   contents: write
-
-env:
-  VERSION: ${{ inputs.version != '' && inputs.version || github.sha }}
 
 jobs:
   setup:
@@ -43,9 +35,9 @@ jobs:
       - setup
     with:
       environment: dev
-      lambda_version: ${{ env.VERSION }}
-      frontend_version: ${{ env.VERSION }}
-      ecs_version: ${{ env.VERSION }}
+      lambda_version: ${{ github.sha }}
+      frontend_version: ${{ github.sha }}
+      ecs_version: ${{ github.sha }}
       lambda_matrix: ${{ needs.setup.outputs.lambdas_dirs }}
       ecs_matrix: ${{ needs.setup.outputs.container_dirs }}
 
