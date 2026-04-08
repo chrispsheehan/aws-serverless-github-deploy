@@ -98,6 +98,7 @@ jobs:
       - name: Run CodeDeploy
         uses: chrispsheehan/just-aws-oidc-action@0.3.0
         env:
+          KEEP: ${{ inputs.lambda_keep }}
           BUCKET_NAME: ${{ inputs.code_bucket }}
           FUNCTION_NAME: ${{ steps.get_infra_detail.outputs.lambda_function_name }}
           ALIAS_NAME: ${{ steps.get_infra_detail.outputs.lambda_alias_name }}
