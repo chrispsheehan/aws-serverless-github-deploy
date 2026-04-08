@@ -115,7 +115,7 @@ jobs:
           CONTAINER_NAME: ${{ matrix.value }}
           IMAGE_URI: ${{ needs.ecr.outputs.repository_url }}:${{ matrix.value }}-${{ inputs.ecs_version }}
         with:
-          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           just_action: docker-build docker-push
 
       # - name: "Push ${{ matrix.value }} ECS image"
