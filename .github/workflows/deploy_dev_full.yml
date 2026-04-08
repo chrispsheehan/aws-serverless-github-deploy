@@ -2,9 +2,9 @@ name: Dev Deploy Full
 
 on:
   workflow_dispatch:
-  # push:
-  #   branches:
-  #     - ecs
+  push:
+    branches:
+      - ecs
 
 permissions:
   id-token: write
