@@ -60,7 +60,6 @@ jobs:
       environment: dev
       infra_version: ${{ github.sha }}
       code_bucket: ${{ needs.get_build.outputs.code_bucket }}
-      ecs_version: ${{ needs.get_build.outputs.ecs_version }}
       lambda_matrix: ${{ needs.setup.outputs.lambdas_dirs }}
       task_matrix: ${{ needs.setup.outputs.task_dirs }}
       service_matrix: ${{ needs.setup.outputs.ecs_service_dirs }}
@@ -94,10 +93,10 @@ jobs:
       - infra
     with:
       environment: dev
-      lambda_version: ${{ needs.get_build.outputs.lambda_version }}
-      frontend_version: ${{ needs.get_build.outputs.frontend_version }}
+      lambda_version: ${{ github.sha }}
+      frontend_version: ${{ github.sha }}
       code_bucket: ${{ needs.get_build.outputs.code_bucket }}
-      ecs_version: ${{ needs.get_build.outputs.ecs_version }}
-      lambda_matrix: ${{ needs.get_build.outputs.lambda_version_files }}
+      ecs_version: ${{ github.sha }}
+      lambda_matrix: ${{ needs.setup.outputs.lambdas_dirs }}
       task_matrix: ${{ needs.setup.outputs.task_dirs }}
       service_matrix: ${{ needs.setup.outputs.ecs_service_dirs }}

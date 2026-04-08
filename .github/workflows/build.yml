@@ -21,6 +21,28 @@ on:
         required: false
         type: string
         default: "[]"
+    outputs:
+      code_bucket:
+        description: "Bucket containing build artifacts"
+        value: ${{ jobs.bucket.outputs.code_bucket_name }}
+      lambda_version:
+        description: "Resolved lambda version"
+        value: ${{ inputs.lambda_version }}
+      frontend_version:
+        description: "Resolved frontend version"
+        value: ${{ inputs.frontend_version }}
+      ecs_version:
+        description: "Resolved ECS version"
+        value: ${{ inputs.ecs_version }}
+      repository_url:
+        description: "ECR repository url"
+        value: ${{ jobs.ecr.outputs.repository_url }}
+      ecs_image_uris:
+        description: "List of full ECS image URIs built by this workflow"
+        value: ${{ jobs.containers.outputs.ecs_image_uris }}
+      lambda_s3_keys:
+        description: "List of lambda S3 object keys built by this workflow"
+        value: ${{ jobs.lambdas.outputs.lambda_s3_keys }}
 
 concurrency: # only run one instance of workflow at any one time
   group: build-${{ inputs.environment }}
@@ -67,7 +89,7 @@ jobs:
         uses: chrispsheehan/just-aws-oidc-action@0.3.0
         env:
           BUCKET_NAME: ${{ needs.bucket.outputs.code_bucket_name }}
-          VERSION: ${{ inputs.frontend_version != '' && inputs.frontend_version || inputs.lambda_version }}
+          VERSION: ${{ inputs.frontend_version }}
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           just_action: frontend-build frontend-upload
@@ -97,6 +119,8 @@ jobs:
   containers:
     needs: ecr
     runs-on: ubuntu-latest
+    outputs:
+      ecs_image_uris: ${{ steps.image_uris.outputs.ecs_image_uris }}
     strategy:
       fail-fast: true
       matrix:
@@ -113,9 +137,26 @@ jobs:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           just_action: docker-build docker-push
 
+      - name: Build ECS image URI list
+        if: ${{ matrix.value == fromJson(inputs.ecs_matrix)[0] }}
+        id: image_uris
+        shell: bash
+        env:
+          REPOSITORY_URL: ${{ needs.ecr.outputs.repository_url }}
+          ECS_VERSION: ${{ inputs.ecs_version }}
+          ECS_MATRIX: ${{ inputs.ecs_matrix }}
+        run: |
+          echo "ecs_image_uris=$(jq -cn \
+            --arg repo "$REPOSITORY_URL" \
+            --arg version "$ECS_VERSION" \
+            --argjson images "$ECS_MATRIX" \
+            '$images | map("\($repo):\(.)-\($version)")')" >> "$GITHUB_OUTPUT"
+
   lambdas:
     needs: bucket
     runs-on: ubuntu-latest
+    outputs:
+      lambda_s3_keys: ${{ steps.lambda_s3_keys.outputs.lambda_s3_keys }}
     strategy:
       fail-fast: true
       matrix:
@@ -132,3 +173,16 @@ jobs:
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           just_action: lambda-build lambda-upload
+
+      - name: Build lambda S3 key list
+        if: ${{ matrix.value == fromJson(inputs.lambda_matrix)[0] }}
+        id: lambda_s3_keys
+        shell: bash
+        env:
+          LAMBDA_VERSION: ${{ inputs.lambda_version }}
+          LAMBDA_MATRIX: ${{ inputs.lambda_matrix }}
+        run: |
+          echo "lambda_s3_keys=$(jq -cn \
+            --arg version "$LAMBDA_VERSION" \
+            --argjson lambdas "$LAMBDA_MATRIX" \
+            '$lambdas | map("lambdas/\($version)/\(.).zip")')" >> "$GITHUB_OUTPUT"

@@ -17,21 +17,24 @@ on:
       code_bucket:
         description: "Bucket containing build artifacts"
         value: ${{ jobs.bucket.outputs.code_bucket_name }}
-      ecs_version:
-        description: "Valid ecs version"
-        value: ${{ inputs.ecs_version != '' && inputs.ecs_version || inputs.lambda_version }}
-      ecs_version_images:
-        description: "List of ecs image names"
-        value: ${{ jobs.images.outputs.ecs_version_images }}
       lambda_version:
-        description: "Valid lambda version"
+        description: "Resolved lambda version"
         value: ${{ inputs.lambda_version }}
-      lambda_version_files:
-        description: "List of lambda version files"
-        value: ${{ jobs.lambdas.outputs.lambda_version_files }}
       frontend_version:
-        description: "Valid frontend version"
+        description: "Resolved frontend version"
         value: ${{ inputs.frontend_version != '' && inputs.frontend_version || inputs.lambda_version }}
+      ecs_version:
+        description: "Resolved ECS version"
+        value: ${{ inputs.ecs_version != '' && inputs.ecs_version || inputs.lambda_version }}
+      ecs_image_uris:
+        description: "List of full ECS image URIs"
+        value: ${{ jobs.images.outputs.ecs_image_uris }}
+      lambda_version_files:
+        description: "List of lambda names"
+        value: ${{ jobs.lambdas.outputs.lambda_version_files }}
+      lambda_s3_keys:
+        description: "List of lambda S3 object keys"
+        value: ${{ jobs.lambdas.outputs.lambda_s3_keys }}
 
 concurrency: # only run one instance of workflow at any one time
   group: ${{ github.workflow }}-${{ inputs.environment }}
@@ -119,7 +122,7 @@ jobs:
     needs: ecr
     runs-on: ubuntu-latest
     outputs:
-      ecs_version_images: ${{ steps.get_version_images.outputs.just_outputs }}
+      ecs_image_uris: ${{ steps.image_uris.outputs.ecs_image_uris }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -134,6 +137,20 @@ jobs:
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           just_action: get-ecr-version-images
+
+      - name: Build full image URIs
+        id: image_uris
+        shell: bash
+        env:
+          REPOSITORY_URL: ${{ needs.ecr.outputs.repository_url }}
+          VERSION: ${{ inputs.ecs_version != '' && inputs.ecs_version || inputs.lambda_version }}
+          IMAGE_NAMES: ${{ steps.get_version_images.outputs.just_outputs }}
+        run: |
+          echo "ecs_image_uris=$(jq -cn \
+            --arg repo "$REPOSITORY_URL" \
+            --arg version "$VERSION" \
+            --argjson images "$IMAGE_NAMES" \
+            '$images | map("\($repo):\(.)-\($version)")')" >> "$GITHUB_OUTPUT"
 
   frontend:
     needs: bucket
@@ -157,6 +174,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       lambda_version_files: ${{ steps.get_build_files.outputs.just_outputs }}
+      lambda_s3_keys: ${{ steps.get_build_file_keys.outputs.just_outputs }}
 
     steps:
       - uses: actions/checkout@v6
@@ -172,7 +190,7 @@ jobs:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           just_action: lambda-check-version
 
-      - name: Get build files
+      - name: Get lambda names
         id: get_build_files
         uses: chrispsheehan/just-aws-oidc-action@0.3.0
         env:
@@ -181,3 +199,13 @@ jobs:
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           just_action: get-version-files
+
+      - name: Get lambda S3 keys
+        id: get_build_file_keys
+        uses: chrispsheehan/just-aws-oidc-action@0.3.0
+        env:
+          BUCKET_NAME: ${{ needs.bucket.outputs.code_bucket_name }}
+          VERSION: ${{ inputs.lambda_version }}
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          just_action: get-version-file-keys

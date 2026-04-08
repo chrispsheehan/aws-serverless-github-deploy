@@ -140,6 +140,33 @@ get-version-files:
       | jq -s -c .
 
 
+get-version-file-keys:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "$BUCKET_NAME" ]]; then
+        echo "❌ BUCKET_NAME environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "$VERSION" ]]; then
+        echo "❌ VERSION environment variable is not set."
+        exit 1
+    fi
+
+    FULL_BUCKET_PATH="s3://$BUCKET_NAME/lambdas/$VERSION/"
+
+    aws s3api head-bucket --bucket "$BUCKET_NAME" >/dev/null
+    aws s3 ls "$FULL_BUCKET_PATH" >/dev/null
+
+    aws s3 ls "$FULL_BUCKET_PATH" --recursive \
+      | awk '{print $4}' \
+      | grep '\.zip$' \
+      | grep -v 'appspec' \
+      | jq -R . \
+      | jq -s -c .
+
+
 get-ecr-version-images:
     #!/usr/bin/env bash
     set -euo pipefail

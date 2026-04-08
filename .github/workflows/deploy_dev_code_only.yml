@@ -13,9 +13,6 @@ permissions:
   id-token: write
   contents: write
 
-env:
-  VERSION: ${{ inputs.version != '' && inputs.version || github.sha }}
-
 jobs:
   setup:
     runs-on: ubuntu-latest
@@ -43,9 +40,9 @@ jobs:
       - setup
     with:
       environment: dev
-      lambda_version: ${{ inputs.version != '' && inputs.version || github.sha }}
-      frontend_version: ${{ inputs.version != '' && inputs.version || github.sha }}
-      ecs_version: ${{ inputs.version != '' && inputs.version || github.sha }}
+      lambda_version: ${{ github.sha }}
+      frontend_version: ${{ github.sha }}
+      ecs_version: ${{ github.sha }}
       lambda_matrix: ${{ needs.setup.outputs.lambdas_dirs }}
       ecs_matrix: ${{ needs.setup.outputs.container_dirs }}
 
@@ -55,8 +52,9 @@ jobs:
     uses: ./.github/workflows/build_get.yml
     with:
       environment: dev
-      lambda_version: ${{ inputs.version != '' && inputs.version || github.sha }}
-      frontend_version: ${{ inputs.version != '' && inputs.version || github.sha }}
+      lambda_version: ${{ needs.build.outputs.lambda_version }}
+      frontend_version: ${{ needs.build.outputs.frontend_version }}
+      ecs_version: ${{ needs.build.outputs.ecs_version }}
 
   deploy:
     uses: ./.github/workflows/deploy.yml
@@ -64,7 +62,7 @@ jobs:
       - get_build
     with:
       environment: dev
-      lambda_version: ${{ needs.get_build.outputs.lambda_version }}
-      frontend_version: ${{ needs.get_build.outputs.frontend_version }}
+      lambda_version: ${{ needs.build.outputs.lambda_version }}
+      frontend_version: ${{ needs.build.outputs.frontend_version }}
       code_bucket: ${{ needs.get_build.outputs.code_bucket }}
-      lambda_matrix: ${{ needs.get_build.outputs.lambda_version_files }}
+      lambda_matrix: ${{ needs.setup.outputs.lambdas_dirs }}
