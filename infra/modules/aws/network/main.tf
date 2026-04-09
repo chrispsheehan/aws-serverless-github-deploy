@@ -17,6 +17,13 @@ resource "aws_vpc_endpoint" "interface_endpoints" {
   private_dns_enabled = true
 }
 
+resource "aws_vpc_endpoint" "gateway_s3" {
+  vpc_id            = data.aws_vpc.this.id
+  service_name      = "com.amazonaws.${var.aws_region}.s3"
+  vpc_endpoint_type = "Gateway"
+  route_table_ids   = data.aws_route_tables.private.ids
+}
+
 resource "aws_lb_target_group" "default" {
   name        = local.target_group_name
   port        = var.container_port

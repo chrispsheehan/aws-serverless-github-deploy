@@ -17,6 +17,13 @@ data "aws_subnets" "private" {
   }
 }
 
+data "aws_route_tables" "private" {
+  filter {
+    name   = "association.subnet-id"
+    values = data.aws_subnets.private.ids
+  }
+}
+
 data "terraform_remote_state" "security" {
   backend = "s3"
 
