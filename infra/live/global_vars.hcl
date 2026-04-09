@@ -16,7 +16,8 @@ locals {
     "xray:*",
     "ec2:*",
     "ecs:*",
-    "ecr:*"
+    "ecr:*",
+    "elasticloadbalancing:*",
   ]
   container_port = 80
 }
