@@ -1,8 +1,8 @@
 module "service_consumer" {
   source = "../_shared/service"
 
-  service_name        = data.terraform_remote_state.task_worker.outputs.service_name
-  task_definition_arn = data.terraform_remote_state.task_worker.outputs.task_definition_arn
+  service_name        = var.service_name
+  task_definition_arn = var.bootstrap ? "" : data.terraform_remote_state.task_worker[0].outputs.task_definition_arn
   container_port      = var.container_port
   root_path           = var.root_path
   connection_type     = var.connection_type

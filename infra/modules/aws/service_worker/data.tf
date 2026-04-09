@@ -1,4 +1,5 @@
 data "terraform_remote_state" "task_worker" {
+  count   = var.bootstrap ? 0 : 1
   backend = "s3"
 
   config = {
