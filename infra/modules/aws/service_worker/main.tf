@@ -7,6 +7,7 @@ module "service_consumer" {
   root_path           = var.root_path
   connection_type     = var.connection_type
 
+  aws_region         = var.aws_region
   vpc_id             = data.aws_vpc.this.id
   private_subnet_ids = data.aws_subnets.private.ids
 
@@ -24,6 +25,8 @@ module "service_consumer" {
   internal_invoke_url = data.terraform_remote_state.network.outputs.internal_invoke_url
   api_invoke_url      = data.terraform_remote_state.api.outputs.invoke_url
 
+  bootstrap             = var.bootstrap
+  bootstrap_image_uri   = var.bootstrap_image_uri
   xray_enabled          = var.xray_enabled
   local_tunnel          = var.local_tunnel
   wait_for_steady_state = var.wait_for_steady_state

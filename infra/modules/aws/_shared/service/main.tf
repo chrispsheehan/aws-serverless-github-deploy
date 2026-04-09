@@ -1,3 +1,35 @@
+resource "aws_iam_role" "bootstrap_execution" {
+  count = var.bootstrap ? 1 : 0
+
+  name               = "${var.service_name}-bootstrap-ecs-task-execution-role"
+  assume_role_policy = data.aws_iam_policy_document.bootstrap_assume_role.json
+}
+
+resource "aws_iam_role_policy_attachment" "bootstrap_execution" {
+  count = var.bootstrap ? 1 : 0
+
+  role       = aws_iam_role.bootstrap_execution[0].name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+}
+
+resource "aws_ecs_task_definition" "bootstrap" {
+  count = var.bootstrap ? 1 : 0
+
+  family                   = "${var.service_name}-bootstrap-task"
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  cpu                      = 256
+  memory                   = 512
+  execution_role_arn       = aws_iam_role.bootstrap_execution[0].arn
+
+  runtime_platform {
+    cpu_architecture        = "X86_64"
+    operating_system_family = "LINUX"
+  }
+
+  container_definitions = local.bootstrap_container_definitions
+}
+
 resource "aws_lb_target_group" "service_target_group" {
   count = local.is_default_path ? 0 : 1
 
@@ -77,7 +109,7 @@ resource "aws_apigatewayv2_integration" "service" {
 resource "aws_ecs_service" "service" {
   name            = var.service_name
   cluster         = var.cluster_id
-  task_definition = var.task_definition_arn
+  task_definition = local.selected_task_definition_arn
   desired_count   = var.desired_task_count
   launch_type     = "FARGATE"
 

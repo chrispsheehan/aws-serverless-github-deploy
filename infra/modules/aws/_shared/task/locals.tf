@@ -57,34 +57,37 @@ locals {
     local.xray_sidecar
   )
 
-  svc-container = {
-    name  = var.service_name
-    image = local.image_uri
+  svc-container = merge(
+    {
+      name  = var.service_name
+      image = local.image_uri
 
-    portMappings = [
-      {
-        name          = "${var.service_name}-${var.container_port}-tcp"
-        containerPort = var.container_port
-        hostPort      = var.container_port
-        protocol      = "tcp"
-        appProtocol   = "http"
-      }
-    ]
+      portMappings = [
+        {
+          name          = "${var.service_name}-${var.container_port}-tcp"
+          containerPort = var.container_port
+          hostPort      = var.container_port
+          protocol      = "tcp"
+          appProtocol   = "http"
+        }
+      ]
 
-    logConfiguration = {
-      logDriver = "awslogs"
-      options = {
-        "awslogs-group"         = "${local.cloudwatch_log_name}"
-        "awslogs-region"        = "${var.aws_region}"
-        "awslogs-stream-prefix" = "ecs"
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = "${local.cloudwatch_log_name}"
+          "awslogs-region"        = "${var.aws_region}"
+          "awslogs-stream-prefix" = "ecs"
+        }
       }
+
+      essential   = true
+      environment = concat(local.shared_environment, var.additional_env_vars)
+    },
+    var.command == null ? {} : {
+      command = var.command
     }
-
-    essential   = true
-    environment = concat(local.shared_environment, var.additional_env_vars)
-
-    command = var.command
-  }
+  )
 
   otel-collector = {
     name  = "${var.service_name}-otel-collector"

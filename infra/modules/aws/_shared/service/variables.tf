@@ -1,3 +1,8 @@
+variable "aws_region" {
+  type        = string
+  description = "AWS region"
+}
+
 variable "service_name" {
   type = string
 }
@@ -90,6 +95,21 @@ variable "xray_enabled" {
 variable "wait_for_steady_state" {
   type    = bool
   default = false
+}
+
+variable "bootstrap" {
+  type    = bool
+  default = false
+}
+
+variable "bootstrap_image_uri" {
+  type    = string
+  default = ""
+
+  validation {
+    condition     = !var.bootstrap || var.bootstrap_image_uri != ""
+    error_message = "bootstrap_image_uri must be set when bootstrap is true."
+  }
 }
 
 variable "additional_security_group_ids" {

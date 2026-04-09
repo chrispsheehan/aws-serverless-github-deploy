@@ -65,4 +65,22 @@ locals {
     : var.api_invoke_url
   )
   invoke_url = var.root_path == "" ? local.base_url : "${local.base_url}/${var.root_path}"
+
+  selected_task_definition_arn = var.bootstrap ? aws_ecs_task_definition.bootstrap[0].arn : var.task_definition_arn
+  bootstrap_container_definitions = jsonencode([{
+    name  = "${var.service_name}-bootstrap"
+    image = var.bootstrap_image_uri
+
+    portMappings = [
+      {
+        name          = "${var.service_name}-bootstrap-${var.container_port}-tcp"
+        containerPort = var.container_port
+        hostPort      = var.container_port
+        protocol      = "tcp"
+        appProtocol   = "http"
+      }
+    ]
+
+    essential = true
+  }])
 }

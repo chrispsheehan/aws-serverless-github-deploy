@@ -10,6 +10,10 @@ variable "aws_region" {
   type = string
 }
 
+variable "project_name" {
+  type = string
+}
+
 variable "vpc_name" {
   type = string
 }
@@ -47,4 +51,19 @@ variable "xray_enabled" {
 variable "wait_for_steady_state" {
   type    = bool
   default = false
+}
+
+variable "bootstrap" {
+  type    = bool
+  default = false
+}
+
+variable "bootstrap_image_uri" {
+  type    = string
+  default = ""
+
+  validation {
+    condition     = !var.bootstrap || var.bootstrap_image_uri != ""
+    error_message = "bootstrap_image_uri must be set when bootstrap is true."
+  }
 }

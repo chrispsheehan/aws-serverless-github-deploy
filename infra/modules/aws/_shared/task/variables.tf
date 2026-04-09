@@ -59,7 +59,8 @@ variable "additional_env_vars" {
 }
 
 variable "command" {
-  type = list(string)
+  type     = list(string)
+  nullable = true
 }
 
 variable "root_path" {
