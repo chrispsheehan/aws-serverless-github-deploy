@@ -5,6 +5,13 @@ resource "aws_iam_role" "bootstrap_execution" {
   assume_role_policy = data.aws_iam_policy_document.bootstrap_assume_role.json
 }
 
+resource "aws_iam_role" "bootstrap_task" {
+  count = var.bootstrap ? 1 : 0
+
+  name               = "${var.service_name}-bootstrap-ecs-task-role"
+  assume_role_policy = data.aws_iam_policy_document.bootstrap_assume_role.json
+}
+
 resource "aws_iam_role_policy_attachment" "bootstrap_execution" {
   count = var.bootstrap ? 1 : 0
 
@@ -21,6 +28,7 @@ resource "aws_ecs_task_definition" "bootstrap" {
   cpu                      = 256
   memory                   = 512
   execution_role_arn       = aws_iam_role.bootstrap_execution[0].arn
+  task_role_arn            = aws_iam_role.bootstrap_task[0].arn
 
   runtime_platform {
     cpu_architecture        = "X86_64"
