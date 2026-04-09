@@ -26,23 +26,10 @@ resource "aws_apigatewayv2_api" "http_api" {
   protocol_type = "HTTP"
 }
 
-resource "aws_security_group" "api_vpc_link" {
-  name        = "${module.lambda_api.name}-api-vpc-link-sg"
-  description = "Security group for API Gateway VPC link ENIs"
-  vpc_id      = data.aws_vpc.this.id
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
 resource "aws_apigatewayv2_vpc_link" "http_api" {
   name               = "${module.lambda_api.name}-http-vpc-link"
   subnet_ids         = data.aws_subnets.private.ids
-  security_group_ids = [aws_security_group.api_vpc_link.id]
+  security_group_ids = [data.terraform_remote_state.security.outputs.api_vpc_link_sg]
 }
 
 resource "aws_apigatewayv2_integration" "lambda_proxy" {

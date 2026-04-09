@@ -11,7 +11,7 @@ output "vpc_link_id" {
 }
 
 output "vpc_link_security_group_id" {
-  value = aws_security_group.api_vpc_link.id
+  value = data.terraform_remote_state.security.outputs.api_vpc_link_sg
 }
 
 output "cloudwatch_log_group" {

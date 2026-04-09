@@ -9,6 +9,16 @@ variable "environment" {
   description = "Environment reference used in naming resources i.e. 'dev'"
 }
 
+variable "aws_region" {
+  type        = string
+  description = "AWS region used for remote state lookups"
+}
+
+variable "state_bucket" {
+  type        = string
+  description = "Terraform state bucket"
+}
+
 variable "code_bucket" {
   type        = string
   description = "Bucket where deployable code artifacts are uploaded"

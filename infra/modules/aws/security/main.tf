@@ -57,3 +57,16 @@ resource "aws_security_group" "vpc_endpoint" {
     cidr_blocks = [data.aws_vpc.this.cidr_block]
   }
 }
+
+resource "aws_security_group" "api_vpc_link" {
+  name        = "${var.project_name}-${var.environment}-api-vpc-link-sg"
+  description = "Security group for API Gateway VPC link ENIs"
+  vpc_id      = data.aws_vpc.this.id
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
