@@ -16,3 +16,13 @@ data "aws_subnets" "private" {
     values = ["*private*"]
   }
 }
+
+data "terraform_remote_state" "security" {
+  backend = "s3"
+
+  config = {
+    bucket = var.state_bucket
+    key    = "${var.environment}/aws/security/terraform.tfstate"
+    region = var.aws_region
+  }
+}

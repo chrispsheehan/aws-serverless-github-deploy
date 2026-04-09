@@ -93,6 +93,34 @@ jobs:
           tg_directory: infra/live/${{ inputs.environment }}/aws/cluster
           tg_action: destroy
 
+  network:
+    needs:
+      - frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Destroy network infra
+        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          tg_directory: infra/live/${{ inputs.environment }}/aws/network
+          tg_action: destroy
+
+  security:
+    needs:
+      - network
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Destroy security infra
+        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          tg_directory: infra/live/${{ inputs.environment }}/aws/security
+          tg_action: destroy
+
   build-bucket:
     if: inputs.environment != 'prod'
     needs:
@@ -112,6 +140,7 @@ jobs:
     if: inputs.environment != 'prod'
     needs:
       - cluster
+      - security
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
