@@ -33,5 +33,8 @@ jobs:
       frontend_version: ${{ needs.get_build.outputs.frontend_version }}
       code_bucket: ${{ needs.get_build.outputs.code_bucket }}
       lambda_matrix: ${{ needs.get_build.outputs.lambda_version_files }}
+      task_matrix: ${{ needs.get_build.outputs.ecs_version_files }}
+      ecs_image_uris: ${{ needs.get_build.outputs.ecs_image_uris }}
       # we can also define a code-only deployment here if needed, as below
       # lambda_matrix: '["api"]'
+      # task_matrix: '["worker"]'

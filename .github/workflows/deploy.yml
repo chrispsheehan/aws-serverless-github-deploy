@@ -18,7 +18,16 @@ on:
         description: "Bucket containing lambda and frontend zips"
         required: true
         type: string
+      ecs_image_uris:
+        description: "List of full ECS image URIs"
+        required: false
+        type: string
+        default: "[]"
       lambda_matrix:
+        required: false
+        type: string
+        default: "[]"
+      task_matrix:
         required: false
         type: string
         default: "[]"
@@ -142,3 +151,53 @@ jobs:
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           just_action: frontend-deploy frontend-invalidate
+
+  tasks:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        value: ${{ fromJson(inputs.task_matrix) }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Resolve image URIs
+        id: image_uris
+        shell: bash
+        env:
+          ECS_IMAGE_URIS: ${{ inputs.ecs_image_uris }}
+          MODULE_NAME: ${{ matrix.value }}
+        run: |
+          service_name="${MODULE_NAME#task_}"
+          service_image_uri=$(echo "$ECS_IMAGE_URIS" | jq -r --arg name "$service_name" 'map(select(test(":" + $name + "-")))[0] // empty')
+          debug_image_uri=$(echo "$ECS_IMAGE_URIS" | jq -r 'map(select(test(":debug-")))[0] // empty')
+          otel_image_uri=$(echo "$ECS_IMAGE_URIS" | jq -r 'map(select(test(":otel_collector-")))[0] // empty')
+
+          if [ -z "$service_image_uri" ] || [ "$service_image_uri" = "null" ]; then
+            echo "::error::Missing ECS image URI for $service_name"
+            exit 1
+          fi
+
+          if [ -z "$debug_image_uri" ] || [ "$debug_image_uri" = "null" ]; then
+            echo "::error::Missing debug image URI"
+            exit 1
+          fi
+
+          if [ -z "$otel_image_uri" ] || [ "$otel_image_uri" = "null" ]; then
+            echo "::error::Missing otel_collector image URI"
+            exit 1
+          fi
+
+          echo "service_image_uri=$service_image_uri" >> "$GITHUB_OUTPUT"
+          echo "debug_image_uri=$debug_image_uri" >> "$GITHUB_OUTPUT"
+          echo "otel_image_uri=$otel_image_uri" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy ${{ matrix.value }} ECS task
+        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+        env:
+          TF_VAR_image_uri: ${{ steps.image_uris.outputs.service_image_uri }}
+          TF_VAR_debug_image_uri: ${{ steps.image_uris.outputs.debug_image_uri }}
+          TF_VAR_aws_otel_collector_image_uri: ${{ steps.image_uris.outputs.otel_image_uri }}
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          tg_directory: infra/live/${{ inputs.environment }}/aws/task_${{ matrix.value }}

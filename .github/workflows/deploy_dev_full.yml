@@ -98,3 +98,5 @@ jobs:
   #     frontend_version: ${{ github.sha }}
   #     code_bucket: ${{ needs.get_build.outputs.code_bucket }}
   #     lambda_matrix: ${{ needs.setup.outputs.lambdas_dirs }}
+      # task_matrix: ${{ needs.setup.outputs.task_dirs }}
+      # ecs_service_matrix: ${{ needs.setup.outputs.ecs_service_dirs }}
