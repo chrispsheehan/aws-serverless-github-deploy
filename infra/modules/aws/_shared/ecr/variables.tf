@@ -24,4 +24,3 @@ variable "image_expiration_days" {
   type        = number
   default     = 0
 }
-

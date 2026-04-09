@@ -3,5 +3,5 @@ include {
 }
 
 terraform {
-  source = "../../../../modules//aws//cluster"
+  source = "../../../../modules//aws//_shared//cluster"
 }
