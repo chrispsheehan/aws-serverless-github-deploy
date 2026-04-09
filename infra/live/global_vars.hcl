@@ -18,10 +18,12 @@ locals {
     "ecs:*",
     "ecr:*"
   ]
+  container_port = 80
 }
 
 inputs = {
   vpc_name             = local.vpc_name
   aws_region           = local.aws_region
   allowed_role_actions = local.allowed_role_actions
+  container_port       = local.container_port
 }
