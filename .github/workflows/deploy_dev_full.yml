@@ -62,7 +62,7 @@ jobs:
       code_bucket: ${{ needs.code.outputs.code_bucket }}
       lambda_matrix: ${{ needs.setup.outputs.lambdas_dirs }}
       bootstrap_image_uri: ${{ needs.code.outputs.bootstrap_image_uri }}
-      ecs_matrix: ${{ needs.setup.outputs.ecs_service_dirs }}
+      service_matrix: ${{ needs.setup.outputs.ecs_service_dirs }}
 
   # build:
   #   uses: ./.github/workflows/build.yml
