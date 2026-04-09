@@ -6,6 +6,17 @@ resource "aws_lb" "this" {
   subnets            = data.aws_subnets.private.ids
 }
 
+resource "aws_vpc_endpoint" "interface_endpoints" {
+  for_each = local.interface_endpoints
+
+  vpc_id              = data.aws_vpc.this.id
+  service_name        = "com.amazonaws.${var.aws_region}.${each.value}"
+  vpc_endpoint_type   = "Interface"
+  security_group_ids  = [data.terraform_remote_state.security.outputs.vpc_endpoint_sg]
+  subnet_ids          = data.aws_subnets.private.ids
+  private_dns_enabled = true
+}
+
 resource "aws_lb_target_group" "default" {
   name        = local.target_group_name
   port        = var.container_port

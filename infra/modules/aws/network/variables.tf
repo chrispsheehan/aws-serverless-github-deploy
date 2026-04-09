@@ -21,3 +21,13 @@ variable "vpc_name" {
 variable "container_port" {
   type = number
 }
+
+variable "local_tunnel" {
+  type    = bool
+  default = false
+}
+
+variable "xray_enabled" {
+  type    = bool
+  default = false
+}
