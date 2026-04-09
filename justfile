@@ -214,11 +214,30 @@ docker-build:
     fi
 
     TAG="${IMAGE_URI:-$CONTAINER_NAME}"
+
     docker build \
       --file "{{PROJECT_DIR}}/Dockerfile" \
       --target "$CONTAINER_NAME" \
       -t "$TAG" \
       "{{PROJECT_DIR}}"
+
+
+docker-mirror:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "${SOURCE_IMAGE:-}" ]]; then
+        echo "❌ SOURCE_IMAGE environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "${IMAGE_URI:-}" ]]; then
+        echo "❌ IMAGE_URI environment variable is not set."
+        exit 1
+    fi
+
+    docker pull "$SOURCE_IMAGE"
+    docker tag "$SOURCE_IMAGE" "$IMAGE_URI"
 
 
 docker-push:

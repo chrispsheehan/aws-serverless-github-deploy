@@ -13,7 +13,16 @@ on:
         description: "Bucket containing build artifacts"
         required: true
         type: string
+      bootstrap_image_uri:
+        description: "Bootstrap ECS image URI"
+        required: false
+        type: string
+        default: ""
       lambda_matrix:
+        required: false
+        type: string
+        default: "[]"
+      service_matrix:
         required: false
         type: string
         default: "[]"
@@ -103,6 +112,28 @@ jobs:
 
       - name: Deploy ${{ matrix.value }} infra
         uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.value }}
+
+  services:
+    needs:
+      - cluster
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        value: ${{ fromJson(inputs.service_matrix) }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.infra_version }}
+
+      - name: Deploy ${{ matrix.value }} bootstrap service infra
+        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+        env:
+          TF_VAR_bootstrap: "true"
+          TF_VAR_bootstrap_image_uri: ${{ inputs.bootstrap_image_uri }}
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.value }}
