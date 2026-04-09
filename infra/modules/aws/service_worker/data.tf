@@ -9,7 +9,7 @@ data "terraform_remote_state" "task_worker" {
   }
 }
 
-data "terraform_remote_state" "sqs_consumer" {
+data "terraform_remote_state" "lambda_worker" {
   backend = "s3"
 
   config = {
