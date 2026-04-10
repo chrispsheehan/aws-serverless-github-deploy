@@ -164,7 +164,7 @@ resource "aws_ecs_service" "service" {
   wait_for_steady_state  = var.wait_for_steady_state
 
   dynamic "deployment_circuit_breaker" {
-    for_each = local.deployment_controller_type == "ECS" ? [1] : []
+    for_each = local.enable_codedeploy ? [] : [1]
     content {
       enable   = false
       rollback = false
@@ -185,7 +185,7 @@ resource "aws_ecs_service" "service" {
 }
 
 resource "aws_codedeploy_app" "ecs" {
-  count = var.deployment_strategy != "rolling" ? 1 : 0
+  count = local.enable_codedeploy ? 1 : 0
 
   name             = "${var.service_name}-app"
   compute_platform = "ECS"

@@ -7,7 +7,7 @@ output "service_name" {
 }
 
 output "codedeploy_app_name" {
-  value = var.deployment_strategy != "rolling" ? aws_codedeploy_app.ecs[0].name : null
+  value = local.enable_codedeploy ? aws_codedeploy_app.ecs[0].name : null
 }
 
 output "codedeploy_deployment_group_name" {

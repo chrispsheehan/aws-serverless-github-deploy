@@ -1,11 +1,13 @@
 locals {
   use_vpc_link = var.connection_type == "vpc_link"
-  enable_codedeploy = var.deployment_strategy != "rolling" && (
+  enable_codedeploy = (
     var.connection_type == "internal_dns" || var.connection_type == "vpc_link"
   )
   codedeploy_deployment_config_name = var.codedeploy_deployment_config_name_override != "" ? var.codedeploy_deployment_config_name_override : (
     var.deployment_strategy == "canary"
     ? "CodeDeployDefault.ECSCanary10Percent5Minutes"
+    : var.deployment_strategy == "linear"
+    ? "CodeDeployDefault.ECSLinear10PercentEvery1Minutes"
     : "CodeDeployDefault.ECSAllAtOnce"
   )
 

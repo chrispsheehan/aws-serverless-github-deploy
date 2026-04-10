@@ -439,7 +439,7 @@ lambda-upload-bundle:
     #!/usr/bin/env bash
     just lambda-prepare-appspec
 
-    LOCAL_APP_SPEC_ZIP="{{justfile_directory()}}/appspec.zip"
+    LOCAL_APP_SPEC_ZIP="{{justfile_directory()}}/appspec-lambda.zip"
     rm -f $LOCAL_APP_SPEC_ZIP
     zip -q -j $LOCAL_APP_SPEC_ZIP $APP_SPEC_FILE
     aws s3 cp $LOCAL_APP_SPEC_ZIP "s3://${BUCKET_NAME}/${APP_SPEC_KEY}"
@@ -626,6 +626,129 @@ lambda-prune:
         echo "Deleting $FUNCTION_NAME:$v"
         aws lambda delete-function --function-name "$FUNCTION_NAME" --qualifier "$v" --region "$AWS_REGION"
     done
+
+
+ecs-prepare-appspec:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "${APP_SPEC_FILE:-}" ]]; then
+        echo "❌ APP_SPEC_FILE environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "${TASK_DEFINITION_ARN:-}" ]]; then
+        echo "❌ TASK_DEFINITION_ARN environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "${CONTAINER_NAME:-}" ]]; then
+        echo "❌ CONTAINER_NAME environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "${CONTAINER_PORT:-}" ]]; then
+        echo "❌ CONTAINER_PORT environment variable is not set."
+        exit 1
+    fi
+
+    cp "{{justfile_directory()}}/appspec-ecs.yml" "$APP_SPEC_FILE"
+
+    yq eval -i '
+      .Resources[0].TargetService.Properties.TaskDefinition = env(TASK_DEFINITION_ARN) |
+      .Resources[0].TargetService.Properties.LoadBalancerInfo.ContainerName = env(CONTAINER_NAME) |
+      .Resources[0].TargetService.Properties.LoadBalancerInfo.ContainerPort = (env(CONTAINER_PORT) | tonumber)
+    ' "$APP_SPEC_FILE"
+
+    cat "$APP_SPEC_FILE"
+
+
+ecs-upload-bundle:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "${BUCKET_NAME:-}" ]]; then
+        echo "❌ BUCKET_NAME environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "${APP_SPEC_KEY:-}" ]]; then
+        echo "❌ APP_SPEC_KEY environment variable is not set."
+        exit 1
+    fi
+
+    just ecs-prepare-appspec
+    aws s3 cp "$APP_SPEC_FILE" "s3://${BUCKET_NAME}/${APP_SPEC_KEY}"
+
+
+ecs-deploy:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "${CODE_DEPLOY_APP_NAME:-}" ]]; then
+        echo "❌ CODE_DEPLOY_APP_NAME environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "${CODE_DEPLOY_GROUP_NAME:-}" ]]; then
+        echo "❌ CODE_DEPLOY_GROUP_NAME environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "${BUCKET_NAME:-}" ]]; then
+        echo "❌ BUCKET_NAME environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "${APP_SPEC_KEY:-}" ]]; then
+        echo "❌ APP_SPEC_KEY environment variable is not set."
+        exit 1
+    fi
+
+    DEPLOYMENT_ID=$(aws deploy create-deployment \
+        --application-name "$CODE_DEPLOY_APP_NAME" \
+        --deployment-group-name "$CODE_DEPLOY_GROUP_NAME" \
+        --revision revisionType=S3,s3Location="{bucket=$BUCKET_NAME,key=$APP_SPEC_KEY,bundleType=YAML}" \
+        --query "deploymentId" --output text)
+
+    if [[ -z "$DEPLOYMENT_ID" || "$DEPLOYMENT_ID" == "None" ]]; then
+        echo "❌ Failed to create ECS deployment — no deployment ID returned."
+        exit 1
+    fi
+
+    echo "🚀 Deployment started: $DEPLOYMENT_ID"
+    echo "🏷️ CodeDeploy App: $CODE_DEPLOY_APP_NAME | Group: $CODE_DEPLOY_GROUP_NAME"
+    echo "📦 AppSpec artifact: s3://$BUCKET_NAME/$APP_SPEC_KEY"
+    echo "⏳ Monitoring deployment status…"
+
+    MAX_ATTEMPTS=40
+    SLEEP_INTERVAL=15
+
+    for ((i=1; i<=MAX_ATTEMPTS; i++)); do
+        STATUS=$(aws deploy get-deployment \
+            --deployment-id "$DEPLOYMENT_ID" \
+            --query "deploymentInfo.status" \
+            --output text)
+
+        echo "[$i/$MAX_ATTEMPTS] Status: $STATUS"
+
+        if [[ "$STATUS" == "Succeeded" ]]; then
+            echo "✅ ECS deployment $DEPLOYMENT_ID completed successfully."
+            exit 0
+        elif [[ "$STATUS" == "Failed" || "$STATUS" == "Stopped" ]]; then
+            echo "❌ ECS deployment $DEPLOYMENT_ID failed or was stopped."
+            aws deploy get-deployment \
+                --deployment-id "$DEPLOYMENT_ID" \
+                --query 'deploymentInfo.{Status:status, ErrorCode:errorInformation.code, ErrorMessage:errorInformation.message}' \
+                --output table
+            exit 1
+        fi
+
+        sleep "$SLEEP_INTERVAL"
+    done
+
+    echo "❌ ECS deployment $DEPLOYMENT_ID did not complete within expected time."
+    exit 1
 
 
 frontend-build:

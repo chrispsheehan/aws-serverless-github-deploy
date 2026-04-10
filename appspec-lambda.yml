@@ -1,0 +1,9 @@
+version: 0.0
+Resources:
+  - LambdaFunction:
+      Type: AWS::Lambda::Function
+      Properties:
+        Name: FUNCTION_NAME
+        Alias: ALIAS_NAME
+        CurrentVersion: CURRENT_VERSION
+        TargetVersion: TARGET_VERSION

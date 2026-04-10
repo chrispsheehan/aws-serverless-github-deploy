@@ -114,11 +114,16 @@ variable "bootstrap_image_uri" {
 
 variable "deployment_strategy" {
   type    = string
-  default = "rolling"
+  default = "all_at_once"
 
   validation {
-    condition     = contains(["rolling", "blue_green", "canary"], var.deployment_strategy)
-    error_message = "deployment_strategy must be one of: rolling, blue_green, canary."
+    condition = contains([
+      "all_at_once",
+      "blue_green",
+      "canary",
+      "linear",
+    ], var.deployment_strategy)
+    error_message = "deployment_strategy must be one of: all_at_once, blue_green, canary, linear."
   }
 }
 

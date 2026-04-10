@@ -1,7 +1,7 @@
 # aws-serverless-github-deploy
 
 **Terraform + GitHub Actions for AWS serverless deployments.**  
-Lambda + API Gateway with CodeDeploy rollouts and provisioned concurrency controls — driven by clean module variables and `just` recipes.
+Lambda + ECS with CodeDeploy rollouts, plus provisioned concurrency controls for Lambda — driven by clean module variables and `just` recipes.
 
 ---
 
@@ -120,6 +120,56 @@ deployment_config = {
 }
 ```
 
+## 🚦 types of ecs deploy
+
+```hcl
+module "service_example" {
+  source = "../_shared/service"
+  ...
+  deployment_strategy = var.your_deployment_strategy
+}
+```
+
+#### ⚡ [default] All at once:
+
+- use case: internal services, queue workers, low-risk changes
+- still uses ECS CodeDeploy, but shifts traffic in one step
+```hcl
+deployment_strategy = "all_at_once"
+```
+
+#### 🐤 canary deployment:
+
+- use case: HTTP services behind the load balancer
+- shifts 10% of traffic for 5 minutes before moving to 100%
+```hcl
+deployment_strategy = "canary"
+```
+
+#### 📶 linear deployment:
+
+- use case: steady rollout with smaller blast radius
+- shifts traffic 10% every minute until complete
+```hcl
+deployment_strategy = "linear"
+```
+
+#### 🟦🟩 blue/green deployment:
+
+- use case: explicit blue/green semantics while still using the default ECS all-at-once traffic switch
+- currently maps to the ECS CodeDeploy all-at-once config
+```hcl
+deployment_strategy = "blue_green"
+```
+
+- ECS CodeDeploy is only created for load-balanced ECS services in `_shared/service`
+- the deployment workflow:
+  - applies the new `task_*` revision
+  - reads `codedeploy_app_name` and `codedeploy_deployment_group_name` from `service_*`
+  - renders [`appspec-ecs.yml`](appspec-ecs.yml)
+  - uploads the AppSpec to the code bucket
+  - runs `just ecs-deploy`
+
 ## 🔥↩️ deployment roll-back
 
 - use cloudwatch metrics and alarms to automatically roll-back a deployment
@@ -134,6 +184,7 @@ module "lambda_example" {
   ]
 }
 ```
+- the ECS shared service module accepts the same `codedeploy_alarm_names` input
 - if the alarm triggers during a deployment you will see the below in the CI
 
 ```
@@ -161,5 +212,6 @@ Error: Process completed with exit code 1.
 
 - Infrastructure and feature code deployments (via codedeploy) are completely decoupled.
 - Initial infrastructure deployments deploys `infra/modules/aws/_shared/lambda/bootstrap/index.py` which serves as a place-holder.
+- Initial ECS infrastructure deployments can use a bootstrap task, while the deploy workflow later registers a real `task_*` revision and promotes it via CodeDeploy.
 - The code deploy app and group are also deployed, which is the mechanism used to deploy the real builds.
 - Subsequent re-runs of the infrastructure deployments will not update the code.
