@@ -13,6 +13,7 @@ Shared ECS task-definition module.
 ## Key inputs
 
 - `image_uri`
+- `ecr_repository_name`
 - `debug_image_uri`
 - `aws_otel_collector_image_uri`
 - `local_tunnel`
@@ -27,4 +28,4 @@ Shared ECS task-definition module.
 
 Use this for task revision creation. Traffic rollout happens at the service layer.
 
-The ECR repository access policy is derived from `image_uri`, so deploy workflows should pass the final image URI rather than relying on repository-name conventions.
+The ECR repository access policy uses the explicit `ecr_repository_name` input. In this repo, Terragrunt sets a root-level default and environments can override it if the repository naming ever changes.

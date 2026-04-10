@@ -32,6 +32,12 @@ The repo `network` module also owns the shared internal ALB and shared HTTP API 
 
 The `api` module is Lambda-specific and plugs the Lambda integration and root routes into that shared API.
 
+Terragrunt also provides a shared default ECR repository name to ECS task modules:
+
+- shared artifact base: `dev -> <account>-<region>-<project>-dev`, otherwise `<account>-<region>-<project>-ci`
+- default ECR repository: `<artifact_base>-ecs-worker`
+- override it in `infra/live/<environment>/environment_vars.hcl` only if the repository naming diverges from that convention
+
 ## 🛠️ local plan some infra
 
 Given a terragrunt file is found at `infra/live/dev/aws/api/terragrunt.hcl`

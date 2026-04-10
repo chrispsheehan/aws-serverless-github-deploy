@@ -1,11 +1,12 @@
 module "task_consumer" {
   source = "../_shared/task"
 
-  project_name   = var.project_name
-  aws_region     = var.aws_region
-  container_port = var.container_port
-  cpu            = var.cpu
-  memory         = var.memory
+  project_name        = var.project_name
+  ecr_repository_name = var.ecr_repository_name
+  aws_region          = var.aws_region
+  container_port      = var.container_port
+  cpu                 = var.cpu
+  memory              = var.memory
 
   image_uri                    = var.image_uri
   debug_image_uri              = var.debug_image_uri

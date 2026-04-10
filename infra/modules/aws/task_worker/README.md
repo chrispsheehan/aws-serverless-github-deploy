@@ -10,6 +10,7 @@ Concrete ECS worker task wrapper.
 
 - runs `python -u consumer/app.py`
 - publishes worker task revisions for ECS deploys
+- uses the shared ECR repository named by `ecr_repository_name`
 
 ## Key outputs
 

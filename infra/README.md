@@ -27,6 +27,12 @@ The root Terragrunt file derives state paths from the live stack path:
 - bucket: `<account>-<region>-<repo>-tfstate`
 - key: `<environment>/<provider>/<module>/terraform.tfstate`
 
+Shared artifact names also follow environment-aware conventions from `infra/root.hcl`:
+
+- shared artifact base: `dev -> ...-dev`, otherwise `...-ci`
+- code bucket: `<artifact_base>-code`
+- ECS ECR repository: `<artifact_base>-ecs-worker`
+
 So a stack at:
 
 `infra/live/dev/aws/task_worker/terragrunt.hcl`

@@ -14,6 +14,10 @@ variable "project_name" {
   type = string
 }
 
+variable "ecr_repository_name" {
+  type = string
+}
+
 variable "container_port" {
   type = number
 }
