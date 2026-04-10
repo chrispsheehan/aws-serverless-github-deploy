@@ -205,7 +205,6 @@ get-ecr-version-tasks:
       '
       $images
       | map(select(. != "debug" and . != "otel_collector"))
-      | map("task_" + .)
       '
 
 

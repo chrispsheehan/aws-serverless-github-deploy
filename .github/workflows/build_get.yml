@@ -30,7 +30,7 @@ on:
         description: "List of full ECS image URIs"
         value: ${{ jobs.images.outputs.ecs_image_uris }}
       ecs_task_matrix:
-        description: "List of ECS task module names for the version"
+        description: "List of ECS service names for the version"
         value: ${{ jobs.images.outputs.ecs_task_matrix }}
       lambda_version_files:
         description: "List of lambda names"
