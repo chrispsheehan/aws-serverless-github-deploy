@@ -25,36 +25,7 @@ env:
 
 jobs:
   setup:
-    runs-on: ubuntu-latest
-    outputs:
-      lambda_dirs: ${{ steps.lambda_dirs.outputs.just_outputs }}
-      task_dirs: ${{ steps.task_dirs.outputs.just_outputs }}
-      service_dirs: ${{ steps.service_dirs.outputs.just_outputs }}
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
-        with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          tg_directory: infra/live/${{ inputs.environment }}/aws/oidc
-
-      - name: Get Lambda Directories
-        id: lambda_dirs
-        uses: chrispsheehan/just-aws-oidc-action@0.3.0
-        with:
-          just_action: lambda-get-directories
-
-      - name: Get Service Directories
-        id: service_dirs
-        uses: chrispsheehan/just-aws-oidc-action@0.3.0
-        with:
-          just_action: ecs-service-get-directories
-
-      - name: Get Task Directories
-        id: task_dirs
-        uses: chrispsheehan/just-aws-oidc-action@0.3.0
-        with:
-          just_action: task-get-directories
+    uses: ./.github/workflows/get_directories.yml
 
   lambdas:
     runs-on: ubuntu-latest
@@ -94,7 +65,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        value: ${{ fromJson(needs.setup.outputs.service_dirs) }}
+        value: ${{ fromJson(needs.setup.outputs.ecs_service_dirs) }}
     steps:
       - uses: actions/checkout@v6
 

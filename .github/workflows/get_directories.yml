@@ -1,0 +1,60 @@
+on:
+  workflow_call:
+    outputs:
+      lambda_dirs:
+        description: "List of lambda directory names"
+        value: ${{ jobs.directories.outputs.lambda_dirs }}
+      container_dirs:
+        description: "List of container directory names"
+        value: ${{ jobs.directories.outputs.container_dirs }}
+      service_dirs:
+        description: "List of ECS service directory names"
+        value: ${{ jobs.directories.outputs.service_dirs }}
+      task_dirs:
+        description: "List of ECS task directory names"
+        value: ${{ jobs.directories.outputs.task_dirs }}
+      ecs_service_dirs:
+        description: "List of ECS service stack directory names"
+        value: ${{ jobs.directories.outputs.ecs_service_dirs }}
+
+jobs:
+  directories:
+    runs-on: ubuntu-latest
+    outputs:
+      lambda_dirs: ${{ steps.lambda_dirs.outputs.just_outputs }}
+      container_dirs: ${{ steps.container_dirs.outputs.just_outputs }}
+      service_dirs: ${{ steps.service_dirs.outputs.just_outputs }}
+      task_dirs: ${{ steps.task_dirs.outputs.just_outputs }}
+      ecs_service_dirs: ${{ steps.ecs_service_dirs.outputs.just_outputs }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Get Lambda Directories
+        id: lambda_dirs
+        uses: chrispsheehan/just-aws-oidc-action@0.3.0
+        with:
+          just_action: lambda-get-directories
+
+      - name: Get Service Directories
+        id: service_dirs
+        uses: chrispsheehan/just-aws-oidc-action@0.3.0
+        with:
+          just_action: service-get-directories
+
+      - name: Get Container Directories
+        id: container_dirs
+        uses: chrispsheehan/just-aws-oidc-action@0.3.0
+        with:
+          just_action: container-get-directories
+
+      - name: Get Task Directories
+        id: task_dirs
+        uses: chrispsheehan/just-aws-oidc-action@0.3.0
+        with:
+          just_action: task-get-directories
+
+      - name: Get ECS Service Directories
+        id: ecs_service_dirs
+        uses: chrispsheehan/just-aws-oidc-action@0.3.0
+        with:
+          just_action: ecs-service-get-directories

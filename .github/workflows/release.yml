@@ -87,23 +87,7 @@ jobs:
           echo "EOF" >> $GITHUB_OUTPUT
 
   get-apps:
-    runs-on: ubuntu-latest
-    outputs:
-      lambdas_dirs: ${{ steps.lambdas_dirs.outputs.just_outputs }}
-      container_dirs: ${{ steps.container_dirs.outputs.just_outputs }}
-    steps:
-      - uses: actions/checkout@v6
-      - name: Get lambdas Directories
-        id: lambdas_dirs
-        uses: chrispsheehan/just-aws-oidc-action@0.3.0
-        with:
-          just_action: lambda-get-directories
-
-      - name: Get container Directories
-        id: container_dirs
-        uses: chrispsheehan/just-aws-oidc-action@0.3.0
-        with:
-          just_action: container-get-directories
+    uses: ./.github/workflows/get_directories.yml
 
 
   build:
@@ -121,7 +105,7 @@ jobs:
       lambda_version: ${{ needs.get-next-tag.outputs.tag }}
       frontend_version: ${{ needs.get-next-tag.outputs.tag }}
       ecs_version: ${{ needs.get-next-tag.outputs.tag }}
-      lambda_matrix: ${{ needs.get-apps.outputs.lambdas_dirs }}
+      lambda_matrix: ${{ needs.get-apps.outputs.lambda_dirs }}
       ecs_matrix: ${{ needs.get-apps.outputs.container_dirs }}
 
   code:

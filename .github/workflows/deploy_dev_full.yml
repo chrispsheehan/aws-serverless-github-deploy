@@ -12,45 +12,7 @@ permissions:
 
 jobs:
   setup:
-    runs-on: ubuntu-latest
-    outputs:
-      lambdas_dirs: ${{ steps.lambdas_dirs.outputs.just_outputs }}
-      container_dirs: ${{ steps.container_dirs.outputs.just_outputs }}
-      service_dirs: ${{ steps.service_dirs.outputs.just_outputs }}
-      task_dirs: ${{ steps.task_dirs.outputs.just_outputs }}
-      ecs_service_dirs: ${{ steps.ecs_service_dirs.outputs.just_outputs }}
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Get lambdas Directories
-        id: lambdas_dirs
-        uses: chrispsheehan/just-aws-oidc-action@0.3.0
-        with:
-          just_action: lambda-get-directories
-
-      - name: Get Service Directories
-        id: service_dirs
-        uses: chrispsheehan/just-aws-oidc-action@0.3.0
-        with:
-          just_action: service-get-directories
-
-      - name: Get container Directories
-        id: container_dirs
-        uses: chrispsheehan/just-aws-oidc-action@0.3.0
-        with:
-          just_action: container-get-directories
-
-      - name: Get Task Directories
-        id: task_dirs
-        uses: chrispsheehan/just-aws-oidc-action@0.3.0
-        with:
-          just_action: task-get-directories
-
-      - name: Get ECS Service Directories
-        id: ecs_service_dirs
-        uses: chrispsheehan/just-aws-oidc-action@0.3.0
-        with:
-          just_action: ecs-service-get-directories
+    uses: ./.github/workflows/get_directories.yml
 
   code:
     uses: ./.github/workflows/infra_releases.yml
@@ -67,7 +29,7 @@ jobs:
       environment: dev
       infra_version: ${{ github.sha }}
       code_bucket: ${{ needs.code.outputs.code_bucket }}
-      lambda_matrix: ${{ needs.setup.outputs.lambdas_dirs }}
+      lambda_matrix: ${{ needs.setup.outputs.lambda_dirs }}
       bootstrap_image_uri: ${{ needs.code.outputs.bootstrap_image_uri }}
       service_matrix: ${{ needs.setup.outputs.ecs_service_dirs }}
 
@@ -81,7 +43,7 @@ jobs:
       lambda_version: ${{ github.sha }}
       frontend_version: ${{ github.sha }}
       ecs_version: ${{ github.sha }}
-      lambda_matrix: ${{ needs.setup.outputs.lambdas_dirs }}
+      lambda_matrix: ${{ needs.setup.outputs.lambda_dirs }}
       ecs_matrix: ${{ needs.setup.outputs.container_dirs }}
 
   get_build:
@@ -105,6 +67,6 @@ jobs:
       lambda_version: ${{ needs.build.outputs.lambda_version }}
       frontend_version: ${{ needs.build.outputs.frontend_version }}
       code_bucket: ${{ needs.get_build.outputs.code_bucket }}
-      lambda_matrix: ${{ needs.setup.outputs.lambdas_dirs }}
+      lambda_matrix: ${{ needs.setup.outputs.lambda_dirs }}
       task_matrix: ${{ needs.get_build.outputs.ecs_task_matrix }}
       ecs_image_uris: ${{ needs.get_build.outputs.ecs_image_uris }}
