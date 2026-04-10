@@ -204,7 +204,7 @@ get-ecr-version-tasks:
       --argjson images "$image_names" \
       '
       $images
-      | map(select(. != "debug" and . != "otel_collector"))
+      | map(select(. != "bootstrap" and . != "debug" and . != "otel_collector"))
       '
 
 
