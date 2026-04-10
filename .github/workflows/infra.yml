@@ -130,6 +130,7 @@ jobs:
     needs: 
       - oidc
       - security
+      - network
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false # this is to prevent terraform lock issues
