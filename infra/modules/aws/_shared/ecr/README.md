@@ -7,6 +7,10 @@ Shared ECR repository module.
 - the repository used for ECS images
 - repository lifecycle settings
 
+## Key inputs
+
+- `ecr_repository_name`
+
 ## Key outputs
 
 - `repository_url`

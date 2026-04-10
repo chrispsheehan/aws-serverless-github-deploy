@@ -2,6 +2,10 @@
 variable "project_name" {
   type = string
 }
+
+variable "ecr_repository_name" {
+  type = string
+}
 ### end of static vars set in root.hcl ###
 
 variable "allowed_read_aws_account_ids" {

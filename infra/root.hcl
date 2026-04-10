@@ -28,7 +28,7 @@ locals {
   # separate shared artifact resources when dev, otherwise ci
   artifact_base       = local.environment == "dev" ? "${local.base_reference}-${local.environment}" : "${local.base_reference}-ci"
   code_bucket         = "${local.artifact_base}-code"
-  ecr_repository_name = "${local.artifact_base}-ecs-worker"
+  ecr_repository_name = "${local.artifact_base}-ecr"
 }
 
 terraform {

@@ -1,5 +1,5 @@
 locals {
-  repository_name = "${var.project_name}-ecs-worker"
+  repository_name = var.ecr_repository_name
   ecr_pull_actions = [
     "ecr:BatchCheckLayerAvailability",
     "ecr:BatchGetImage",
