@@ -11,6 +11,8 @@ data "aws_iam_policy_document" "allow_ecr_pull_policy" {
 }
 
 data "aws_ecr_lifecycle_policy_document" "this" {
+  count = var.image_expiration_days > 0 ? 1 : 0
+
   rule {
     priority    = 1
     description = "Remove images after ${var.image_expiration_days} days"

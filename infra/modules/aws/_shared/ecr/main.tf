@@ -17,5 +17,5 @@ resource "aws_ecr_lifecycle_policy" "this" {
   count = var.image_expiration_days > 0 ? 1 : 0
 
   repository = aws_ecr_repository.this.name
-  policy     = data.aws_ecr_lifecycle_policy_document.this.json
+  policy     = data.aws_ecr_lifecycle_policy_document.this[0].json
 }
