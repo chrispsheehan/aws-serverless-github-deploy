@@ -41,7 +41,7 @@ module "service_consumer" {
       scale_in_adjustment  = 1   # Remove 1 task
       cooldown_out         = 60  # 1min cooldown (more stable)
       cooldown_in          = 300 # 5min cooldown (prevent flapping)
-      queue_name           = element(reverse(split("/", data.terraform_remote_state.lambda_worker.outputs.sqs_queue_url)), 0)
+      queue_name           = "tbc" # SQS queue name to monitor for scaling
     }
   }
 }
