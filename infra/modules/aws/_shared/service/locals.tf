@@ -1,16 +1,26 @@
 locals {
   use_vpc_link = var.connection_type == "vpc_link"
+  enable_codedeploy = var.deployment_strategy != "rolling" && (
+    var.connection_type == "internal_dns" || var.connection_type == "vpc_link"
+  )
+  codedeploy_deployment_config_name = var.codedeploy_deployment_config_name_override != "" ? var.codedeploy_deployment_config_name_override : (
+    var.deployment_strategy == "canary"
+    ? "CodeDeployDefault.ECSCanary10Percent5Minutes"
+    : "CodeDeployDefault.ECSAllAtOnce"
+  )
 
-  priority          = parseint(substr(md5(var.service_name), 0, 2), 16) % 90 + 10
-  vpc_link_count    = local.use_vpc_link ? 1 : 0
-  full_tg_name      = "${var.service_name}-tg"
-  target_group_name = length(local.full_tg_name) > 32 ? substr(local.full_tg_name, 0, 32) : local.full_tg_name
+  priority                = parseint(substr(md5(var.service_name), 0, 2), 16) % 90 + 10
+  vpc_link_count          = local.use_vpc_link ? 1 : 0
+  full_tg_name            = "${var.service_name}-tg"
+  target_group_name       = length(local.full_tg_name) > 32 ? substr(local.full_tg_name, 0, 32) : local.full_tg_name
+  green_target_group_name = "tg-${substr(md5("${var.service_name}-green"), 0, 8)}-green"
 
-  is_default_path   = var.root_path == ""
-  health_check_path = local.is_default_path ? "/health" : "/${var.root_path}/health"
-  exact_route_key   = local.is_default_path ? "ANY /" : "ANY /${var.root_path}"
-  proxy_route_key   = local.is_default_path ? "ANY /{proxy+}" : "ANY /${var.root_path}/{proxy+}"
-  target_group_arn  = local.is_default_path ? var.default_target_group_arn : aws_lb_target_group.service_target_group[0].arn
+  is_default_path        = var.root_path == ""
+  health_check_path      = local.is_default_path ? "/health" : "/${var.root_path}/health"
+  exact_route_key        = local.is_default_path ? "ANY /" : "ANY /${var.root_path}"
+  proxy_route_key        = local.is_default_path ? "ANY /{proxy+}" : "ANY /${var.root_path}/{proxy+}"
+  target_group_arn       = local.is_default_path ? var.default_target_group_arn : aws_lb_target_group.service_target_group[0].arn
+  blue_target_group_name = local.is_default_path ? element(split("/", var.default_target_group_arn), 1) : aws_lb_target_group.service_target_group[0].name
 
   load_balancers = var.connection_type == "internal_dns" || var.connection_type == "vpc_link" ? [{
     target_group_arn = local.target_group_arn
@@ -66,6 +76,7 @@ locals {
   )
   invoke_url = var.root_path == "" ? local.base_url : "${local.base_url}/${var.root_path}"
 
+  deployment_controller_type   = local.enable_codedeploy ? "CODE_DEPLOY" : "ECS"
   selected_task_definition_arn = var.bootstrap ? aws_ecs_task_definition.bootstrap[0].arn : var.task_definition_arn
   bootstrap_container_definitions = jsonencode([{
     name  = var.service_name

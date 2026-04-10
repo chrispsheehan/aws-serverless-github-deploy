@@ -59,6 +59,27 @@ resource "aws_lb_target_group" "service_target_group" {
   }
 }
 
+resource "aws_lb_target_group" "green_target_group" {
+  count = local.enable_codedeploy ? 1 : 0
+
+  name        = local.green_target_group_name
+  port        = var.container_port
+  protocol    = "HTTP"
+  target_type = "ip"
+  vpc_id      = var.vpc_id
+
+  health_check {
+    path                = local.health_check_path
+    matcher             = "200-399"
+    interval            = 30
+    timeout             = 5
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+    port                = "traffic-port"
+    protocol            = "HTTP"
+  }
+}
+
 resource "aws_lb_listener_rule" "service" {
   count = local.is_default_path ? 0 : 1
 
@@ -142,14 +163,110 @@ resource "aws_ecs_service" "service" {
   enable_execute_command = var.local_tunnel ? true : false
   wait_for_steady_state  = var.wait_for_steady_state
 
-  deployment_circuit_breaker {
-    enable   = false
-    rollback = false
+  dynamic "deployment_circuit_breaker" {
+    for_each = local.deployment_controller_type == "ECS" ? [1] : []
+    content {
+      enable   = false
+      rollback = false
+    }
   }
 
   deployment_controller {
-    type = "ECS"
+    type = local.deployment_controller_type
   }
+
+  lifecycle {
+    # ECS CodeDeploy updates these during deployments.
+    ignore_changes = [
+      load_balancer,
+      task_definition,
+    ]
+  }
+}
+
+resource "aws_codedeploy_app" "ecs" {
+  count = var.deployment_strategy != "rolling" ? 1 : 0
+
+  name             = "${var.service_name}-app"
+  compute_platform = "ECS"
+}
+
+resource "aws_iam_role" "codedeploy" {
+  count = local.enable_codedeploy ? 1 : 0
+
+  name               = "${var.service_name}-codedeploy-role"
+  assume_role_policy = data.aws_iam_policy_document.codedeploy_assume_role.json
+}
+
+resource "aws_iam_role_policy_attachment" "codedeploy" {
+  count = local.enable_codedeploy ? 1 : 0
+
+  role       = aws_iam_role.codedeploy[0].name
+  policy_arn = "arn:aws:iam::aws:policy/AWSCodeDeployRoleForECS"
+}
+
+resource "aws_codedeploy_deployment_group" "ecs" {
+  count = local.enable_codedeploy ? 1 : 0
+
+  app_name               = aws_codedeploy_app.ecs[0].name
+  deployment_group_name  = "${var.service_name}-dg"
+  deployment_config_name = local.codedeploy_deployment_config_name
+  service_role_arn       = aws_iam_role.codedeploy[0].arn
+
+  auto_rollback_configuration {
+    enabled = true
+    events  = ["DEPLOYMENT_FAILURE", "DEPLOYMENT_STOP_ON_ALARM"]
+  }
+
+  dynamic "alarm_configuration" {
+    for_each = length(var.codedeploy_alarm_names) > 0 ? [1] : []
+    content {
+      enabled = true
+      alarms  = var.codedeploy_alarm_names
+    }
+  }
+
+  blue_green_deployment_config {
+    deployment_ready_option {
+      action_on_timeout = "CONTINUE_DEPLOYMENT"
+    }
+
+    terminate_blue_instances_on_deployment_success {
+      action                           = "TERMINATE"
+      termination_wait_time_in_minutes = 1
+    }
+  }
+
+  deployment_style {
+    deployment_option = "WITH_TRAFFIC_CONTROL"
+    deployment_type   = "BLUE_GREEN"
+  }
+
+  ecs_service {
+    cluster_name = var.cluster_name
+    service_name = aws_ecs_service.service.name
+  }
+
+  load_balancer_info {
+    target_group_pair_info {
+      prod_traffic_route {
+        listener_arns = [var.default_http_listener_arn]
+      }
+
+      target_group {
+        name = local.blue_target_group_name
+      }
+
+      target_group {
+        name = aws_lb_target_group.green_target_group[0].name
+      }
+    }
+  }
+
+  depends_on = [
+    aws_ecs_service.service,
+    aws_iam_role_policy_attachment.codedeploy,
+  ]
 }
 
 resource "aws_appautoscaling_target" "ecs" {

@@ -112,6 +112,26 @@ variable "bootstrap_image_uri" {
   }
 }
 
+variable "deployment_strategy" {
+  type    = string
+  default = "blue_green"
+
+  validation {
+    condition     = contains(["rolling", "blue_green", "canary"], var.deployment_strategy)
+    error_message = "deployment_strategy must be one of: rolling, blue_green, canary."
+  }
+}
+
+variable "codedeploy_deployment_config_name_override" {
+  type    = string
+  default = ""
+}
+
+variable "codedeploy_alarm_names" {
+  type    = list(string)
+  default = []
+}
+
 variable "additional_security_group_ids" {
   description = "List of security groups to attach to ECS service"
   type        = list(string)
