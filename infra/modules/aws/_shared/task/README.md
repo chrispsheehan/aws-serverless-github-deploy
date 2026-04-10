@@ -26,3 +26,5 @@ Shared ECS task-definition module.
 - log group names
 
 Use this for task revision creation. Traffic rollout happens at the service layer.
+
+The ECR repository access policy is derived from `image_uri`, so deploy workflows should pass the final image URI rather than relying on repository-name conventions.

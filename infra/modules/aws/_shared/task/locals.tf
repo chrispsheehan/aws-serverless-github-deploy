@@ -2,6 +2,7 @@ locals {
   cloudwatch_log_name          = "/ecs/${var.service_name}"
   cloudwatch_otel_log_name     = "/ecs/${var.service_name}/otel"
   image_uri                    = var.image_uri
+  image_repository_name        = split(":", join("/", slice(split(var.image_uri, "/"), 1, length(split(var.image_uri, "/")))))[0]
   aws_otel_collector_image_uri = var.aws_otel_collector_image_uri
   debug_image_uri              = var.debug_image_uri
   root_path_prefix             = var.root_path != "" ? "/${var.root_path}" : ""
