@@ -25,26 +25,11 @@ env:
 
 jobs:
   setup:
-    runs-on: ubuntu-latest
-    outputs:
-      lambda_dirs: ${{ steps.lambda_dirs.outputs.just_outputs }}
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
-        with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          tg_directory: infra/live/${{ inputs.environment }}/aws/oidc
-
-      - name: Get Lambda Directories
-        id: lambda_dirs
-        uses: chrispsheehan/just-aws-oidc-action@0.3.0
-        with:
-          just_action: lambda-get-directories
+    uses: ./.github/workflows/get_directories.yml
 
   lambdas:
-    needs: setup
     runs-on: ubuntu-latest
+    needs: setup
     strategy:
       fail-fast: false
       matrix:
@@ -60,7 +45,6 @@ jobs:
           tg_action: destroy
 
   frontend:
-    needs: lambdas
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -74,11 +58,83 @@ jobs:
           tg_directory: infra/live/${{ inputs.environment }}/aws/frontend
           tg_action: destroy
 
-  build:
+  services:
+    runs-on: ubuntu-latest
+    needs: setup
+    strategy:
+      fail-fast: false
+      matrix:
+        value: ${{ fromJson(needs.setup.outputs.ecs_service_dirs) }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Destroy ${{ matrix.value }} infra
+        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+        env:
+          TF_VAR_bootstrap: "true"
+          TF_VAR_bootstrap_image_uri: "destroy-placeholder"
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.value }}
+          tg_action: destroy
+
+  tasks:
+    runs-on: ubuntu-latest
+    needs:
+      - setup
+      - services
+    strategy:
+      fail-fast: false
+      matrix:
+        value: ${{ fromJson(needs.setup.outputs.task_dirs) }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Destroy ${{ matrix.value }} infra
+        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+        env:
+          TF_VAR_image_uri: "destroy-placeholder"
+          TF_VAR_debug_image_uri: "destroy-placeholder"
+          TF_VAR_aws_otel_collector_image_uri: "destroy-placeholder"
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.value }}
+          tg_action: destroy
+
+  network:
+    needs:
+      - frontend
+      - services
+      - tasks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Destroy network infra
+        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          tg_directory: infra/live/${{ inputs.environment }}/aws/network
+          tg_action: destroy
+
+  security:
+    needs:
+      - network
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Destroy security infra
+        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          tg_directory: infra/live/${{ inputs.environment }}/aws/security
+          tg_action: destroy
+
+  build-bucket:
     if: inputs.environment != 'prod'
     needs:
       - lambdas
-      - frontend
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -88,4 +144,33 @@ jobs:
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/code_bucket
+          tg_action: destroy
+
+  ecr:
+    if: inputs.environment != 'prod'
+    needs:
+      - network
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Destroy code
+        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          tg_directory: infra/live/${{ inputs.environment }}/aws/ecr
+          tg_action: destroy
+
+  cluster:
+    needs:
+      - network
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Destroy cluster infra
+        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          tg_directory: infra/live/${{ inputs.environment }}/aws/cluster
           tg_action: destroy

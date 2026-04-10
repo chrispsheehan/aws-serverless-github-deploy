@@ -10,20 +10,34 @@ on:
       frontend_version:
         required: false
         type: string
-        default: ""
+      ecs_version:
+        required: false
+        type: string
     outputs:
       code_bucket:
         description: "Bucket containing build artifacts"
         value: ${{ jobs.bucket.outputs.code_bucket_name }}
       lambda_version:
-        description: "Valid lambda version"
+        description: "Resolved lambda version"
         value: ${{ inputs.lambda_version }}
-      lambda_version_files:
-        description: "List of lambda version files"
-        value: ${{ jobs.lambdas.outputs.lambda_version_files }}
       frontend_version:
-        description: "Valid frontend version"
+        description: "Resolved frontend version"
         value: ${{ inputs.frontend_version != '' && inputs.frontend_version || inputs.lambda_version }}
+      ecs_version:
+        description: "Resolved ECS version"
+        value: ${{ inputs.ecs_version != '' && inputs.ecs_version || inputs.lambda_version }}
+      ecs_image_uris:
+        description: "List of full ECS image URIs"
+        value: ${{ jobs.images.outputs.ecs_image_uris }}
+      ecs_task_matrix:
+        description: "List of ECS service names for the version"
+        value: ${{ jobs.images.outputs.ecs_task_matrix }}
+      lambda_version_files:
+        description: "List of lambda names"
+        value: ${{ jobs.lambdas.outputs.lambda_version_files }}
+      lambda_s3_keys:
+        description: "List of lambda S3 object keys"
+        value: ${{ jobs.lambdas.outputs.lambda_s3_keys }}
 
 concurrency: # only run one instance of workflow at any one time
   group: ${{ github.workflow }}-${{ inputs.environment }}
@@ -59,7 +73,98 @@ jobs:
         env:
           TG_OUTPUTS: ${{ steps.code_action.outputs.tg_outputs }}
         run: |
-          echo "bucket=$(echo $TG_OUTPUTS | jq -r '.bucket.value')" >> $GITHUB_OUTPUT
+          echo "🔍 Raw TG_OUTPUTS:"
+          echo "$TG_OUTPUTS" | jq .
+
+          bucket=$(echo "$TG_OUTPUTS" | jq -r '.bucket.value // empty')
+
+          if [ -z "$bucket" ] || [ "$bucket" = "null" ]; then
+            echo "::error title=Missing code bucket::Failed to extract '.bucket.value' from Terragrunt output for infra/live/${{ inputs.environment }}/aws/code_bucket"
+            echo "::error::Full TG_OUTPUTS:"
+            exit 1
+          fi
+
+          echo "bucket=$bucket" >> "$GITHUB_OUTPUT"
+
+  ecr:
+    runs-on: ubuntu-latest
+    outputs:
+      repository_url: ${{ steps.get_repository_url.outputs.repository_url }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.lambda_version }}
+
+      - name: Get ECR infra
+        id: get-ecr
+        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          tg_directory: infra/live/${{ inputs.environment }}/aws/ecr
+          tg_action: init
+
+      - name: Get ECR repository url
+        id: get_repository_url
+        env:
+          TG_OUTPUTS: ${{ steps.get-ecr.outputs.tg_outputs }}
+        run: |
+          echo "🔍 Raw TG_OUTPUTS:"
+          echo "$TG_OUTPUTS" | jq .
+
+          repository_url=$(echo "$TG_OUTPUTS" | jq -r '.repository_url.value // empty')
+
+          if [ -z "$repository_url" ] || [ "$repository_url" = "null" ]; then
+            echo "::error title=Missing ECR repository URL::Failed to extract '.repository_url.value' from Terragrunt output for infra/live/${{ inputs.environment }}/aws/ecr"
+            echo "::error::Full TG_OUTPUTS:"
+            exit 1
+          fi
+
+          echo "repository_url=$repository_url" >> "$GITHUB_OUTPUT"
+
+  images:
+    needs: ecr
+    runs-on: ubuntu-latest
+    outputs:
+      ecs_image_uris: ${{ steps.image_uris.outputs.ecs_image_uris }}
+      ecs_task_matrix: ${{ steps.task_matrix.outputs.just_outputs }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.lambda_version }}
+
+      - name: Get ECR version images
+        id: get_version_images
+        uses: chrispsheehan/just-aws-oidc-action@0.3.0
+        env:
+          REPOSITORY_URL: ${{ needs.ecr.outputs.repository_url }}
+          VERSION: ${{ inputs.ecs_version != '' && inputs.ecs_version || inputs.lambda_version }}
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          just_action: get-ecr-version-images
+
+      - name: Build full image URIs
+        id: image_uris
+        shell: bash
+        env:
+          REPOSITORY_URL: ${{ needs.ecr.outputs.repository_url }}
+          VERSION: ${{ inputs.ecs_version != '' && inputs.ecs_version || inputs.lambda_version }}
+          IMAGE_NAMES: ${{ steps.get_version_images.outputs.just_outputs }}
+        run: |
+          echo "ecs_image_uris=$(jq -cn \
+            --arg repo "$REPOSITORY_URL" \
+            --arg version "$VERSION" \
+            --argjson images "$IMAGE_NAMES" \
+            '$images | map("\($repo):\(.)-\($version)")')" >> "$GITHUB_OUTPUT"
+
+      - name: Build ECS task matrix
+        id: task_matrix
+        uses: chrispsheehan/just-aws-oidc-action@0.3.0
+        env:
+          REPOSITORY_URL: ${{ needs.ecr.outputs.repository_url }}
+          VERSION: ${{ inputs.ecs_version != '' && inputs.ecs_version || inputs.lambda_version }}
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          just_action: get-ecr-version-tasks
 
   frontend:
     needs: bucket
@@ -83,6 +188,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       lambda_version_files: ${{ steps.get_build_files.outputs.just_outputs }}
+      lambda_s3_keys: ${{ steps.get_build_file_keys.outputs.just_outputs }}
 
     steps:
       - uses: actions/checkout@v6
@@ -98,7 +204,7 @@ jobs:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           just_action: lambda-check-version
 
-      - name: Get build files
+      - name: Get lambda names
         id: get_build_files
         uses: chrispsheehan/just-aws-oidc-action@0.3.0
         env:
@@ -107,3 +213,13 @@ jobs:
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           just_action: get-version-files
+
+      - name: Get lambda S3 keys
+        id: get_build_file_keys
+        uses: chrispsheehan/just-aws-oidc-action@0.3.0
+        env:
+          BUCKET_NAME: ${{ needs.bucket.outputs.code_bucket_name }}
+          VERSION: ${{ inputs.lambda_version }}
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          just_action: get-version-file-keys

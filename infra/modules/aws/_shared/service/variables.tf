@@ -1,0 +1,181 @@
+### start of static vars set in root.hcl ###
+variable "aws_region" {
+  type        = string
+  description = "AWS region"
+}
+### end of static vars set in root.hcl ###
+
+variable "service_name" {
+  type = string
+}
+
+variable "container_port" {
+  type = number
+}
+
+variable "task_definition_arn" {
+  type = string
+}
+
+variable "vpc_id" {
+  type = string
+}
+
+variable "private_subnet_ids" {
+  type = list(string)
+}
+
+variable "cluster_id" {
+  type = string
+}
+
+variable "cluster_name" {
+  type = string
+}
+
+variable "ecs_security_group_id" {
+  type = string
+}
+
+variable "default_target_group_arn" {
+  type = string
+}
+
+variable "default_http_listener_arn" {
+  type = string
+}
+
+variable "load_balancer_arn_suffix" {
+  type = string
+}
+
+variable "target_group_arn_suffix" {
+  type = string
+}
+
+variable "api_id" {
+  type = string
+}
+
+variable "vpc_link_id" {
+  type = string
+}
+
+variable "internal_invoke_url" {
+  type = string
+}
+
+variable "api_invoke_url" {
+  type = string
+}
+
+variable "root_path" {
+  description = "The path to serve the service from. / is for default /example_service is for subpath"
+  type        = string
+  default     = ""
+}
+
+variable "connection_type" {
+  description = "Type of connectivity/integration to use for the service (choices: internal, internal_dns, vpc_link)."
+  type        = string
+  validation {
+    condition     = can(regex("^(internal|internal_dns|vpc_link)$", var.connection_type))
+    error_message = "connection_type must be one of: internal, internal_dns, vpc_link."
+  }
+}
+
+variable "local_tunnel" {
+  type    = bool
+  default = false
+}
+
+variable "xray_enabled" {
+  type    = bool
+  default = false
+}
+
+variable "wait_for_steady_state" {
+  type    = bool
+  default = false
+}
+
+variable "bootstrap" {
+  type    = bool
+  default = false
+}
+
+variable "bootstrap_image_uri" {
+  type    = string
+  default = ""
+
+  validation {
+    condition     = !var.bootstrap || var.bootstrap_image_uri != ""
+    error_message = "bootstrap_image_uri must be set when bootstrap is true."
+  }
+}
+
+variable "deployment_strategy" {
+  type    = string
+  default = "all_at_once"
+
+  validation {
+    condition = contains([
+      "all_at_once",
+      "blue_green",
+      "canary",
+      "linear",
+    ], var.deployment_strategy)
+    error_message = "deployment_strategy must be one of: all_at_once, blue_green, canary, linear."
+  }
+}
+
+variable "codedeploy_deployment_config_name_override" {
+  type    = string
+  default = ""
+}
+
+variable "codedeploy_alarm_names" {
+  type    = list(string)
+  default = []
+}
+
+variable "additional_security_group_ids" {
+  description = "List of security groups to attach to ECS service"
+  type        = list(string)
+  default     = []
+}
+
+variable "desired_task_count" {
+  type = number
+}
+
+variable "scaling_strategy" {
+  type = object({
+    max_scaled_task_count = optional(number)
+    cpu = optional(object({
+      scale_out_threshold  = number
+      scale_in_threshold   = number
+      scale_out_adjustment = number
+      scale_in_adjustment  = number
+      cooldown_out         = number
+      cooldown_in          = number
+    }))
+    sqs = optional(object({
+      scale_out_threshold  = number
+      scale_in_threshold   = number
+      scale_out_adjustment = number
+      scale_in_adjustment  = number
+      cooldown_out         = number
+      cooldown_in          = number
+      queue_name           = string
+    }))
+    alb = optional(object({
+      target_requests_per_task = number
+      cooldown_in              = number
+      cooldown_out             = number
+    }))
+  })
+
+  # {} = "off" by convention
+  default = {}
+}

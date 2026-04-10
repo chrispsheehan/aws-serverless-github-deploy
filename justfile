@@ -4,7 +4,9 @@ _default:
 
 PROJECT_DIR := justfile_directory()
 LAMBDA_DIR := "lambdas"
+CONTAINERS_DIR := "containers"
 FRONTEND_DIR := "frontend"
+EXTRA_CONTAINER_DIRECTORIES := "[\"debug\",\"otel_collector\"]"
 
 
 tf-lint-check:
@@ -17,7 +19,6 @@ tf-lint-check:
           echo "🔍 Running tflint in $dir"
           tflint --chdir="$dir" --force
         done
-
 
 
 lambda-invoke:
@@ -139,6 +140,74 @@ get-version-files:
       | jq -s -c .
 
 
+get-version-file-keys:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "$BUCKET_NAME" ]]; then
+        echo "❌ BUCKET_NAME environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "$VERSION" ]]; then
+        echo "❌ VERSION environment variable is not set."
+        exit 1
+    fi
+
+    FULL_BUCKET_PATH="s3://$BUCKET_NAME/lambdas/$VERSION/"
+
+    aws s3api head-bucket --bucket "$BUCKET_NAME" >/dev/null
+    aws s3 ls "$FULL_BUCKET_PATH" >/dev/null
+
+    aws s3 ls "$FULL_BUCKET_PATH" --recursive \
+      | awk '{print $4}' \
+      | grep '\.zip$' \
+      | grep -v 'appspec' \
+      | jq -R . \
+      | jq -s -c .
+
+
+get-ecr-version-images:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "${REPOSITORY_URL:-}" ]]; then
+        echo "❌ REPOSITORY_URL environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "${VERSION:-}" ]]; then
+        echo "❌ VERSION environment variable is not set."
+        exit 1
+    fi
+
+    repository_name="${REPOSITORY_URL#*/}"
+
+    aws ecr describe-images \
+      --repository-name "$repository_name" \
+      --query 'imageDetails[].imageTags[]' \
+      --output text \
+      | tr '\t' '\n' \
+      | grep -- "-$VERSION\$" \
+      | sed "s/-$VERSION$//" \
+      | jq -R . \
+      | jq -s -c .
+
+
+get-ecr-version-tasks:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    image_names="$(just --justfile "{{PROJECT_DIR}}/justfile" get-ecr-version-images)"
+
+    jq -cn \
+      --argjson images "$image_names" \
+      '
+      $images
+      | map(select(. != "bootstrap" and . != "debug" and . != "otel_collector"))
+      '
+
+
 lambda-get-directories:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -147,6 +216,141 @@ lambda-get-directories:
       | tr '-' '_' \
       | jq -R . \
       | jq -s -c .
+
+    
+docker-build:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "$CONTAINER_NAME" ]]; then
+        echo "❌ CONTAINER_NAME environment variable is not set."
+        exit 1
+    fi
+
+    TAG="${IMAGE_URI:-$CONTAINER_NAME}"
+
+    docker build \
+      --file "{{PROJECT_DIR}}/Dockerfile" \
+      --target "$CONTAINER_NAME" \
+      -t "$TAG" \
+      "{{PROJECT_DIR}}"
+
+
+docker-mirror:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "${SOURCE_IMAGE:-}" ]]; then
+        echo "❌ SOURCE_IMAGE environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "${IMAGE_URI:-}" ]]; then
+        echo "❌ IMAGE_URI environment variable is not set."
+        exit 1
+    fi
+
+    docker pull "$SOURCE_IMAGE"
+    docker tag "$SOURCE_IMAGE" "$IMAGE_URI"
+
+
+docker-push:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "${IMAGE_URI:-}" ]]; then
+        echo "❌ IMAGE_URI environment variable is not set."
+        exit 1
+    fi
+
+    registry="${IMAGE_URI%%/*}"
+    aws_region="$(echo "$registry" | cut -d. -f4)"
+
+    if [[ -z "$aws_region" ]]; then
+        echo "❌ Could not determine AWS region from IMAGE_URI: $IMAGE_URI"
+        exit 1
+    fi
+
+    aws ecr get-login-password --region "$aws_region" \
+        | docker login --username AWS --password-stdin "$registry"
+
+    docker push "$IMAGE_URI"
+
+
+service-get-directories:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    find "{{CONTAINERS_DIR}}" -mindepth 1 -maxdepth 1 -type d \
+      | xargs -I{} basename "{}" \
+      | tr '-' '_' \
+      | jq -R . \
+      | jq -s -c .
+
+
+task-get-directories:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    found_dirs="$(just --justfile "{{PROJECT_DIR}}/justfile" service-get-directories)"
+
+    jq -cn \
+      --argjson found "$found_dirs" \
+      '$found | map("task_" + .)'
+
+
+ecs-task-get-image-uris:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "${ECS_IMAGE_URIS:-}" ]]; then
+        echo "❌ ECS_IMAGE_URIS environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "${TASK_NAME:-}" ]]; then
+        echo "❌ TASK_NAME environment variable is not set."
+        exit 1
+    fi
+
+    service_name="${TASK_NAME#task_}"
+
+    jq -cn \
+      --argjson image_uris "$ECS_IMAGE_URIS" \
+      --arg service_name "$service_name" \
+      '
+      {
+        service_image_uri: ($image_uris | map(select(test(":" + $service_name + "-")))[0] // ""),
+        debug_image_uri: ($image_uris | map(select(test(":debug-")))[0] // ""),
+        otel_image_uri: ($image_uris | map(select(test(":otel_collector-")))[0] // "")
+      }
+      | if .service_image_uri == "" then error("Missing ECS image URI for " + $service_name) else . end
+      | if .debug_image_uri == "" then error("Missing debug image URI") else . end
+      | if .otel_image_uri == "" then error("Missing otel_collector image URI") else . end
+      '
+
+
+ecs-service-get-directories:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    found_dirs="$(just --justfile "{{PROJECT_DIR}}/justfile" service-get-directories)"
+
+    jq -cn \
+      --argjson found "$found_dirs" \
+      '$found | map("service_" + .)'
+
+
+container-get-directories:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    found_dirs="$(just --justfile "{{PROJECT_DIR}}/justfile" service-get-directories)"
+
+    jq -cn \
+      --argjson found "$found_dirs" \
+      --argjson extra '{{EXTRA_CONTAINER_DIRECTORIES}}' \
+      '$found + $extra | unique'
 
 
 lambda-build:
@@ -234,9 +438,11 @@ lambda-upload-bundle:
     #!/usr/bin/env bash
     just lambda-prepare-appspec
 
-    LOCAL_APP_SPEC_ZIP="{{justfile_directory()}}/appspec.zip"
+    LOCAL_APP_SPEC_ZIP="{{justfile_directory()}}/appspec-lambda.zip"
+    TMPDIR="$(mktemp -d)"
     rm -f $LOCAL_APP_SPEC_ZIP
-    zip -q -j $LOCAL_APP_SPEC_ZIP $APP_SPEC_FILE
+    cp "$APP_SPEC_FILE" "$TMPDIR/appspec.yml"
+    zip -q -j $LOCAL_APP_SPEC_ZIP "$TMPDIR/appspec.yml"
     aws s3 cp $LOCAL_APP_SPEC_ZIP "s3://${BUCKET_NAME}/${APP_SPEC_KEY}"
 
 
@@ -421,6 +627,163 @@ lambda-prune:
         echo "Deleting $FUNCTION_NAME:$v"
         aws lambda delete-function --function-name "$FUNCTION_NAME" --qualifier "$v" --region "$AWS_REGION"
     done
+
+
+ecs-prepare-appspec:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "${APP_SPEC_FILE:-}" ]]; then
+        echo "❌ APP_SPEC_FILE environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "${TASK_DEFINITION_ARN:-}" ]]; then
+        echo "❌ TASK_DEFINITION_ARN environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "${CONTAINER_NAME:-}" ]]; then
+        echo "❌ CONTAINER_NAME environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "${CONTAINER_PORT:-}" ]]; then
+        echo "❌ CONTAINER_PORT environment variable is not set."
+        exit 1
+    fi
+
+    cp "{{justfile_directory()}}/appspec-ecs.yml" "$APP_SPEC_FILE"
+
+    yq eval -i '
+      .Resources[0].TargetService.Properties.TaskDefinition = env(TASK_DEFINITION_ARN) |
+      .Resources[0].TargetService.Properties.LoadBalancerInfo.ContainerName = env(CONTAINER_NAME) |
+      .Resources[0].TargetService.Properties.LoadBalancerInfo.ContainerPort = (env(CONTAINER_PORT) | tonumber)
+    ' "$APP_SPEC_FILE"
+
+    cat "$APP_SPEC_FILE"
+
+
+ecs-upload-bundle:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "${BUCKET_NAME:-}" ]]; then
+        echo "❌ BUCKET_NAME environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "${APP_SPEC_KEY:-}" ]]; then
+        echo "❌ APP_SPEC_KEY environment variable is not set."
+        exit 1
+    fi
+
+    just ecs-prepare-appspec
+    aws s3 cp "$APP_SPEC_FILE" "s3://${BUCKET_NAME}/${APP_SPEC_KEY}"
+
+
+ecs-deploy:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "${CODE_DEPLOY_APP_NAME:-}" ]]; then
+        echo "❌ CODE_DEPLOY_APP_NAME environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "${CODE_DEPLOY_GROUP_NAME:-}" ]]; then
+        echo "❌ CODE_DEPLOY_GROUP_NAME environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "${BUCKET_NAME:-}" ]]; then
+        echo "❌ BUCKET_NAME environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "${APP_SPEC_KEY:-}" ]]; then
+        echo "❌ APP_SPEC_KEY environment variable is not set."
+        exit 1
+    fi
+
+    DEPLOYMENT_ID=$(aws deploy create-deployment \
+        --application-name "$CODE_DEPLOY_APP_NAME" \
+        --deployment-group-name "$CODE_DEPLOY_GROUP_NAME" \
+        --revision revisionType=S3,s3Location="{bucket=$BUCKET_NAME,key=$APP_SPEC_KEY,bundleType=YAML}" \
+        --query "deploymentId" --output text)
+
+    if [[ -z "$DEPLOYMENT_ID" || "$DEPLOYMENT_ID" == "None" ]]; then
+        echo "❌ Failed to create ECS deployment — no deployment ID returned."
+        exit 1
+    fi
+
+    echo "🚀 Deployment started: $DEPLOYMENT_ID"
+    echo "🏷️ CodeDeploy App: $CODE_DEPLOY_APP_NAME | Group: $CODE_DEPLOY_GROUP_NAME"
+    echo "📦 AppSpec artifact: s3://$BUCKET_NAME/$APP_SPEC_KEY"
+    echo "⏳ Monitoring deployment status…"
+
+    MAX_ATTEMPTS=40
+    SLEEP_INTERVAL=15
+
+    for ((i=1; i<=MAX_ATTEMPTS; i++)); do
+        STATUS=$(aws deploy get-deployment \
+            --deployment-id "$DEPLOYMENT_ID" \
+            --query "deploymentInfo.status" \
+            --output text)
+
+        echo "[$i/$MAX_ATTEMPTS] Status: $STATUS"
+
+        if [[ "$STATUS" == "Succeeded" ]]; then
+            echo "✅ ECS deployment $DEPLOYMENT_ID completed successfully."
+            exit 0
+        elif [[ "$STATUS" == "Failed" || "$STATUS" == "Stopped" ]]; then
+            echo "❌ ECS deployment $DEPLOYMENT_ID failed or was stopped."
+            aws deploy get-deployment \
+                --deployment-id "$DEPLOYMENT_ID" \
+                --query 'deploymentInfo.{Status:status, ErrorCode:errorInformation.code, ErrorMessage:errorInformation.message}' \
+                --output table
+            exit 1
+        fi
+
+        sleep "$SLEEP_INTERVAL"
+    done
+
+    echo "❌ ECS deployment $DEPLOYMENT_ID did not complete within expected time."
+    exit 1
+
+
+ecs-rolling-deploy:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "${CLUSTER_NAME:-}" ]]; then
+        echo "❌ CLUSTER_NAME environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "${SERVICE_NAME:-}" ]]; then
+        echo "❌ SERVICE_NAME environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "${TASK_DEFINITION_ARN:-}" ]]; then
+        echo "❌ TASK_DEFINITION_ARN environment variable is not set."
+        exit 1
+    fi
+
+    echo "🚀 Starting ECS rolling deployment for $SERVICE_NAME on $CLUSTER_NAME"
+
+    aws ecs update-service \
+        --cluster "$CLUSTER_NAME" \
+        --service "$SERVICE_NAME" \
+        --task-definition "$TASK_DEFINITION_ARN" \
+        >/dev/null
+
+    aws ecs wait services-stable \
+        --cluster "$CLUSTER_NAME" \
+        --services "$SERVICE_NAME"
+
+    echo "✅ ECS rolling deployment completed for $SERVICE_NAME"
 
 
 frontend-build:
