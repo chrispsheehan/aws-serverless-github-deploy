@@ -152,7 +152,7 @@ module "service_example" {
 #### ⚡ [default] All at once:
 
 - use case: internal services, queue workers, low-risk changes
-- still uses ECS CodeDeploy, but shifts traffic in one step
+- for load-balanced ECS services this uses CodeDeploy and shifts traffic in one step
 ```hcl
 deployment_strategy = "all_at_once"
 ```
@@ -182,12 +182,14 @@ deployment_strategy = "blue_green"
 ```
 
 - ECS CodeDeploy is only created for load-balanced ECS services in `_shared/service`
+- internal ECS services without load balancer integration should use native ECS rolling updates instead
 - the deployment workflow:
   - applies the new `task_*` revision
-  - reads `codedeploy_app_name` and `codedeploy_deployment_group_name` from `service_*`
+  - if the service has CodeDeploy resources, reads `codedeploy_app_name` and `codedeploy_deployment_group_name` from `service_*`
   - renders [`appspec-ecs.yml`](appspec-ecs.yml)
   - uploads the AppSpec to the code bucket
   - runs `just ecs-deploy`
+  - otherwise updates the ECS service to the new task definition with a native rolling deploy
 
 ## 🔥↩️ deployment roll-back
 

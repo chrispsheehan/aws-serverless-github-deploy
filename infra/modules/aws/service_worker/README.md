@@ -14,6 +14,7 @@ Concrete ECS worker service wrapper.
 ## Key outputs
 
 - `service_name`
+- `cluster_name`
 - `codedeploy_app_name`
 - `codedeploy_deployment_group_name`
 - `container_port`

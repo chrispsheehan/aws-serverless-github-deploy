@@ -28,3 +28,4 @@ Shared ECS service module.
 - `blue_green`
 
 These map to ECS CodeDeploy deployment configs for load-balanced services.
+For internal non-load-balanced services, the deploy workflow falls back to native ECS rolling updates.

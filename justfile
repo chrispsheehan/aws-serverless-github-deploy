@@ -750,6 +750,40 @@ ecs-deploy:
     exit 1
 
 
+ecs-rolling-deploy:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "${CLUSTER_NAME:-}" ]]; then
+        echo "❌ CLUSTER_NAME environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "${SERVICE_NAME:-}" ]]; then
+        echo "❌ SERVICE_NAME environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "${TASK_DEFINITION_ARN:-}" ]]; then
+        echo "❌ TASK_DEFINITION_ARN environment variable is not set."
+        exit 1
+    fi
+
+    echo "🚀 Starting ECS rolling deployment for $SERVICE_NAME on $CLUSTER_NAME"
+
+    aws ecs update-service \
+        --cluster "$CLUSTER_NAME" \
+        --service "$SERVICE_NAME" \
+        --task-definition "$TASK_DEFINITION_ARN" \
+        >/dev/null
+
+    aws ecs wait services-stable \
+        --cluster "$CLUSTER_NAME" \
+        --services "$SERVICE_NAME"
+
+    echo "✅ ECS rolling deployment completed for $SERVICE_NAME"
+
+
 frontend-build:
     #!/usr/bin/env bash
     set -euo pipefail
