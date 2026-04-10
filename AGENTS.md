@@ -69,6 +69,7 @@ When changing CI workflows or Terraform module dependencies, check dependency be
 - check apply, deploy, and destroy behavior
 - check workflow dependency wiring such as `needs`, job outputs, matrix values, and reused workflow inputs
 - watch for `data.terraform_remote_state` dependencies that can fail if another stack has not been created yet or has already been destroyed
+- check required Terraform input variables on destroy paths as well as apply paths; destroy can still fail before resource deletion if required vars are unset
 - make sure every referenced `needs.<job>.outputs.*` value is actually in scope for that job
 - make sure matrix values match the expected naming contract for the workflow, module, or path being used
 - prefer making modules tolerant of unnecessary upstream state dependencies where possible
