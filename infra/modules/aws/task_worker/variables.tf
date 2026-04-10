@@ -1,3 +1,4 @@
+### start of static vars set in root.hcl ###
 variable "state_bucket" {
   type = string
 }
@@ -17,6 +18,7 @@ variable "project_name" {
 variable "ecr_repository_name" {
   type = string
 }
+### end of static vars set in root.hcl ###
 
 variable "container_port" {
   type = number

@@ -1,7 +1,9 @@
+### start of static vars set in root.hcl ###
 variable "aws_region" {
   type        = string
   description = "AWS region"
 }
+### end of static vars set in root.hcl ###
 
 variable "service_name" {
   type = string

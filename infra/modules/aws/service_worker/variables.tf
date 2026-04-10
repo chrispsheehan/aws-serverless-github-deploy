@@ -1,3 +1,4 @@
+### start of static vars set in root.hcl ###
 variable "state_bucket" {
   type = string
 }
@@ -13,6 +14,7 @@ variable "aws_region" {
 variable "project_name" {
   type = string
 }
+### end of static vars set in root.hcl ###
 
 variable "service_name" {
   type    = string
