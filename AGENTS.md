@@ -1,5 +1,8 @@
 # Repo Instructions
 
-## Documentation Rule
+## Documentation
 
-Whenever changing CI/CD behavior, Terraform module inputs or outputs, deployment strategy, bootstrap behavior, or operator-facing commands, update `README.md` in the same change.
+Update documentation in the same change:
+
+- update the repo root `README.md` for cross-cutting behavior changes
+- update affected module `README.md` files under `infra/modules/**` for module contract or responsibility changes
