@@ -45,7 +45,6 @@ jobs:
           tg_action: destroy
 
   frontend:
-    needs: lambdas
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
