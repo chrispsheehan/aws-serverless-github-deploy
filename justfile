@@ -439,8 +439,10 @@ lambda-upload-bundle:
     just lambda-prepare-appspec
 
     LOCAL_APP_SPEC_ZIP="{{justfile_directory()}}/appspec-lambda.zip"
+    TMPDIR="$(mktemp -d)"
     rm -f $LOCAL_APP_SPEC_ZIP
-    zip -q -j $LOCAL_APP_SPEC_ZIP $APP_SPEC_FILE
+    cp "$APP_SPEC_FILE" "$TMPDIR/appspec.yml"
+    zip -q -j $LOCAL_APP_SPEC_ZIP "$TMPDIR/appspec.yml"
     aws s3 cp $LOCAL_APP_SPEC_ZIP "s3://${BUCKET_NAME}/${APP_SPEC_KEY}"
 
 
