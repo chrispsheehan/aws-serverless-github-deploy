@@ -29,3 +29,14 @@ Shared ECS service module.
 
 These map to ECS CodeDeploy deployment configs for load-balanced services.
 For internal non-load-balanced services, the deploy workflow falls back to native ECS rolling updates.
+
+## Drift ownership
+
+The ECS service ignores changes to `task_definition`.
+
+That is intentional:
+
+- deploy workflows own the live task revision
+- infra applies own the stable service shape
+
+Without that split, a later infra apply would revert a successful rolling or CodeDeploy deployment back to the older task definition stored in Terraform state.
