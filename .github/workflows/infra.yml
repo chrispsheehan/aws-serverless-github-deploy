@@ -127,7 +127,9 @@ jobs:
           tg_directory: infra/live/${{ inputs.environment }}/aws/network
 
   lambdas:
-    needs: oidc
+    needs: 
+      - oidc
+      - security
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false # this is to prevent terraform lock issues
