@@ -49,16 +49,6 @@ data "terraform_remote_state" "cluster" {
   }
 }
 
-data "terraform_remote_state" "api" {
-  backend = "s3"
-
-  config = {
-    bucket = var.state_bucket
-    key    = "${var.environment}/aws/api/terraform.tfstate"
-    region = var.aws_region
-  }
-}
-
 data "aws_vpc" "this" {
   filter {
     name   = "tag:Name"

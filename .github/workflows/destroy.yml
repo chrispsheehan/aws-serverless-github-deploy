@@ -100,6 +100,9 @@ jobs:
 
       - name: Destroy ${{ matrix.value }} infra
         uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+        env:
+          TF_VAR_bootstrap: "true"
+          TF_VAR_bootstrap_image_uri: "destroy-placeholder"
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.value }}
