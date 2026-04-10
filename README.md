@@ -13,6 +13,16 @@ just tg dev aws/oidc apply
 just tg prod aws/oidc apply
 ```
 
+## 🧱 prerequisite network
+
+The AWS account must already have the landing-zone or StackSet network in place before deploying this repo.
+
+- the Terraform in this repo reads the VPC and subnets with `data` sources rather than creating them
+- the expected VPC and subnets must therefore already exist
+- the private subnets must be tagged so the module lookups can find them, for example with names matching `*private*`
+
+If those shared network resources do not exist yet, the infra applies in this repo will fail during data lookup.
+
 ## 🛠️ local plan some infra
 
 Given a terragrunt file is found at `infra/live/dev/aws/api/terragrunt.hcl`
