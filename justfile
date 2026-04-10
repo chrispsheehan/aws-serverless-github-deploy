@@ -194,6 +194,21 @@ get-ecr-version-images:
       | jq -s -c .
 
 
+get-ecr-version-tasks:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    image_names="$(just --justfile "{{PROJECT_DIR}}/justfile" get-ecr-version-images)"
+
+    jq -cn \
+      --argjson images "$image_names" \
+      '
+      $images
+      | map(select(. != "debug" and . != "otel_collector"))
+      | map("task_" + .)
+      '
+
+
 lambda-get-directories:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -283,6 +298,37 @@ task-get-directories:
     jq -cn \
       --argjson found "$found_dirs" \
       '$found | map("task_" + .)'
+
+
+ecs-task-get-image-uris:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "${ECS_IMAGE_URIS:-}" ]]; then
+        echo "❌ ECS_IMAGE_URIS environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "${TASK_NAME:-}" ]]; then
+        echo "❌ TASK_NAME environment variable is not set."
+        exit 1
+    fi
+
+    service_name="${TASK_NAME#task_}"
+
+    jq -cn \
+      --argjson image_uris "$ECS_IMAGE_URIS" \
+      --arg service_name "$service_name" \
+      '
+      {
+        service_image_uri: ($image_uris | map(select(test(":" + $service_name + "-")))[0] // ""),
+        debug_image_uri: ($image_uris | map(select(test(":debug-")))[0] // ""),
+        otel_image_uri: ($image_uris | map(select(test(":otel_collector-")))[0] // "")
+      }
+      | if .service_image_uri == "" then error("Missing ECS image URI for " + $service_name) else . end
+      | if .debug_image_uri == "" then error("Missing debug image URI") else . end
+      | if .otel_image_uri == "" then error("Missing otel_collector image URI") else . end
+      '
 
 
 ecs-service-get-directories:

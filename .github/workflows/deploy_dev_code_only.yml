@@ -63,4 +63,5 @@ jobs:
       frontend_version: ${{ needs.build.outputs.frontend_version }}
       code_bucket: ${{ needs.get_build.outputs.code_bucket }}
       lambda_matrix: ${{ needs.setup.outputs.lambdas_dirs }}
-      task_matrix: ${{ needs.setup.outputs.container_dirs }}
+      task_matrix: ${{ needs.get_build.outputs.ecs_task_matrix }}
+      ecs_image_uris: ${{ needs.get_build.outputs.ecs_image_uris }}

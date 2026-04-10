@@ -163,41 +163,28 @@ jobs:
 
       - name: Resolve image URIs
         id: image_uris
-        shell: bash
         env:
           ECS_IMAGE_URIS: ${{ inputs.ecs_image_uris }}
-          MODULE_NAME: ${{ matrix.value }}
+          TASK_NAME: ${{ matrix.value }}
+        uses: chrispsheehan/just-aws-oidc-action@0.3.0
+        with:
+          just_action: ecs-task-get-image-uris
+
+      - name: Set image outputs
+        id: task_inputs
+        env:
+          IMAGE_URIS_JSON: ${{ steps.image_uris.outputs.just_outputs }}
         run: |
-          service_name="${MODULE_NAME#task_}"
-          service_image_uri=$(echo "$ECS_IMAGE_URIS" | jq -r --arg name "$service_name" 'map(select(test(":" + $name + "-")))[0] // empty')
-          debug_image_uri=$(echo "$ECS_IMAGE_URIS" | jq -r 'map(select(test(":debug-")))[0] // empty')
-          otel_image_uri=$(echo "$ECS_IMAGE_URIS" | jq -r 'map(select(test(":otel_collector-")))[0] // empty')
-
-          if [ -z "$service_image_uri" ] || [ "$service_image_uri" = "null" ]; then
-            echo "::error::Missing ECS image URI for $service_name"
-            exit 1
-          fi
-
-          if [ -z "$debug_image_uri" ] || [ "$debug_image_uri" = "null" ]; then
-            echo "::error::Missing debug image URI"
-            exit 1
-          fi
-
-          if [ -z "$otel_image_uri" ] || [ "$otel_image_uri" = "null" ]; then
-            echo "::error::Missing otel_collector image URI"
-            exit 1
-          fi
-
-          echo "service_image_uri=$service_image_uri" >> "$GITHUB_OUTPUT"
-          echo "debug_image_uri=$debug_image_uri" >> "$GITHUB_OUTPUT"
-          echo "otel_image_uri=$otel_image_uri" >> "$GITHUB_OUTPUT"
+          echo "service_image_uri=$(echo "$IMAGE_URIS_JSON" | jq -r '.service_image_uri')" >> "$GITHUB_OUTPUT"
+          echo "debug_image_uri=$(echo "$IMAGE_URIS_JSON" | jq -r '.debug_image_uri')" >> "$GITHUB_OUTPUT"
+          echo "otel_image_uri=$(echo "$IMAGE_URIS_JSON" | jq -r '.otel_image_uri')" >> "$GITHUB_OUTPUT"
 
       - name: Deploy ${{ matrix.value }} ECS task
         uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
         env:
-          TF_VAR_image_uri: ${{ steps.image_uris.outputs.service_image_uri }}
-          TF_VAR_debug_image_uri: ${{ steps.image_uris.outputs.debug_image_uri }}
-          TF_VAR_aws_otel_collector_image_uri: ${{ steps.image_uris.outputs.otel_image_uri }}
+          TF_VAR_image_uri: ${{ steps.task_inputs.outputs.service_image_uri }}
+          TF_VAR_debug_image_uri: ${{ steps.task_inputs.outputs.debug_image_uri }}
+          TF_VAR_aws_otel_collector_image_uri: ${{ steps.task_inputs.outputs.otel_image_uri }}
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          tg_directory: infra/live/${{ inputs.environment }}/aws/task_${{ matrix.value }}
+          tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.value }}

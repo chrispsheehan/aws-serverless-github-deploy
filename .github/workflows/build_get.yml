@@ -29,6 +29,9 @@ on:
       ecs_image_uris:
         description: "List of full ECS image URIs"
         value: ${{ jobs.images.outputs.ecs_image_uris }}
+      ecs_task_matrix:
+        description: "List of ECS task module names for the version"
+        value: ${{ jobs.images.outputs.ecs_task_matrix }}
       lambda_version_files:
         description: "List of lambda names"
         value: ${{ jobs.lambdas.outputs.lambda_version_files }}
@@ -123,6 +126,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       ecs_image_uris: ${{ steps.image_uris.outputs.ecs_image_uris }}
+      ecs_task_matrix: ${{ steps.task_matrix.outputs.just_outputs }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -151,6 +155,16 @@ jobs:
             --arg version "$VERSION" \
             --argjson images "$IMAGE_NAMES" \
             '$images | map("\($repo):\(.)-\($version)")')" >> "$GITHUB_OUTPUT"
+
+      - name: Build ECS task matrix
+        id: task_matrix
+        uses: chrispsheehan/just-aws-oidc-action@0.3.0
+        env:
+          REPOSITORY_URL: ${{ needs.ecr.outputs.repository_url }}
+          VERSION: ${{ inputs.ecs_version != '' && inputs.ecs_version || inputs.lambda_version }}
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          just_action: get-ecr-version-tasks
 
   frontend:
     needs: bucket
