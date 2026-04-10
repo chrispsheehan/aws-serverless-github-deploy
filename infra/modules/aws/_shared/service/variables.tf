@@ -114,7 +114,7 @@ variable "bootstrap_image_uri" {
 
 variable "deployment_strategy" {
   type    = string
-  default = "blue_green"
+  default = "rolling"
 
   validation {
     condition     = contains(["rolling", "blue_green", "canary"], var.deployment_strategy)
