@@ -176,11 +176,9 @@ resource "aws_ecs_service" "service" {
   }
 
   lifecycle {
-    # Deploy workflows own the live task revision and, for CodeDeploy services,
-    # the service load balancer wiring during rollout. Terraform keeps the
-    # service shape stable without reverting the currently deployed revision.
+    # Deploy workflows own the live task revision. Terraform keeps the service
+    # shape stable without reverting the currently deployed revision.
     ignore_changes = [
-      load_balancer,
       task_definition,
     ]
   }

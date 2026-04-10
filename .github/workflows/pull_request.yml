@@ -207,7 +207,6 @@ jobs:
     if: ${{ needs.check.outputs.frontend == 'true' }}
     needs: 
       - check
-      - setup
     runs-on: ubuntu-latest
     name: Build frontend
     timeout-minutes: 5
