@@ -21,40 +21,23 @@ module "lambda_api" {
   provisioned_config = var.provisioned_config
 }
 
-resource "aws_apigatewayv2_api" "http_api" {
-  name          = "${module.lambda_api.name}-http"
-  protocol_type = "HTTP"
-}
-
-resource "aws_apigatewayv2_vpc_link" "http_api" {
-  name               = "${module.lambda_api.name}-http-vpc-link"
-  subnet_ids         = data.aws_subnets.private.ids
-  security_group_ids = [data.terraform_remote_state.security.outputs.api_vpc_link_sg]
-}
-
 resource "aws_apigatewayv2_integration" "lambda_proxy" {
-  api_id                 = aws_apigatewayv2_api.http_api.id
+  api_id                 = data.terraform_remote_state.network.outputs.api_id
   integration_type       = "AWS_PROXY"
   integration_uri        = module.lambda_api.alias_arn
   payload_format_version = "2.0"
 }
 
 resource "aws_apigatewayv2_route" "root" {
-  api_id    = aws_apigatewayv2_api.http_api.id
+  api_id    = data.terraform_remote_state.network.outputs.api_id
   route_key = "ANY /"
   target    = "integrations/${aws_apigatewayv2_integration.lambda_proxy.id}"
 }
 
 resource "aws_apigatewayv2_route" "proxy" {
-  api_id    = aws_apigatewayv2_api.http_api.id
+  api_id    = data.terraform_remote_state.network.outputs.api_id
   route_key = "ANY /{proxy+}"
   target    = "integrations/${aws_apigatewayv2_integration.lambda_proxy.id}"
-}
-
-resource "aws_apigatewayv2_stage" "default" {
-  api_id      = aws_apigatewayv2_api.http_api.id
-  name        = "$default"
-  auto_deploy = true
 }
 
 resource "aws_lambda_permission" "allow_invoke" {
@@ -62,7 +45,7 @@ resource "aws_lambda_permission" "allow_invoke" {
   action        = "lambda:InvokeFunction"
   function_name = module.lambda_api.alias_arn
   principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_apigatewayv2_api.http_api.execution_arn}/*/*" # all routes/stages
+  source_arn    = "${data.terraform_remote_state.network.outputs.api_execution_arn}/*/*" # all routes/stages
 }
 
 resource "aws_cloudwatch_metric_alarm" "api_5xx_rate" {
@@ -99,8 +82,8 @@ resource "aws_cloudwatch_metric_alarm" "api_5xx_rate" {
       period      = 60 # most aws metrics are emitted at 1-minute intervals, so using a shorter period can lead to more volatile alarms
 
       dimensions = {
-        ApiId = aws_apigatewayv2_api.http_api.id
-        Stage = aws_apigatewayv2_stage.default.name
+        ApiId = data.terraform_remote_state.network.outputs.api_id
+        Stage = data.terraform_remote_state.network.outputs.api_stage_name
       }
     }
   }
@@ -117,8 +100,8 @@ resource "aws_cloudwatch_metric_alarm" "api_5xx_rate" {
       period      = 60
 
       dimensions = {
-        ApiId = aws_apigatewayv2_api.http_api.id
-        Stage = aws_apigatewayv2_stage.default.name
+        ApiId = data.terraform_remote_state.network.outputs.api_id
+        Stage = data.terraform_remote_state.network.outputs.api_stage_name
       }
     }
   }

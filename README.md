@@ -23,6 +23,15 @@ The AWS account must already have the landing-zone or StackSet network in place 
 
 If those shared network resources do not exist yet, the infra applies in this repo will fail during data lookup.
 
+The repo `network` module also owns the shared internal ALB and shared HTTP API Gateway surface used by ECS services:
+
+- HTTP API
+- default API stage
+- VPC link
+- internal ALB and target groups
+
+The `api` module is Lambda-specific and plugs the Lambda integration and root routes into that shared API.
+
 ## 🛠️ local plan some infra
 
 Given a terragrunt file is found at `infra/live/dev/aws/api/terragrunt.hcl`

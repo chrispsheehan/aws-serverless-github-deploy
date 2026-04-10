@@ -6,6 +6,23 @@ resource "aws_lb" "this" {
   subnets            = data.aws_subnets.private.ids
 }
 
+resource "aws_apigatewayv2_api" "http_api" {
+  name          = "${var.project_name}-${var.environment}-http"
+  protocol_type = "HTTP"
+}
+
+resource "aws_apigatewayv2_vpc_link" "http_api" {
+  name               = "${var.project_name}-${var.environment}-http-vpc-link"
+  subnet_ids         = data.aws_subnets.private.ids
+  security_group_ids = [data.terraform_remote_state.security.outputs.api_vpc_link_sg]
+}
+
+resource "aws_apigatewayv2_stage" "default" {
+  api_id      = aws_apigatewayv2_api.http_api.id
+  name        = "$default"
+  auto_deploy = true
+}
+
 resource "aws_vpc_endpoint" "interface_endpoints" {
   for_each = local.interface_endpoints
 

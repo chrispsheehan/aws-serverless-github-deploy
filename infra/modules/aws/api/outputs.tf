@@ -1,17 +1,13 @@
 output "invoke_url" {
-  value = aws_apigatewayv2_api.http_api.api_endpoint
+  value = data.terraform_remote_state.network.outputs.api_invoke_url
 }
 
 output "api_id" {
-  value = aws_apigatewayv2_api.http_api.id
+  value = data.terraform_remote_state.network.outputs.api_id
 }
 
 output "vpc_link_id" {
-  value = aws_apigatewayv2_vpc_link.http_api.id
-}
-
-output "vpc_link_security_group_id" {
-  value = data.terraform_remote_state.security.outputs.api_vpc_link_sg
+  value = data.terraform_remote_state.network.outputs.vpc_link_id
 }
 
 output "cloudwatch_log_group" {
