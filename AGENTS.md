@@ -67,6 +67,7 @@ Before implementing deployment-related changes, check that the requested combina
 When changing CI workflows or Terraform module dependencies, check dependency behavior across the full lifecycle, not just the happy path.
 
 - check apply, deploy, and destroy behavior
+- when the same setup or lookup pattern appears in multiple workflows, suggest extracting it into a shared reusable workflow or shared `just` recipe instead of repeating it
 - check workflow dependency wiring such as `needs`, job outputs, matrix values, and reused workflow inputs
 - watch for `data.terraform_remote_state` dependencies that can fail if another stack has not been created yet or has already been destroyed
 - check required Terraform input variables on destroy paths as well as apply paths; destroy can still fail before resource deletion if required vars are unset
