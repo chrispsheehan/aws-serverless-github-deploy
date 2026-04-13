@@ -1,4 +1,4 @@
-name: Dev Deploy Infra
+name: Dev Infra
 
 on:
   workflow_dispatch:
@@ -9,18 +9,18 @@ permissions:
 
 jobs:
   setup:
-    name: Discover Directories
+    name: Discover
     uses: ./.github/workflows/get_directories.yml
 
   code:
-    name: Prepare Infra Artifacts
+    name: Artifacts
     uses: ./.github/workflows/infra_releases.yml
     with:
       environment: dev
       infra_version: ${{ github.sha }}
 
   infra:
-    name: Apply Infrastructure
+    name: Apply
     needs:
       - setup
       - code

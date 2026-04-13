@@ -1,4 +1,4 @@
-name: Dev Deploy Code
+name: Dev Code
 # This deploys code changes to dev without touching infra.
 
 on:
@@ -10,11 +10,11 @@ permissions:
 
 jobs:
   setup:
-    name: Discover Directories
+    name: Discover
     uses: ./.github/workflows/get_directories.yml
 
   build:
-    name: Build Artifacts
+    name: Build
     uses: ./.github/workflows/build.yml
     needs:
       - setup
@@ -28,7 +28,7 @@ jobs:
 
 
   get_build:
-    name: Resolve Build Outputs
+    name: Resolve
     needs: build
     uses: ./.github/workflows/build_get.yml
     with:
@@ -38,7 +38,7 @@ jobs:
       ecs_version: ${{ needs.build.outputs.ecs_version }}
 
   deploy:
-    name: Deploy Code
+    name: Deploy
     uses: ./.github/workflows/deploy.yml
     needs:
       - setup
