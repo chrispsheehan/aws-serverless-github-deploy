@@ -2,7 +2,7 @@ module "service_worker" {
   source = "../_shared/service"
 
   service_name        = var.service_name
-  task_definition_arn = var.bootstrap ? "" : data.terraform_remote_state.task_worker[0].outputs.task_definition_arn
+  task_definition_arn = local.task_definition_arn
   container_port      = var.container_port
   root_path           = var.root_path
   connection_type     = var.connection_type
@@ -41,7 +41,7 @@ module "service_worker" {
       scale_in_adjustment  = 1   # Remove 1 task
       cooldown_out         = 60  # 1min cooldown (more stable)
       cooldown_in          = 300 # 5min cooldown (prevent flapping)
-      queue_name           = data.terraform_remote_state.lambda_worker.outputs.sqs_queue_name
+      queue_name           = local.autoscaling_queue_name
     }
   }
 }

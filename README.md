@@ -57,6 +57,9 @@ The reusable deploy workflows follow the same split: `prod` `*_code` and `*_infr
 
 For `*_code` release deploys, pass explicit release versions for each runtime you want to roll out. In particular, ECS code deploys should provide an `ecs_version` rather than relying on a Lambda-version fallback.
 
+The ECS worker queue is now owned by `task_worker`, and `service_worker` reads that queue name from `task_worker` remote state. That keeps the ECS worker queue aligned with the worker stack lifecycle without depending on the Lambda worker queue.
+For bootstrap service applies, `service_worker` now uses placeholder task and queue values locally rather than spreading `count`-indexed remote-state access through the module.
+
 ## 🧪 example prompts
 
 Use prompts like these when asking for a new service in this repo:

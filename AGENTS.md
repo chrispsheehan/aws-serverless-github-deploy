@@ -83,6 +83,9 @@ When changing CI workflows or Terraform module dependencies, check dependency be
 - when the same setup or lookup pattern appears in multiple workflows, suggest extracting it into a shared reusable workflow or shared `just` recipe instead of repeating it
 - check workflow dependency wiring such as `needs`, job outputs, matrix values, and reused workflow inputs
 - watch for `data.terraform_remote_state` dependencies that can fail if another stack has not been created yet or has already been destroyed
+- avoid cross-runtime ownership when a resource is really part of one app shape; for example, keep the ECS worker queue with `task_worker` rather than making ECS consume `lambda_worker` state
+- when a bootstrap path needs placeholder values, prefer hiding that conditional logic in locals instead of repeating `count`-indexed remote-state references through the module body
+- if you do add a genuinely new stack type, update the discovery and lifecycle workflows too: `get_directories.yml`, `infra.yml`, and `destroy.yml`
 - check required Terraform input variables on destroy paths as well as apply paths; destroy can still fail before resource deletion if required vars are unset
 - make sure every referenced `needs.<job>.outputs.*` value is actually in scope for that job
 - make sure matrix values match the expected naming contract for the workflow, module, or path being used

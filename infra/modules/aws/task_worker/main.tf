@@ -1,3 +1,10 @@
+module "sqs_queue" {
+  source = "../_shared/sqs"
+
+  sqs_queue_name = local.sqs_queue_name
+  sqs_dlq_name   = local.sqs_dlq_name
+}
+
 module "task_worker" {
   source = "../_shared/task"
 
@@ -19,11 +26,11 @@ module "task_worker" {
   additional_env_vars = [
     {
       name  = "AWS_SQS_QUEUE_URL"
-      value = data.terraform_remote_state.lambda_worker.outputs.sqs_queue_url
+      value = module.sqs_queue.sqs_queue_url
     }
   ]
   additional_runtime_policy_arns = [
-    data.terraform_remote_state.lambda_worker.outputs.sqs_queue_read_policy_arn
+    module.sqs_queue.sqs_queue_read_policy_arn
   ]
 
   root_path    = ""

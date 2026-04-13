@@ -9,7 +9,7 @@ Concrete ECS worker service wrapper.
 ## Dependencies
 
 - `task_worker` remote state
-- `cluster`, `network`, `security`, `api`, and `lambda_worker` remote state
+- `cluster`, `network`, and `security` remote state
 
 ## Key outputs
 
@@ -21,4 +21,5 @@ Concrete ECS worker service wrapper.
 
 This module wires the worker-specific service onto the shared ECS service behavior.
 
-It also uses the shared worker SQS queue name from `lambda_worker` for ECS service autoscaling.
+It uses the ECS worker queue name exported by `task_worker` for service autoscaling.
+During bootstrap applies, it uses placeholder values instead of reading task outputs directly so the bootstrap path does not need a pre-existing task state file.
