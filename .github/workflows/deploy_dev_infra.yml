@@ -9,16 +9,19 @@ permissions:
 
 jobs:
   setup:
+    name: Discover Directories
     uses: ./.github/workflows/get_directories.yml
 
   code:
+    name: Prepare Infra Artifacts
     uses: ./.github/workflows/infra_releases.yml
     with:
       environment: dev
       infra_version: ${{ github.sha }}
 
   infra:
-    needs: 
+    name: Apply Infrastructure
+    needs:
       - setup
       - code
     uses: ./.github/workflows/infra.yml
@@ -31,6 +34,7 @@ jobs:
       service_matrix: ${{ needs.setup.outputs.ecs_service_dirs }}
 
   build:
+    name: Build Artifacts
     uses: ./.github/workflows/build.yml
     needs:
       - code
@@ -44,6 +48,7 @@ jobs:
       ecs_matrix: ${{ needs.setup.outputs.container_dirs }}
 
   get_build:
+    name: Resolve Build Outputs
     needs: build
     uses: ./.github/workflows/build_get.yml
     with:
@@ -53,6 +58,7 @@ jobs:
       ecs_version: ${{ github.sha }}
 
   deploy:
+    name: Deploy Code
     uses: ./.github/workflows/deploy.yml
     needs:
       - setup
