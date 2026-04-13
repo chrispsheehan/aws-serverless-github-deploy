@@ -32,6 +32,12 @@ The repo `network` module also owns the shared internal ALB and shared HTTP API 
 - VPC link
 - internal ALB and target groups
 
+This repo now includes a sample ECS API container service exposed separately from the Lambda API:
+
+- ECS API path: `/blue-green-api`
+- deployment model: ECS CodeDeploy `blue_green`
+- stacks: `task_api` and `service_api`
+
 The `api` module is Lambda-specific and plugs the Lambda integration and root routes into that shared API.
 
 Terragrunt also provides a shared default ECR repository name to ECS task modules:
@@ -44,6 +50,15 @@ Terragrunt also provides a shared default ECR repository name to ECS task module
 The reusable deploy workflows follow the same split: `prod` `*_code` and `*_infra` wrappers read shared artifact resources from `ci`, but `*_infra` only applies `prod` infrastructure stacks using the repo's directory-derived service and lambda matrices.
 
 For `*_code` release deploys, pass explicit release versions for each runtime you want to roll out. In particular, ECS code deploys should provide an `ecs_version` rather than relying on a Lambda-version fallback.
+
+## 🧪 example prompts
+
+Use prompts like these when asking for a new service in this repo:
+
+- `Add a new ECS service called billing_api exposed on /billing via API Gateway VPC link, with task_billing_api/service_billing_api, canary deploys, and update the docs.`
+- `Create a new internal ECS worker called report_worker using task_report_worker/service_report_worker, rolling deploys, and hook it into the existing container build flow.`
+- `Add a new Lambda called invoice_sync with its live stacks in dev and prod, wire it into the existing lambda build/deploy workflows, and document the new module contract.`
+- `Create a new public Lambda API endpoint for /reports, keep it Lambda-backed rather than ECS, and update the repo docs and workflow expectations.`
 
 ## 🛠️ local plan some infra
 

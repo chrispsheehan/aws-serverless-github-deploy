@@ -231,6 +231,7 @@ docker-build:
 
     docker build \
       --file "{{PROJECT_DIR}}/Dockerfile" \
+      --build-arg "SERVICE=$CONTAINER_NAME" \
       --target "$CONTAINER_NAME" \
       -t "$TAG" \
       "{{PROJECT_DIR}}"

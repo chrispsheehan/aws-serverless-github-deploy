@@ -63,6 +63,13 @@ stores state at:
 - `service_*`
   Own the ECS services and, when applicable, CodeDeploy resources.
 
+Current examples include:
+
+- `task_worker` / `service_worker`
+  Internal ECS worker service shape.
+- `task_api` / `service_api`
+  ECS API service shape exposed on the shared API Gateway at `/blue-green-api` using `vpc_link` and `blue_green`.
+
 ## Dependency Notes
 
 - many modules use `data.terraform_remote_state` to read outputs from other stacks

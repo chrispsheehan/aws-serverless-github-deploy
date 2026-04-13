@@ -1,14 +1,31 @@
+ARG SERVICE
+
 FROM python:3.12-slim AS python-base
 
 WORKDIR /usr/app
 
-COPY containers/worker/requirements.txt /tmp/requirements-worker.txt
-RUN pip install --no-cache-dir -r /tmp/requirements-worker.txt
+FROM python-base AS service-base
+
+ARG SERVICE
+
+COPY containers/${SERVICE}/requirements.txt /tmp/requirements.txt
+RUN pip install --no-cache-dir -r /tmp/requirements.txt
 
 
-FROM python-base AS worker
+FROM service-base AS worker
 
-COPY containers/worker/app.py /usr/app/app.py
+ARG SERVICE
+
+COPY containers/${SERVICE}/app.py /usr/app/app.py
+
+CMD ["python", "-u", "app.py"]
+
+
+FROM service-base AS api
+
+ARG SERVICE
+
+COPY containers/${SERVICE}/app.py /usr/app/app.py
 
 CMD ["python", "-u", "app.py"]
 
