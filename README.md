@@ -40,6 +40,7 @@ This repo now includes a sample ECS API container service exposed separately fro
 - API Gateway ECS route namespace: `/ecs/*`
 - deployment model: ECS CodeDeploy `blue_green`
 - stacks: `task_api` and `service_api`
+- the sample frontend calls both backends and renders both responses so the path split is visible in the UI
 
 The `api` module is Lambda-specific and plugs the Lambda integration and root routes into that shared API.
 
