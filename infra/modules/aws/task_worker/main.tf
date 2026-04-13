@@ -33,6 +33,14 @@ module "task_worker" {
     module.sqs_queue.sqs_queue_read_policy_arn
   ]
 
+  health_check = {
+    command      = ["CMD-SHELL", "python -c \"import boto3, os; boto3.client('sqs', region_name=os.environ['AWS_REGION']).get_queue_attributes(QueueUrl=os.environ['AWS_SQS_QUEUE_URL'], AttributeNames=['QueueArn'])\""]
+    interval     = 60
+    timeout      = 5
+    retries      = 3
+    start_period = 10
+  }
+
   root_path    = ""
   service_name = "ecs-worker"
   command      = ["python", "-u", "app.py"]

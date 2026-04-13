@@ -59,6 +59,7 @@ For `*_code` release deploys, pass explicit release versions for each runtime yo
 
 The ECS worker queue is now owned by `task_worker`, and `service_worker` reads that queue name from `task_worker` remote state. That keeps the ECS worker queue aligned with the worker stack lifecycle without depending on the Lambda worker queue.
 For bootstrap service applies, `service_worker` now uses placeholder task and queue values locally rather than spreading `count`-indexed remote-state access through the module.
+The ECS worker task uses an ECS container health check that verifies it can still read its configured SQS queue, so worker health is no longer inferred only from process startup.
 
 ## 🧪 example prompts
 

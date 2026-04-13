@@ -19,6 +19,7 @@ Shared ECS task-definition module.
 - `local_tunnel`
 - `xray_enabled`
 - `command`
+- optional `health_check`
 
 In the concrete ECS task wrappers in this repo, `local_tunnel` and `xray_enabled` default to `false` unless the environment explicitly opts in.
 
@@ -31,3 +32,5 @@ In the concrete ECS task wrappers in this repo, `local_tunnel` and `xray_enabled
 Use this for task revision creation. Traffic rollout happens at the service layer.
 
 The ECR repository access policy uses the explicit `ecr_repository_name` input. In this repo, Terragrunt sets a root-level default and environments can override it if the repository naming ever changes.
+
+When `health_check` is set, the module adds an ECS container health check to the main service container.
