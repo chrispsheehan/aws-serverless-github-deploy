@@ -18,7 +18,7 @@ locals {
   green_target_group_name = "tg-${substr(md5("${var.service_name}-green"), 0, 8)}-green"
 
   is_default_path        = var.root_path == ""
-  health_check_path      = local.is_default_path ? "/health" : "/${var.root_path}/health"
+  health_check_path      = var.bootstrap ? "/" : (local.is_default_path ? "/health" : "/${var.root_path}/health")
   exact_route_key        = local.is_default_path ? "ANY /" : "ANY /${var.root_path}"
   proxy_route_key        = local.is_default_path ? "ANY /{proxy+}" : "ANY /${var.root_path}/{proxy+}"
   target_group_arn       = local.is_default_path ? var.default_target_group_arn : aws_lb_target_group.service_target_group[0].arn

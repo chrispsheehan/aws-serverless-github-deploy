@@ -20,6 +20,12 @@ Shared ECS service module.
 - `bootstrap_image_uri`
 - `codedeploy_alarm_names`
 
+## Bootstrap behavior
+
+Bootstrap ECS services use the shared bootstrap image, which is a generic placeholder image rather than the real app container.
+
+Because of that, bootstrap target groups health-check `/` instead of the app-specific health endpoint. Once the real task definition is deployed, the normal service health path applies again, such as `/health` or `/<root_path>/health`.
+
 ## Deployment strategies
 
 - `all_at_once`
