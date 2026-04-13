@@ -21,5 +21,5 @@ module "task_consumer" {
 
   root_path    = ""
   service_name = "ecs-worker"
-  command      = ["python", "-u", "consumer/app.py"]
+  command      = ["python", "-u", "app.py"]
 }
