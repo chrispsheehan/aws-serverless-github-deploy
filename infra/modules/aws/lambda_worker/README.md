@@ -10,6 +10,8 @@ Worker Lambda wrapper module.
 ## Key outputs
 
 - Lambda function and alias names
+- queue name and queue URLs
+- SQS read policy ARN
 - queue URLs
 - log group
 

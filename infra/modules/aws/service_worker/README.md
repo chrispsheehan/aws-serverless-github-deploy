@@ -20,3 +20,5 @@ Concrete ECS worker service wrapper.
 - `container_port`
 
 This module wires the worker-specific service onto the shared ECS service behavior.
+
+It also uses the shared worker SQS queue name from `lambda_worker` for ECS service autoscaling.

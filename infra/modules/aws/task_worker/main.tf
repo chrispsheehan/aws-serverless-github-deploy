@@ -1,4 +1,4 @@
-module "task_consumer" {
+module "task_worker" {
   source = "../_shared/task"
 
   project_name        = var.project_name
@@ -16,8 +16,15 @@ module "task_consumer" {
   local_tunnel = var.local_tunnel
   xray_enabled = var.xray_enabled
 
-  additional_env_vars            = []
-  additional_runtime_policy_arns = []
+  additional_env_vars = [
+    {
+      name  = "AWS_SQS_QUEUE_URL"
+      value = data.terraform_remote_state.lambda_worker.outputs.sqs_queue_url
+    }
+  ]
+  additional_runtime_policy_arns = [
+    data.terraform_remote_state.lambda_worker.outputs.sqs_queue_read_policy_arn
+  ]
 
   root_path    = ""
   service_name = "ecs-worker"

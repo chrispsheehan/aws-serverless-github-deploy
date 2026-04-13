@@ -8,9 +8,10 @@ Concrete ECS worker task wrapper.
 
 ## Key behavior
 
-- runs `python -u consumer/app.py`
+- runs `python -u app.py`
 - publishes worker task revisions for ECS deploys
 - uses the shared ECR repository named by `ecr_repository_name`
+- reads from the shared worker SQS queue via `AWS_SQS_QUEUE_URL`
 - defaults `local_tunnel` and `xray_enabled` to `false` unless explicitly enabled
 
 ## Key outputs
