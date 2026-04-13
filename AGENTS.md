@@ -7,6 +7,13 @@ Update documentation in the same change:
 - update the repo root `README.md` for cross-cutting behavior changes
 - update affected module `README.md` files under `infra/modules/**` for module contract or responsibility changes
 
+## CI OIDC Scope
+
+- treat `infra/live/ci/aws/oidc/terragrunt.hcl` as intentionally narrow
+- the CI OIDC role is for artifact management only: shared code bucket access, current IAM interactions required by CI, and ECR image publishing
+- do not broaden the CI role to match the shared `allowed_role_actions` set unless the user explicitly asks for that contract change
+- if a task needs deploy permissions, call out that this fails the current CI-role scope and document the exact additional AWS actions or services required
+
 ## Deployment Guide
 
 Choose deployment modes that match the runtime shape.

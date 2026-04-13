@@ -5,7 +5,8 @@ include {
 locals {
   allowed_role_actions = [
     "s3:*",
-    "iam:*"
+    "iam:*",
+    "ecr:*"
   ]
 }
 

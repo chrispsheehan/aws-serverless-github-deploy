@@ -18,7 +18,7 @@ This directory contains the Terraform and Terragrunt layout for the repo.
 - `prod`
   Production environment.
 - `ci`
-  Shared CI-only infra such as ECR and code bucket where applicable.
+  Shared CI-only infra such as ECR and code bucket where applicable. The `aws/oidc` stack here is intentionally scoped to CI artifact management only, including ECR image publishing, rather than the broader deploy permissions used in `dev` and `prod`.
 
 ## How State Is Named
 
