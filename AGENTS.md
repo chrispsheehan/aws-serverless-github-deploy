@@ -86,7 +86,7 @@ When changing CI workflows or Terraform module dependencies, check dependency be
 - check required Terraform input variables on destroy paths as well as apply paths; destroy can still fail before resource deletion if required vars are unset
 - make sure every referenced `needs.<job>.outputs.*` value is actually in scope for that job
 - make sure matrix values match the expected naming contract for the workflow, module, or path being used
-- for `*_infra` deploy wrappers, verify the infra workflow receives the directory-based infra matrices it needs, while deploy workflows receive the artifact-based matrices and image URIs they need
+- for `*_infra` wrappers, verify they stop at infrastructure apply and do not also run the reusable `deploy.yml` code rollout
 - for prod wrappers in this repo, remember that shared artifact resources come from `ci`, while deploy target resources are still in `prod`
 - prefer making modules tolerant of unnecessary upstream state dependencies where possible
 - do not change CI ordering blindly; first check whether the real issue is an avoidable cross-stack dependency

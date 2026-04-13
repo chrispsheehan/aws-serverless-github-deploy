@@ -29,18 +29,3 @@ jobs:
       lambda_matrix: ${{ needs.get_build.outputs.lambda_version_files }}
       bootstrap_image_uri: ${{ needs.get_build.outputs.bootstrap_image_uri }}
       service_matrix: ${{ needs.get_build.outputs.ecs_service_matrix }}
-
-  deploy:
-    name: Deploy Code
-    uses: ./.github/workflows/deploy.yml
-    needs:
-      - get_build
-      - infra # this is only to ensure infra runs before deploy no dependencies on infra outputs i.e. infra is managed separately
-    with:
-      environment: prod
-      lambda_version: ${{ needs.get_build.outputs.lambda_version }}
-      frontend_version: ${{ needs.get_build.outputs.frontend_version }}
-      code_bucket: ${{ needs.get_build.outputs.code_bucket }}
-      lambda_matrix: ${{ needs.get_build.outputs.lambda_version_files }}
-      task_matrix: ${{ needs.get_build.outputs.ecs_task_matrix }}
-      ecs_image_uris: ${{ needs.get_build.outputs.ecs_image_uris }}
