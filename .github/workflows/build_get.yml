@@ -32,6 +32,9 @@ on:
       ecs_task_matrix:
         description: "List of ECS service names for the version"
         value: ${{ jobs.images.outputs.ecs_task_matrix }}
+      ecs_service_matrix:
+        description: "List of ECS service stack names for the version"
+        value: ${{ jobs.images.outputs.ecs_service_matrix }}
       lambda_version_files:
         description: "List of lambda names"
         value: ${{ jobs.lambdas.outputs.lambda_version_files }}
@@ -127,6 +130,7 @@ jobs:
     outputs:
       ecs_image_uris: ${{ steps.image_uris.outputs.ecs_image_uris }}
       ecs_task_matrix: ${{ steps.task_matrix.outputs.just_outputs }}
+      ecs_service_matrix: ${{ steps.service_matrix.outputs.ecs_service_matrix }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -165,6 +169,15 @@ jobs:
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           just_action: get-ecr-version-tasks
+
+      - name: Build ECS service matrix
+        id: service_matrix
+        env:
+          ECS_TASK_MATRIX: ${{ steps.task_matrix.outputs.just_outputs }}
+        run: |
+          echo "ecs_service_matrix=$(jq -cn \
+            --argjson tasks "$ECS_TASK_MATRIX" \
+            '$tasks | map("service_" + .)')" >> "$GITHUB_OUTPUT"
 
   frontend:
     needs: bucket
