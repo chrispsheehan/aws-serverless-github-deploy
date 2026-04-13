@@ -12,9 +12,9 @@ jobs:
     uses: ./.github/workflows/build_get.yml
     with:
       environment: ci
-      lambda_version: 0.9.2
-      frontend_version: 0.9.2
-      ecs_version: 0.9.2
+      lambda_version: 0.9.4
+      frontend_version: 0.9.4
+      ecs_version: 0.9.4
 
   infra:
     needs:
@@ -22,7 +22,7 @@ jobs:
     uses: ./.github/workflows/infra.yml
     with:
       environment: prod
-      infra_version: 0.9.2
+      infra_version: 0.9.4
       code_bucket: ${{ needs.get_build.outputs.code_bucket }}
       lambda_matrix: ${{ needs.get_build.outputs.lambda_version_files }}
       bootstrap_image_uri: ${{ needs.get_build.outputs.bootstrap_image_uri }}
