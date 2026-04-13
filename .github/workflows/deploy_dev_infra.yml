@@ -1,4 +1,4 @@
-name: Dev Deploy Full
+name: Dev Deploy Infra
 
 on:
   workflow_dispatch:

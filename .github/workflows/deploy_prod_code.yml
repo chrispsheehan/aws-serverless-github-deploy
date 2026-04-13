@@ -1,5 +1,5 @@
-name: Prod Deploy Code Only
-# This allows us to deploy only code changes to prod found in the version s3 folder (only).
+name: Prod Deploy Code
+# This deploys code changes to prod from release artifacts already present in the shared CI bucket and ECR repository.
 
 on:
   workflow_dispatch:
@@ -39,6 +39,6 @@ jobs:
       lambda_matrix: ${{ needs.get_build.outputs.lambda_version_files }}
       task_matrix: ${{ needs.get_build.outputs.ecs_task_matrix }}
       ecs_image_uris: ${{ needs.get_build.outputs.ecs_image_uris }}
-      # we can also define a code-only deployment here if needed, as below
+      # we can also scope the deployment here if needed, as below
       # lambda_matrix: '["api"]'
       # task_matrix: '["worker"]'

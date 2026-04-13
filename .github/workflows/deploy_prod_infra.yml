@@ -1,4 +1,4 @@
-name: Prod Deploy Full
+name: Prod Deploy Infra
 
 on:
   workflow_dispatch:

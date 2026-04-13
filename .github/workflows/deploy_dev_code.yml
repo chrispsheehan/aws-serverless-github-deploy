@@ -1,5 +1,5 @@
-name: Dev Deploy Code Only
-# This allows us to deploy only code changes to dev without touching infra.
+name: Dev Deploy Code
+# This deploys code changes to dev without touching infra.
 
 on:
   workflow_dispatch:
