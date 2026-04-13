@@ -44,6 +44,8 @@ This repo now includes a sample ECS API container service exposed separately fro
 
 The `api` module is Lambda-specific and plugs the Lambda integration and root routes into that shared API.
 
+The frontend infra module also uploads a bootstrap `index.html` during infra apply so CloudFront serves a placeholder page before the built frontend assets are deployed.
+
 Terragrunt also provides a shared default ECR repository name to ECS task modules:
 
 - shared artifact base: `dev -> <account>-<region>-<project>-dev`, otherwise `<account>-<region>-<project>-ci`
