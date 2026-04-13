@@ -39,6 +39,7 @@ Terragrunt also provides a shared default ECR repository name to ECS task module
 - shared artifact base: `dev -> <account>-<region>-<project>-dev`, otherwise `<account>-<region>-<project>-ci`
 - default ECR repository: `<artifact_base>-ecs-worker`
 - override it in `infra/live/<environment>/environment_vars.hcl` only if the repository naming diverges from that convention
+- the concrete ECS worker task wrapper defaults `local_tunnel = false` and `xray_enabled = false` unless you explicitly set them
 
 The reusable deploy workflows follow the same split: `prod` deploy wrappers read shared artifact resources from `ci`, but still apply `prod` infrastructure stacks using the repo's directory-derived service and lambda matrices.
 

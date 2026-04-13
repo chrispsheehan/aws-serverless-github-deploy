@@ -20,6 +20,8 @@ Shared ECS task-definition module.
 - `xray_enabled`
 - `command`
 
+In the concrete ECS task wrappers in this repo, `local_tunnel` and `xray_enabled` default to `false` unless the environment explicitly opts in.
+
 ## Key outputs
 
 - `task_definition_arn`
