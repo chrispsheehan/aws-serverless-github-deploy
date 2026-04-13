@@ -25,6 +25,7 @@ jobs:
       infra_version: 0.9.2
       code_bucket: ${{ needs.get_build.outputs.code_bucket }}
       lambda_matrix: ${{ needs.get_build.outputs.lambda_version_files }}
+      bootstrap_image_uri: ${{ needs.get_build.outputs.bootstrap_image_uri }}
       service_matrix: ${{ needs.get_build.outputs.ecs_service_matrix }}
 
   deploy:

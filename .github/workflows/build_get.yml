@@ -26,6 +26,12 @@ on:
       ecs_version:
         description: "Resolved ECS version"
         value: ${{ inputs.ecs_version != '' && inputs.ecs_version || inputs.lambda_version }}
+      repository_url:
+        description: "Resolved ECR repository URL"
+        value: ${{ jobs.ecr.outputs.repository_url }}
+      bootstrap_image_uri:
+        description: "Resolved bootstrap ECS image URI"
+        value: ${{ jobs.images.outputs.bootstrap_image_uri }}
       ecs_image_uris:
         description: "List of full ECS image URIs"
         value: ${{ jobs.images.outputs.ecs_image_uris }}
@@ -128,6 +134,7 @@ jobs:
     needs: ecr
     runs-on: ubuntu-latest
     outputs:
+      bootstrap_image_uri: ${{ steps.bootstrap_image.outputs.bootstrap_image_uri }}
       ecs_image_uris: ${{ steps.image_uris.outputs.ecs_image_uris }}
       ecs_task_matrix: ${{ steps.task_matrix.outputs.just_outputs }}
       ecs_service_matrix: ${{ steps.service_matrix.outputs.ecs_service_matrix }}
@@ -159,6 +166,15 @@ jobs:
             --arg version "$VERSION" \
             --argjson images "$IMAGE_NAMES" \
             '$images | map("\($repo):\(.)-\($version)")')" >> "$GITHUB_OUTPUT"
+
+      - name: Build bootstrap image URI
+        id: bootstrap_image
+        shell: bash
+        env:
+          REPOSITORY_URL: ${{ needs.ecr.outputs.repository_url }}
+          VERSION: ${{ inputs.ecs_version }}
+        run: |
+          echo "bootstrap_image_uri=${REPOSITORY_URL}:bootstrap-${VERSION}" >> "$GITHUB_OUTPUT"
 
       - name: Build ECS task matrix
         id: task_matrix
