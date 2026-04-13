@@ -5,10 +5,13 @@ on:
   workflow_dispatch:
     inputs:
       lambda_version:
-        description: "Lambda release tag to deploy e.g. 0.7.2"
+        description: "Lambda release tag to deploy e.g. 0.9.4"
         required: true
       frontend_version:
-        description: "Frontend release tag to deploy e.g. 0.7.2"
+        description: "Frontend release tag to deploy e.g. 0.9.4"
+        required: true
+      ecs_version:
+        description: "ECS release tag to deploy e.g. 0.9.4"
         required: true
 
 permissions:
@@ -22,6 +25,7 @@ jobs:
       environment: ci
       lambda_version: ${{ inputs.lambda_version }}
       frontend_version: ${{ inputs.frontend_version }}
+      ecs_version: ${{ inputs.ecs_version }}
 
   deploy:
     uses: ./.github/workflows/deploy.yml

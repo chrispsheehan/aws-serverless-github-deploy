@@ -79,6 +79,7 @@ When changing CI workflows or Terraform module dependencies, check dependency be
 - treat optional inputs as part of the contract too; verify that each caller is intentionally relying on a default rather than silently omitting an input it actually needs
 - if a caller needs data that can be derived inside an existing reusable workflow, prefer adding an explicit reusable-workflow output over adding a new wrapper job just to rediscover the same data
 - `infra_releases.yml` is release-time artifact preparation for shared CI resources; do not add it to prod deploy wrappers unless the user explicitly wants deploy-time artifact creation there
+- for code-only deploy wrappers, check that the dispatch inputs actually cover every runtime being deployed; if ECS deploys are included, the wrapper must expose or deliberately derive an `ecs_version`
 - when the same setup or lookup pattern appears in multiple workflows, suggest extracting it into a shared reusable workflow or shared `just` recipe instead of repeating it
 - check workflow dependency wiring such as `needs`, job outputs, matrix values, and reused workflow inputs
 - watch for `data.terraform_remote_state` dependencies that can fail if another stack has not been created yet or has already been destroyed
