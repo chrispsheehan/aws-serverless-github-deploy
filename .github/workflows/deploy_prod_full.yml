@@ -14,9 +14,10 @@ jobs:
       environment: ci
       lambda_version: 0.9.2
       frontend_version: 0.9.2
+      ecs_version: 0.9.2
 
   infra:
-    needs: 
+    needs:
       - get_build
     uses: ./.github/workflows/infra.yml
     with:
@@ -24,10 +25,11 @@ jobs:
       infra_version: 0.9.2
       code_bucket: ${{ needs.get_build.outputs.code_bucket }}
       lambda_matrix: ${{ needs.get_build.outputs.lambda_version_files }}
+      service_matrix: ${{ needs.get_build.outputs.ecs_service_matrix }}
 
   deploy:
     uses: ./.github/workflows/deploy.yml
-    needs: 
+    needs:
       - get_build
       - infra # this is only to ensure infra runs before deploy no dependencies on infra outputs i.e. infra is managed separately
     with:
@@ -36,3 +38,5 @@ jobs:
       frontend_version: ${{ needs.get_build.outputs.frontend_version }}
       code_bucket: ${{ needs.get_build.outputs.code_bucket }}
       lambda_matrix: ${{ needs.get_build.outputs.lambda_version_files }}
+      task_matrix: ${{ needs.get_build.outputs.ecs_task_matrix }}
+      ecs_image_uris: ${{ needs.get_build.outputs.ecs_image_uris }}

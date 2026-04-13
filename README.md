@@ -40,6 +40,8 @@ Terragrunt also provides a shared default ECR repository name to ECS task module
 - default ECR repository: `<artifact_base>-ecs-worker`
 - override it in `infra/live/<environment>/environment_vars.hcl` only if the repository naming diverges from that convention
 
+The reusable deploy workflows follow the same split: `prod` deploy wrappers read shared artifact resources from `ci`, but still apply `prod` infrastructure stacks using the repo's directory-derived service and lambda matrices.
+
 ## 🛠️ local plan some infra
 
 Given a terragrunt file is found at `infra/live/dev/aws/api/terragrunt.hcl`

@@ -74,11 +74,18 @@ Before implementing deployment-related changes, check that the requested combina
 When changing CI workflows or Terraform module dependencies, check dependency behavior across the full lifecycle, not just the happy path.
 
 - check apply, deploy, and destroy behavior
+- when a workflow calls a reusable workflow, compare the caller `with:` block against the callee `workflow_call.inputs` block before editing anything else
+- do that check for every caller of the reusable workflow, not just the file you started in
+- treat optional inputs as part of the contract too; verify that each caller is intentionally relying on a default rather than silently omitting an input it actually needs
+- if a caller needs data that can be derived inside an existing reusable workflow, prefer adding an explicit reusable-workflow output over adding a new wrapper job just to rediscover the same data
+- `infra_releases.yml` is release-time artifact preparation for shared CI resources; do not add it to prod deploy wrappers unless the user explicitly wants deploy-time artifact creation there
 - when the same setup or lookup pattern appears in multiple workflows, suggest extracting it into a shared reusable workflow or shared `just` recipe instead of repeating it
 - check workflow dependency wiring such as `needs`, job outputs, matrix values, and reused workflow inputs
 - watch for `data.terraform_remote_state` dependencies that can fail if another stack has not been created yet or has already been destroyed
 - check required Terraform input variables on destroy paths as well as apply paths; destroy can still fail before resource deletion if required vars are unset
 - make sure every referenced `needs.<job>.outputs.*` value is actually in scope for that job
 - make sure matrix values match the expected naming contract for the workflow, module, or path being used
+- for full deploy wrappers, verify the infra workflow receives the directory-based infra matrices it needs, while deploy workflows receive the artifact-based matrices and image URIs they need
+- for prod wrappers in this repo, remember that shared artifact resources come from `ci`, while deploy target resources are still in `prod`
 - prefer making modules tolerant of unnecessary upstream state dependencies where possible
 - do not change CI ordering blindly; first check whether the real issue is an avoidable cross-stack dependency
