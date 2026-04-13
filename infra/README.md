@@ -73,7 +73,7 @@ stores state at:
 
 - infra workflows create or update infrastructure stacks
 - build workflows produce Lambda zips and container images
-- full deploy wrappers need two kinds of reusable-workflow inputs:
+- `*_infra` deploy wrappers need two kinds of reusable-workflow inputs:
   - directory-derived infra matrices for stack applies
   - artifact-derived versions, task matrices, and image URIs for code deploys
 - in `prod`, the wrappers read shared artifact resources from `ci` but still apply service and task stacks in `prod`

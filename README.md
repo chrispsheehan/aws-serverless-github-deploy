@@ -41,9 +41,9 @@ Terragrunt also provides a shared default ECR repository name to ECS task module
 - override it in `infra/live/<environment>/environment_vars.hcl` only if the repository naming diverges from that convention
 - the concrete ECS worker task wrapper defaults `local_tunnel = false` and `xray_enabled = false` unless you explicitly set them
 
-The reusable deploy workflows follow the same split: `prod` deploy wrappers read shared artifact resources from `ci`, but still apply `prod` infrastructure stacks using the repo's directory-derived service and lambda matrices.
+The reusable deploy workflows follow the same split: `prod` `*_code` and `*_infra` wrappers read shared artifact resources from `ci`, but `*_infra` still applies `prod` infrastructure stacks using the repo's directory-derived service and lambda matrices.
 
-For code-only release deploys, pass explicit release versions for each runtime you want to roll out. In particular, ECS code-only deploys should provide an `ecs_version` rather than relying on a Lambda-version fallback.
+For `*_code` release deploys, pass explicit release versions for each runtime you want to roll out. In particular, ECS code deploys should provide an `ecs_version` rather than relying on a Lambda-version fallback.
 
 ## 🛠️ local plan some infra
 

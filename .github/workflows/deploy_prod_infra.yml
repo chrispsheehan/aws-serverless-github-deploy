@@ -1,4 +1,4 @@
-name: Prod Deploy Full
+name: Prod Deploy Infra
 
 on:
   workflow_dispatch:
@@ -9,6 +9,7 @@ permissions:
 
 jobs:
   get_build:
+    name: Resolve Release Artifacts
     uses: ./.github/workflows/build_get.yml
     with:
       environment: ci
@@ -17,6 +18,7 @@ jobs:
       ecs_version: 0.9.4
 
   infra:
+    name: Apply Infrastructure
     needs:
       - get_build
     uses: ./.github/workflows/infra.yml
@@ -29,6 +31,7 @@ jobs:
       service_matrix: ${{ needs.get_build.outputs.ecs_service_matrix }}
 
   deploy:
+    name: Deploy Code
     uses: ./.github/workflows/deploy.yml
     needs:
       - get_build

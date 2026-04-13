@@ -1,4 +1,5 @@
-name: Dev Deploy Full
+name: Dev Deploy Code
+# This deploys code changes to dev without touching infra.
 
 on:
   workflow_dispatch:
@@ -9,31 +10,13 @@ permissions:
 
 jobs:
   setup:
+    name: Discover Directories
     uses: ./.github/workflows/get_directories.yml
 
-  code:
-    uses: ./.github/workflows/infra_releases.yml
-    with:
-      environment: dev
-      infra_version: ${{ github.sha }}
-
-  infra:
-    needs: 
-      - setup
-      - code
-    uses: ./.github/workflows/infra.yml
-    with:
-      environment: dev
-      infra_version: ${{ github.sha }}
-      code_bucket: ${{ needs.code.outputs.code_bucket }}
-      lambda_matrix: ${{ needs.setup.outputs.lambda_dirs }}
-      bootstrap_image_uri: ${{ needs.code.outputs.bootstrap_image_uri }}
-      service_matrix: ${{ needs.setup.outputs.ecs_service_dirs }}
-
   build:
+    name: Build Artifacts
     uses: ./.github/workflows/build.yml
     needs:
-      - code
       - setup
     with:
       environment: dev
@@ -43,22 +26,24 @@ jobs:
       lambda_matrix: ${{ needs.setup.outputs.lambda_dirs }}
       ecs_matrix: ${{ needs.setup.outputs.container_dirs }}
 
+
   get_build:
+    name: Resolve Build Outputs
     needs: build
     uses: ./.github/workflows/build_get.yml
     with:
       environment: dev
-      lambda_version: ${{ github.sha }}
-      frontend_version: ${{ github.sha }}
-      ecs_version: ${{ github.sha }}
+      lambda_version: ${{ needs.build.outputs.lambda_version }}
+      frontend_version: ${{ needs.build.outputs.frontend_version }}
+      ecs_version: ${{ needs.build.outputs.ecs_version }}
 
   deploy:
+    name: Deploy Code
     uses: ./.github/workflows/deploy.yml
     needs:
       - setup
       - build
       - get_build
-      - infra
     with:
       environment: dev
       lambda_version: ${{ needs.build.outputs.lambda_version }}
