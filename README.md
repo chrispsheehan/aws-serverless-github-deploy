@@ -13,6 +13,8 @@ just tg dev aws/oidc apply
 just tg prod aws/oidc apply
 ```
 
+The `ci` OIDC role is intentionally narrower than the `dev` and `prod` roles. In this repo it is limited to build-artifact management, including the shared code bucket, IAM interactions needed by the existing CI flow, and publishing container images to ECR. It is not the repo's broad deployment role.
+
 ## 🧱 prerequisite network
 
 The AWS account must already have the landing-zone or StackSet network in place before deploying this repo.
