@@ -1,16 +1,16 @@
 # `task_api`
 
-Concrete ECS API task wrapper for the blue/green API service.
+Concrete ECS API task wrapper for the sample API service.
 
 ## Owns
 
-- blue/green ECS API task definition via `_shared/task`
+- sample ECS API task definition via `_shared/task`
 
 ## Key behavior
 
 - runs the `containers/api` image
 - publishes API task revisions for ECS deploys
-- exposes the service on the `/blue-green-api` root path
+- exposes the service on the `/ecs` root path
 - defaults `local_tunnel` and `xray_enabled` to `false` unless explicitly enabled
 
 ## Key outputs
@@ -19,4 +19,4 @@ Concrete ECS API task wrapper for the blue/green API service.
 - `service_name`
 - log group name
 
-This module is the image-driven deployment unit for the ECS blue/green API service.
+This module is the image-driven deployment unit for the sample ECS API service.

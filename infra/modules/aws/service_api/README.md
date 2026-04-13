@@ -1,11 +1,11 @@
 # `service_api`
 
-Concrete ECS API service wrapper for the blue/green API service.
+Concrete ECS API service wrapper for the sample API service.
 
 ## Owns
 
-- blue/green ECS API service via `_shared/service`
-- API Gateway VPC link routing on `/blue-green-api`
+- sample ECS API service via `_shared/service`
+- API Gateway VPC link routing on `/ecs`
 
 ## Dependencies
 
@@ -26,4 +26,4 @@ Concrete ECS API service wrapper for the blue/green API service.
 - `codedeploy_deployment_group_name`
 - `container_port`
 
-This module wires the blue/green ECS API service into the shared API Gateway and ALB infrastructure.
+This module wires the sample ECS API service into the shared API Gateway and ALB infrastructure.

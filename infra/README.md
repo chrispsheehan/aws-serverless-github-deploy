@@ -68,7 +68,7 @@ Current examples include:
 - `task_worker` / `service_worker`
   Internal ECS worker service shape.
 - `task_api` / `service_api`
-  ECS API service shape exposed on the shared API Gateway at `/blue-green-api` using `vpc_link` and `blue_green`.
+  ECS API service shape exposed on the shared API Gateway at `/ecs` using `vpc_link` and `blue_green`. Through the frontend distribution it is reached at `/api/ecs/*`, while the Lambda API is reached at `/api/*`.
 
 ## Dependency Notes
 

@@ -34,7 +34,10 @@ The repo `network` module also owns the shared internal ALB and shared HTTP API 
 
 This repo now includes a sample ECS API container service exposed separately from the Lambda API:
 
-- ECS API path: `/blue-green-api`
+- public Lambda path via CloudFront: `/api/*`
+- public ECS path via CloudFront: `/api/ecs/*`
+- API Gateway Lambda route namespace: `/*`
+- API Gateway ECS route namespace: `/ecs/*`
 - deployment model: ECS CodeDeploy `blue_green`
 - stacks: `task_api` and `service_api`
 

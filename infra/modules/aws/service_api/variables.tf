@@ -18,7 +18,7 @@ variable "project_name" {
 
 variable "service_name" {
   type    = string
-  default = "ecs-blue-green-api"
+  default = "ecs-service-api"
 }
 
 variable "vpc_name" {
@@ -32,7 +32,7 @@ variable "container_port" {
 
 variable "root_path" {
   description = "The path to serve the service from. / is for default /example_service is for subpath"
-  default     = "blue-green-api"
+  default     = "ecs"
   type        = string
 }
 

@@ -7,7 +7,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 HOST = "0.0.0.0"
 PORT = int(os.getenv("PORT", "80"))
 ROOT_PATH = os.getenv("ROOT_PATH", "")
-SERVICE_NAME = os.getenv("AWS_SERVICE_NAME", "ecs-blue-green-api")
+SERVICE_NAME = os.getenv("AWS_SERVICE_NAME", "ecs-service-api")
 IMAGE = os.getenv("IMAGE", "unknown")
 
 

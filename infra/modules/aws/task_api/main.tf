@@ -19,7 +19,7 @@ module "task_api" {
   additional_env_vars            = []
   additional_runtime_policy_arns = []
 
-  root_path    = "blue-green-api"
-  service_name = "ecs-blue-green-api"
+  root_path    = "ecs"
+  service_name = "ecs-service-api"
   command      = ["python", "-u", "app.py"]
 }
