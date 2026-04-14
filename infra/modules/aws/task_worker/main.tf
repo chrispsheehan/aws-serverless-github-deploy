@@ -27,6 +27,10 @@ module "task_worker" {
     {
       name  = "AWS_SQS_QUEUE_URL"
       value = module.sqs_queue.sqs_queue_url
+    },
+    {
+      name  = "HEARTBEAT_FILE"
+      value = "/tmp/worker-heartbeat"
     }
   ]
   additional_runtime_policy_arns = [
@@ -34,11 +38,11 @@ module "task_worker" {
   ]
 
   health_check = {
-    command      = ["CMD-SHELL", "python -c \"import boto3, os; boto3.client('sqs', region_name=os.environ['AWS_REGION']).get_queue_attributes(QueueUrl=os.environ['AWS_SQS_QUEUE_URL'], AttributeNames=['QueueArn'])\""]
+    command      = ["CMD-SHELL", "python -c \"import os, time; path=os.environ['HEARTBEAT_FILE']; now=time.time(); mtime=os.path.getmtime(path); raise SystemExit(0 if now - mtime < 180 else 1)\""]
     interval     = 60
     timeout      = 5
     retries      = 3
-    start_period = 10
+    start_period = 30
   }
 
   root_path    = ""

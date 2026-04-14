@@ -13,7 +13,7 @@ Concrete ECS worker task wrapper.
 - publishes worker task revisions for ECS deploys
 - uses the shared ECR repository named by `ecr_repository_name`
 - injects its own queue URL into the container via `AWS_SQS_QUEUE_URL`
-- uses an ECS container health check that verifies SQS access against its configured queue
+- updates a local heartbeat file as it polls and uses an ECS container health check against that heartbeat
 - defaults `local_tunnel` and `xray_enabled` to `false` unless explicitly enabled
 
 ## Key outputs

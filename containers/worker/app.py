@@ -5,8 +5,14 @@ import time
 QUEUE_URL    = os.environ['AWS_SQS_QUEUE_URL']
 AWS_REGION   = os.environ['AWS_REGION']
 POLL_TIMEOUT = int(os.getenv("POLL_TIMEOUT", "60"))
+HEARTBEAT_FILE = os.getenv("HEARTBEAT_FILE", "/tmp/worker-heartbeat")
 
 sqs = boto3.client('sqs', region_name=AWS_REGION)
+
+
+def write_heartbeat():
+    with open(HEARTBEAT_FILE, "w", encoding="utf-8") as heartbeat:
+        heartbeat.write(str(int(time.time())))
 
 
 def process_message(msg):
@@ -35,6 +41,8 @@ def poll():
 
 if __name__ == "__main__":
     print(f"Starting SQS poller for {QUEUE_URL}")
+    write_heartbeat()
     while True:
         poll()
+        write_heartbeat()
         time.sleep(POLL_TIMEOUT)
