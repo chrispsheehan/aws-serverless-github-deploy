@@ -75,6 +75,7 @@ Before implementing deployment-related changes, check that the requested combina
 When changing CI workflows or Terraform module dependencies, check dependency behavior across the full lifecycle, not just the happy path.
 
 - check apply, deploy, and destroy behavior
+- on destroy, prefer depending on the real downstream stacks rather than serializing shared stacks unnecessarily; for example, `network` and `cluster` can tear down in parallel once their consuming service, task, and frontend stacks are gone
 - when a workflow calls a reusable workflow, compare the caller `with:` block against the callee `workflow_call.inputs` block before editing anything else
 - do that check for every caller of the reusable workflow, not just the file you started in
 - treat optional inputs as part of the contract too; verify that each caller is intentionally relying on a default rather than silently omitting an input it actually needs

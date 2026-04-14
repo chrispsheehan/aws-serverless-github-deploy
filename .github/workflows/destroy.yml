@@ -173,7 +173,9 @@ jobs:
   cluster:
     name: Cluster
     needs:
-      - network
+      - frontend
+      - services
+      - tasks
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6

@@ -77,6 +77,7 @@ That `containers/shared` directory is helper code only and is not treated as a d
 
 - many modules use `data.terraform_remote_state` to read outputs from other stacks
 - because of that, workflow ordering matters for apply, deploy, and destroy
+- on destroy, `network` and `cluster` can tear down in parallel once `service_*`, `task_*`, and `frontend` stacks are gone
 - avoid making one runtime depend on another runtime's state ownership unnecessarily; for example, the ECS worker queue is owned by `task_worker` rather than by `lambda_worker`
 - some shared infrastructure, such as the landing-zone VPC and tagged private subnets, is discovered with `data` lookups and must already exist
 
