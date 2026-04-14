@@ -14,7 +14,7 @@ This directory contains the Terraform and Terragrunt layout for the repo.
 ## Environments
 
 - `dev`
-  Main development environment.
+  Main development environment. This repo also sets `otel_sampling_percentage = 100` there so ECS tracing is fully sampled while iterating.
 - `prod`
   Production environment.
 - `ci`
