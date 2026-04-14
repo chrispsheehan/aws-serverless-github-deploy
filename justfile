@@ -7,6 +7,7 @@ LAMBDA_DIR := "lambdas"
 CONTAINERS_DIR := "containers"
 FRONTEND_DIR := "frontend"
 EXTRA_CONTAINER_DIRECTORIES := "[\"debug\",\"otel_collector\"]"
+NON_SERVICE_CONTAINER_DIRECTORIES := "[\"shared\"]"
 
 
 tf-lint-check:
@@ -284,6 +285,9 @@ service-get-directories:
 
     find "{{CONTAINERS_DIR}}" -mindepth 1 -maxdepth 1 -type d \
       | xargs -I{} basename "{}" \
+      | jq -R . \
+      | jq -sc --argjson reserved '{{NON_SERVICE_CONTAINER_DIRECTORIES}}' 'map(select(. as $name | ($reserved | index($name) | not)))' \
+      | jq -r '.[]' \
       | tr '-' '_' \
       | jq -R . \
       | jq -s -c .

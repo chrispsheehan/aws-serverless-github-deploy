@@ -82,6 +82,7 @@ When changing CI workflows or Terraform module dependencies, check dependency be
 - `infra_releases.yml` is release-time artifact preparation for shared CI resources; do not add it to prod deploy wrappers unless the user explicitly wants deploy-time artifact creation there
 - for `*_code` deploy wrappers, check that the dispatch inputs actually cover every runtime being deployed; if ECS deploys are included, the wrapper must expose or deliberately derive an `ecs_version`
 - when the same setup or lookup pattern appears in multiple workflows, suggest extracting it into a shared reusable workflow or shared `just` recipe instead of repeating it
+- if you add helper code under `containers/`, check the `just` directory-discovery recipes so CI does not accidentally treat that directory as a deployable ECS image target
 - check workflow dependency wiring such as `needs`, job outputs, matrix values, and reused workflow inputs
 - watch for `data.terraform_remote_state` dependencies that can fail if another stack has not been created yet or has already been destroyed
 - avoid cross-runtime ownership when a resource is really part of one app shape; for example, keep the ECS worker queue with `task_worker` rather than making ECS consume `lambda_worker` state

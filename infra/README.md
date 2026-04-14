@@ -71,6 +71,7 @@ Current examples include:
   ECS API service shape exposed on the shared API Gateway at `/ecs` using `vpc_link` and `blue_green`, backed by a dedicated listener on the shared ALB. Through the frontend distribution it is reached at `/api/ecs/*`, while the Lambda API is reached at `/api/*`.
 
 The ECS task wrappers share common app-level tracing code from `containers/shared`, so enabling `xray_enabled` produces app spans as well as sidecar export wiring.
+That `containers/shared` directory is helper code only and is not treated as a deployable ECS image target by the CI directory-discovery recipes.
 
 ## Dependency Notes
 
