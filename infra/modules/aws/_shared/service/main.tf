@@ -176,9 +176,12 @@ resource "aws_ecs_service" "service" {
   }
 
   lifecycle {
-    # Deploy workflows own the live task revision. Terraform keeps the service
-    # shape stable without reverting the currently deployed revision.
+    # Deploy workflows own the live task revision. Terraform keeps the service stable without reverting the currently deployed revision.
+
+    # For CODE_DEPLOY services, ECS also rejects load balancer updates through UpdateService. Terraform still owns the target group and listener-rule
+    # resources themselves, but the ECS service attachment must stay stable after first creation.
     ignore_changes = [
+      load_balancer,
       task_definition,
     ]
   }

@@ -221,14 +221,12 @@ deployment_strategy = "blue_green"
 
 - ECS CodeDeploy is only created for load-balanced ECS services in `_shared/service`
 - internal ECS services without load balancer integration should use native ECS rolling updates instead
-- the shared ECS service resource ignores `task_definition` drift so later infra applies do not revert the live task revision after either a rolling deploy or a CodeDeploy rollout
+- infra ignores ECS `task_definition` drift
+- for CodeDeploy ECS services, infra also ignores `load_balancer` drift
 - the deployment workflow:
   - applies the new `task_*` revision
-  - if the service has CodeDeploy resources, reads `codedeploy_app_name` and `codedeploy_deployment_group_name` from `service_*`
-  - renders [`appspec-ecs.yml`](appspec-ecs.yml)
-  - uploads the AppSpec to the code bucket
-  - runs `just ecs-deploy`
-  - otherwise updates the ECS service to the new task definition with a native rolling deploy
+  - uses CodeDeploy for load-balanced services
+  - uses native rolling deploys for internal services
 
 ## 🔥↩️ deployment roll-back
 

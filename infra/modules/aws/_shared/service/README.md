@@ -22,9 +22,9 @@ Shared ECS service module.
 
 ## Bootstrap behavior
 
-Bootstrap ECS services use the shared bootstrap image, which is a generic placeholder image rather than the real app container.
-
-Because of that, bootstrap target groups health-check `/` instead of the app-specific health endpoint. Once the real task definition is deployed, the normal service health path applies again, such as `/health` or `/<root_path>/health`.
+Bootstrap ECS services use the shared placeholder image.
+Bootstrap health checks use `/`.
+Real task deploys use the normal app health path, such as `/health` or `/<root_path>/health`.
 
 ## Deployment strategies
 
@@ -38,11 +38,13 @@ For internal non-load-balanced services, the deploy workflow falls back to nativ
 
 ## Drift ownership
 
-The ECS service ignores changes to `task_definition`.
+The ECS service ignores:
 
-That is intentional:
+- `task_definition`
+- `load_balancer`
 
-- deploy workflows own the live task revision
-- infra applies own the stable service shape
+Reason:
 
-Without that split, a later infra apply would revert a successful rolling or CodeDeploy deployment back to the older task definition stored in Terraform state.
+- deploy workflows own the live revision
+- infra owns the stable service shape
+- CodeDeploy ECS services reject `load_balancer` updates via `UpdateService`
