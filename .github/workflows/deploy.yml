@@ -122,6 +122,9 @@ jobs:
   frontend:
     runs-on: ubuntu-latest
     if: ${{ inputs.frontend_version != '' }}
+    needs: 
+      - lambdas
+      - ecs
     steps:
       - uses: actions/checkout@v6
 
