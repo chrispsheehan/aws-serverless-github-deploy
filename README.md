@@ -228,6 +228,7 @@ deployment_strategy = "blue_green"
 - internal ECS services without load balancer integration should use native ECS rolling updates instead
 - infra ignores ECS `task_definition` drift
 - for CodeDeploy ECS services, infra also ignores `load_balancer` drift
+- for dedicated blue/green listeners, infra also ignores listener `default_action` drift
 - the deployment workflow:
   - applies the new `task_*` revision
   - uses CodeDeploy for load-balanced services

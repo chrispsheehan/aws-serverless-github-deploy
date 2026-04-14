@@ -46,9 +46,11 @@ The ECS service ignores:
 
 - `task_definition`
 - `load_balancer`
+- dedicated-listener `default_action`
 
 Reason:
 
 - deploy workflows own the live revision
 - infra owns the stable service shape
 - CodeDeploy ECS services reject `load_balancer` updates via `UpdateService`
+- CodeDeploy also owns the live target-group switch on dedicated listeners
