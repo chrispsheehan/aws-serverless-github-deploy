@@ -24,6 +24,10 @@ locals {
       value = "http://localhost:4317"
     },
     {
+      name  = "XRAY_ENABLED"
+      value = tostring(var.xray_enabled)
+    },
+    {
       name  = "ROOT_PATH"
       value = local.root_path_prefix
     },

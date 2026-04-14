@@ -75,6 +75,7 @@ Before implementing deployment-related changes, check that the requested combina
 When changing CI workflows or Terraform module dependencies, check dependency behavior across the full lifecycle, not just the happy path.
 
 - check apply, deploy, and destroy behavior
+- on destroy, prefer depending on the real downstream stacks rather than serializing shared stacks unnecessarily; for example, `network` and `cluster` can tear down in parallel once their consuming service, task, and frontend stacks are gone
 - when a workflow calls a reusable workflow, compare the caller `with:` block against the callee `workflow_call.inputs` block before editing anything else
 - do that check for every caller of the reusable workflow, not just the file you started in
 - treat optional inputs as part of the contract too; verify that each caller is intentionally relying on a default rather than silently omitting an input it actually needs
@@ -82,6 +83,7 @@ When changing CI workflows or Terraform module dependencies, check dependency be
 - `infra_releases.yml` is release-time artifact preparation for shared CI resources; do not add it to prod deploy wrappers unless the user explicitly wants deploy-time artifact creation there
 - for `*_code` deploy wrappers, check that the dispatch inputs actually cover every runtime being deployed; if ECS deploys are included, the wrapper must expose or deliberately derive an `ecs_version`
 - when the same setup or lookup pattern appears in multiple workflows, suggest extracting it into a shared reusable workflow or shared `just` recipe instead of repeating it
+- if you add helper code under `containers/`, check the `just` directory-discovery recipes so CI does not accidentally treat that directory as a deployable ECS image target
 - check workflow dependency wiring such as `needs`, job outputs, matrix values, and reused workflow inputs
 - watch for `data.terraform_remote_state` dependencies that can fail if another stack has not been created yet or has already been destroyed
 - avoid cross-runtime ownership when a resource is really part of one app shape; for example, keep the ECS worker queue with `task_worker` rather than making ECS consume `lambda_worker` state

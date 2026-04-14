@@ -2,6 +2,10 @@ import boto3
 import os
 import time
 
+from opentelemetry.trace import SpanKind
+
+from ecs_tracing import start_span
+
 QUEUE_URL    = os.environ['AWS_SQS_QUEUE_URL']
 AWS_REGION   = os.environ['AWS_REGION']
 POLL_TIMEOUT = int(os.getenv("POLL_TIMEOUT", "60"))
@@ -16,25 +20,55 @@ def write_heartbeat():
 
 
 def process_message(msg):
-    # TODO: implement business logic
-    print({"message_id": msg['MessageId'], "body": msg['Body'][:200]})
+    with start_span(
+        "worker.process_message",
+        kind=SpanKind.CONSUMER,
+        attributes={
+            "messaging.system": "aws.sqs",
+            "messaging.operation": "process",
+            "messaging.destination.name": QUEUE_URL,
+            "messaging.message.id": msg["MessageId"],
+        },
+    ):
+        # TODO: implement business logic
+        print({"message_id": msg['MessageId'], "body": msg['Body'][:200]})
 
 
 def poll():
-    response = sqs.receive_message(
-        QueueUrl=QUEUE_URL,
-        MaxNumberOfMessages=10,
-        WaitTimeSeconds=20,
-        VisibilityTimeout=30,
-    )
-    messages = response.get('Messages', [])
+    with start_span(
+        "sqs.receive_message",
+        kind=SpanKind.CLIENT,
+        attributes={
+            "messaging.system": "aws.sqs",
+            "messaging.operation": "receive",
+            "messaging.destination.name": QUEUE_URL,
+        },
+    ) as span:
+        response = sqs.receive_message(
+            QueueUrl=QUEUE_URL,
+            MaxNumberOfMessages=10,
+            WaitTimeSeconds=20,
+            VisibilityTimeout=30,
+        )
+        messages = response.get('Messages', [])
+        span.set_attribute("messaging.batch.message_count", len(messages))
     if not messages:
         print("No messages")
         return
     for msg in messages:
         try:
             process_message(msg)
-            sqs.delete_message(QueueUrl=QUEUE_URL, ReceiptHandle=msg['ReceiptHandle'])
+            with start_span(
+                "sqs.delete_message",
+                kind=SpanKind.CLIENT,
+                attributes={
+                    "messaging.system": "aws.sqs",
+                    "messaging.operation": "delete",
+                    "messaging.destination.name": QUEUE_URL,
+                    "messaging.message.id": msg["MessageId"],
+                },
+            ):
+                sqs.delete_message(QueueUrl=QUEUE_URL, ReceiptHandle=msg['ReceiptHandle'])
         except Exception as e:
             print(f"Failed {msg['MessageId']}: {e}")
 

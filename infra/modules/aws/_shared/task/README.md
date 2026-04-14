@@ -34,3 +34,4 @@ Use this for task revision creation. Traffic rollout happens at the service laye
 The ECR repository access policy uses the explicit `ecr_repository_name` input. In this repo, Terragrunt sets a root-level default and environments can override it if the repository naming ever changes.
 
 When `health_check` is set, the module adds an ECS container health check to the main service container.
+When `xray_enabled` is true, the module also provides the shared ECS tracing environment needed by the app containers to export spans through the OTEL sidecar to X-Ray.

@@ -14,7 +14,7 @@ This directory contains the Terraform and Terragrunt layout for the repo.
 ## Environments
 
 - `dev`
-  Main development environment.
+  Main development environment. This repo also sets `otel_sampling_percentage = 100` there so ECS tracing is fully sampled while iterating.
 - `prod`
   Production environment.
 - `ci`
@@ -70,10 +70,14 @@ Current examples include:
 - `task_api` / `service_api`
   ECS API service shape exposed on the shared API Gateway at `/ecs` using `vpc_link` and `blue_green`, backed by a dedicated listener on the shared ALB. Through the frontend distribution it is reached at `/api/ecs/*`, while the Lambda API is reached at `/api/*`.
 
+The ECS task wrappers share common app-level tracing code from `containers/shared`, so enabling `xray_enabled` produces app spans as well as sidecar export wiring.
+That `containers/shared` directory is helper code only and is not treated as a deployable ECS image target by the CI directory-discovery recipes.
+
 ## Dependency Notes
 
 - many modules use `data.terraform_remote_state` to read outputs from other stacks
 - because of that, workflow ordering matters for apply, deploy, and destroy
+- on destroy, `network` and `cluster` can tear down in parallel once `service_*`, `task_*`, and `frontend` stacks are gone
 - avoid making one runtime depend on another runtime's state ownership unnecessarily; for example, the ECS worker queue is owned by `task_worker` rather than by `lambda_worker`
 - some shared infrastructure, such as the landing-zone VPC and tagged private subnets, is discovered with `data` lookups and must already exist
 

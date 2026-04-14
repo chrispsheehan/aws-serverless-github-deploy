@@ -115,6 +115,11 @@ resource "aws_lb_listener" "service" {
       condition     = var.load_balancer_arn != ""
       error_message = "load_balancer_arn must be set when dedicated_listener_port is used."
     }
+
+    # CodeDeploy owns the live target-group switch for dedicated blue/green listeners.
+    ignore_changes = [
+      default_action,
+    ]
   }
 }
 

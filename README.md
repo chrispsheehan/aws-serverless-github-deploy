@@ -53,6 +53,7 @@ Terragrunt also provides a shared default ECR repository name to ECS task module
 - default ECR repository: `<artifact_base>-ecs-worker`
 - override it in `infra/live/<environment>/environment_vars.hcl` only if the repository naming diverges from that convention
 - the concrete ECS worker task wrapper defaults `local_tunnel = false` and `xray_enabled = false` unless you explicitly set them
+- in `dev`, `otel_sampling_percentage` is set to `100` so ECS traces are easy to verify while iterating
 
 The reusable deploy workflows follow the same split: `prod` `*_code` and `*_infra` wrappers read shared artifact resources from `ci`, but `*_infra` only applies `prod` infrastructure stacks using the repo's directory-derived service and lambda matrices.
 
@@ -61,6 +62,8 @@ For `*_code` release deploys, pass explicit release versions for each runtime yo
 The ECS worker queue is now owned by `task_worker`, and `service_worker` reads that queue name from `task_worker` remote state. That keeps the ECS worker queue aligned with the worker stack lifecycle without depending on the Lambda worker queue.
 For bootstrap service applies, `service_worker` now uses placeholder task and queue values locally rather than spreading `count`-indexed remote-state access through the module.
 The ECS worker task uses a local heartbeat-file health check, which is a better fit for a non-HTTP worker than probing a service endpoint or tying task health directly to transient AWS API calls.
+All ECS app containers now use a shared tracing helper under `containers/shared` so API requests and worker SQS operations emit X-Ray traces when `xray_enabled = true`.
+`containers/shared` is helper code only and is intentionally excluded from the CI ECS image/service discovery matrix.
 
 ## 🧪 example prompts
 
@@ -225,6 +228,7 @@ deployment_strategy = "blue_green"
 - internal ECS services without load balancer integration should use native ECS rolling updates instead
 - infra ignores ECS `task_definition` drift
 - for CodeDeploy ECS services, infra also ignores `load_balancer` drift
+- for dedicated blue/green listeners, infra also ignores listener `default_action` drift
 - the deployment workflow:
   - applies the new `task_*` revision
   - uses CodeDeploy for load-balanced services
