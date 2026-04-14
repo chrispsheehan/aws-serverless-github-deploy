@@ -81,7 +81,7 @@ resource "aws_lb_target_group" "green_target_group" {
 }
 
 resource "aws_lb_listener_rule" "service" {
-  count = local.is_default_path ? 0 : 1
+  count = (!local.is_default_path && !local.use_dedicated_listener) ? 1 : 0
 
   listener_arn = var.default_http_listener_arn
   priority     = local.priority
@@ -93,7 +93,27 @@ resource "aws_lb_listener_rule" "service" {
 
   condition {
     path_pattern {
-      values = ["/${var.root_path}/*"]
+      values = ["/${var.root_path}", "/${var.root_path}/*"]
+    }
+  }
+}
+
+resource "aws_lb_listener" "service" {
+  count = local.use_dedicated_listener ? 1 : 0
+
+  load_balancer_arn = var.load_balancer_arn
+  port              = var.dedicated_listener_port
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.service_target_group[0].arn
+  }
+
+  lifecycle {
+    precondition {
+      condition     = var.load_balancer_arn != ""
+      error_message = "load_balancer_arn must be set when dedicated_listener_port is used."
     }
   }
 }
@@ -124,7 +144,7 @@ resource "aws_apigatewayv2_integration" "service" {
   connection_type        = "VPC_LINK"
   integration_type       = "HTTP_PROXY"
   integration_method     = "ANY"
-  integration_uri        = var.default_http_listener_arn
+  integration_uri        = local.traffic_route_arn
   payload_format_version = "1.0"
 
   lifecycle {

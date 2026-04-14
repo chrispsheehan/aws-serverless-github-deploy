@@ -10,6 +10,13 @@ resource "aws_security_group" "load_balancer" {
     cidr_blocks = [data.aws_vpc.this.cidr_block]
   }
 
+  ingress {
+    from_port   = var.additional_listener_port
+    to_port     = var.additional_listener_port
+    protocol    = "tcp"
+    cidr_blocks = [data.aws_vpc.this.cidr_block]
+  }
+
   egress {
     from_port   = 0
     to_port     = 0

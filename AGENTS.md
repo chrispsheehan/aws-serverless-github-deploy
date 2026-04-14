@@ -44,6 +44,7 @@ Choose deployment modes that match the runtime shape.
 
 - ECS CodeDeploy requires a load-balanced service shape in this repo.
 - In practice that means `connection_type` must be `internal_dns` or `vpc_link` for CodeDeploy-backed ECS deploys.
+- In this repo, subpath ECS services need a dedicated ALB listener if they are meant to use CodeDeploy blue/green.
 - If `connection_type = "internal"`, prefer `rolling`.
 
 ## Feasibility Check

@@ -16,6 +16,7 @@ module "service_api" {
   ecs_security_group_id = data.terraform_remote_state.security.outputs.ecs_sg
 
   default_target_group_arn  = data.terraform_remote_state.network.outputs.default_target_group_arn
+  load_balancer_arn         = data.terraform_remote_state.network.outputs.load_balancer_arn
   default_http_listener_arn = data.terraform_remote_state.network.outputs.default_http_listener_arn
   load_balancer_arn_suffix  = data.terraform_remote_state.network.outputs.load_balancer_arn_suffix
   target_group_arn_suffix   = data.terraform_remote_state.network.outputs.target_group_arn_suffix
@@ -33,6 +34,7 @@ module "service_api" {
 
   desired_task_count            = 1
   deployment_strategy           = "blue_green"
+  dedicated_listener_port       = 8080
   codedeploy_alarm_names        = []
   additional_security_group_ids = []
 

@@ -16,6 +16,7 @@ Concrete ECS API service wrapper for the sample API service.
 
 - exposes the ECS API container on the shared HTTP API Gateway using `connection_type = "vpc_link"`
 - uses `deployment_strategy = "blue_green"`
+- uses a dedicated ALB listener on port `8080` so ECS CodeDeploy can own traffic
 - defaults `local_tunnel` and `xray_enabled` to `false` unless explicitly enabled
 
 ## Key outputs

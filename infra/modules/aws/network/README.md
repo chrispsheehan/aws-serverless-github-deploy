@@ -19,6 +19,7 @@ Shared network and routing module.
 
 ## Key outputs
 
+- `load_balancer_arn`
 - ALB listener and target group identifiers
 - `internal_invoke_url`
 - `api_id`

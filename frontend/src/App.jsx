@@ -1,5 +1,16 @@
 import { useEffect, useState } from 'react'
 
+async function fetchJson(url) {
+  const response = await fetch(url)
+  const text = await response.text()
+
+  try {
+    return JSON.parse(text)
+  } catch {
+    throw new Error(`${response.status} ${response.statusText}: ${text.slice(0, 200)}`)
+  }
+}
+
 export default function App() {
   const [lambdaData, setLambdaData] = useState(null)
   const [lambdaError, setLambdaError] = useState(null)
@@ -7,13 +18,11 @@ export default function App() {
   const [ecsError, setEcsError] = useState(null)
 
   useEffect(() => {
-    fetch('/api/')
-      .then((r) => r.json())
+    fetchJson('/api/')
       .then(setLambdaData)
       .catch(setLambdaError)
 
-    fetch('/api/ecs/')
-      .then((r) => r.json())
+    fetchJson('/api/ecs')
       .then(setEcsData)
       .catch(setEcsError)
   }, [])

@@ -17,3 +17,5 @@ Shared security-group module.
 - `api_vpc_link_sg`
 
 Used by `network`, `api`, and ECS service modules.
+
+The load balancer security group also allows the additional internal listener port used by blue/green ECS services with dedicated listeners.

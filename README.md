@@ -39,6 +39,7 @@ This repo now includes a sample ECS API container service exposed separately fro
 - API Gateway Lambda route namespace: `/*`
 - API Gateway ECS route namespace: `/ecs/*`
 - deployment model: ECS CodeDeploy `blue_green`
+- ALB shape: shared private ALB with a dedicated ECS API listener on port `8080`
 - stacks: `task_api` and `service_api`
 - the sample frontend calls both backends and renders both responses so the path split is visible in the UI
 
@@ -220,6 +221,7 @@ deployment_strategy = "blue_green"
 ```
 
 - ECS CodeDeploy is only created for load-balanced ECS services in `_shared/service`
+- subpath ECS services need a dedicated ALB listener if they are meant to use CodeDeploy blue/green in this repo
 - internal ECS services without load balancer integration should use native ECS rolling updates instead
 - infra ignores ECS `task_definition` drift
 - for CodeDeploy ECS services, infra also ignores `load_balancer` drift

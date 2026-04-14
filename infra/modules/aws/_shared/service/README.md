@@ -19,9 +19,10 @@ Shared ECS service module.
 - `bootstrap`
 - `bootstrap_image_uri`
 - `codedeploy_alarm_names`
+- optional `dedicated_listener_port`
 
 Subpath services match both `/<root_path>` and `/<root_path>/*`.
-For CodeDeploy-backed subpath services, the traffic route uses the ALB listener-rule ARN.
+If `dedicated_listener_port` is set, the service gets its own ALB listener and uses that listener for API Gateway integration and ECS CodeDeploy traffic routing.
 
 ## Bootstrap behavior
 
