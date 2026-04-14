@@ -70,6 +70,8 @@ Current examples include:
 - `task_api` / `service_api`
   ECS API service shape exposed on the shared API Gateway at `/ecs` using `vpc_link` and `blue_green`, backed by a dedicated listener on the shared ALB. Through the frontend distribution it is reached at `/api/ecs/*`, while the Lambda API is reached at `/api/*`.
 
+The ECS task wrappers share common app-level tracing code from `containers/shared`, so enabling `xray_enabled` produces app spans as well as sidecar export wiring.
+
 ## Dependency Notes
 
 - many modules use `data.terraform_remote_state` to read outputs from other stacks

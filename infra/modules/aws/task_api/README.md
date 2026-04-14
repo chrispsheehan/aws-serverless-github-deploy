@@ -11,6 +11,7 @@ Concrete ECS API task wrapper for the sample API service.
 - runs the `containers/api` image
 - publishes API task revisions for ECS deploys
 - exposes the service on the `/ecs` root path
+- uses the shared ECS tracing helper so HTTP requests emit X-Ray spans when `xray_enabled` is enabled
 - defaults `local_tunnel` and `xray_enabled` to `false` unless explicitly enabled
 
 ## Key outputs

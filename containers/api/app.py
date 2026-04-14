@@ -3,6 +3,10 @@ import os
 import socket
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
+from opentelemetry.trace import SpanKind
+
+from ecs_tracing import extract_context, start_span
+
 
 HOST = "0.0.0.0"
 PORT = int(os.getenv("PORT", "80"))
@@ -39,34 +43,54 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(encoded)
 
     def do_GET(self) -> None:  # noqa: N802
-        route = route_for(self.path.split("?", 1)[0])
+        path = self.path.split("?", 1)[0]
+        route = route_for(path)
+        ctx = extract_context(lambda key: self.headers.get(key))
 
-        if route == "/health":
-            self._write_json(200, {"status": "ok", "service": SERVICE_NAME})
-            return
+        with start_span(
+            name=f"{self.command} {route}",
+            context=ctx,
+            kind=SpanKind.SERVER,
+            attributes={
+                "http.method": self.command,
+                "http.target": path,
+                "http.route": route,
+                "http.host": self.headers.get("Host", ""),
+                "http.user_agent": self.headers.get("User-Agent", ""),
+            },
+        ) as span:
+            if route == "/health":
+                span.set_attribute("http.status_code", 200)
+                self._write_json(200, {"status": "ok", "service": SERVICE_NAME})
+                return
 
-        if route in ("/fail", "/error"):
+            if route in ("/fail", "/error"):
+                span.set_attribute("http.status_code", 500)
+                self._write_json(
+                    500,
+                    {
+                        "message": "Forced failure for testing",
+                        "service": SERVICE_NAME,
+                        "route": route,
+                    },
+                )
+                return
+
+            span.set_attribute("http.status_code", 200)
             self._write_json(
-                500,
+                200,
                 {
-                    "message": "Forced failure for testing",
+                    "message": "Hello from the blue/green ECS API",
                     "service": SERVICE_NAME,
+                    "hostname": socket.gethostname(),
+                    "image": IMAGE,
+                    "root_path": ROOT_PATH_PREFIX,
                     "route": route,
                 },
             )
-            return
 
-        self._write_json(
-            200,
-            {
-                "message": "Hello from the blue/green ECS API",
-                "service": SERVICE_NAME,
-                "hostname": socket.gethostname(),
-                "image": IMAGE,
-                "root_path": ROOT_PATH_PREFIX,
-                "route": route,
-            },
-        )
+    def log_message(self, format: str, *args) -> None:
+        return
 
 
 if __name__ == "__main__":

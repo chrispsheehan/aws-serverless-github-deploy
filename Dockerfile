@@ -8,14 +8,16 @@ FROM python-base AS service-base
 
 ARG SERVICE
 
+COPY containers/shared/requirements.txt /tmp/shared-requirements.txt
 COPY containers/${SERVICE}/requirements.txt /tmp/requirements.txt
-RUN pip install --no-cache-dir -r /tmp/requirements.txt
+RUN pip install --no-cache-dir -r /tmp/shared-requirements.txt -r /tmp/requirements.txt
 
 
 FROM service-base AS worker
 
 ARG SERVICE
 
+COPY containers/shared/ecs_tracing.py /usr/app/ecs_tracing.py
 COPY containers/${SERVICE}/app.py /usr/app/app.py
 
 CMD ["python", "-u", "app.py"]
@@ -25,6 +27,7 @@ FROM service-base AS api
 
 ARG SERVICE
 
+COPY containers/shared/ecs_tracing.py /usr/app/ecs_tracing.py
 COPY containers/${SERVICE}/app.py /usr/app/app.py
 
 CMD ["python", "-u", "app.py"]
