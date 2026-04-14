@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   get-current-tag:
-    name: Get Current Tag
+    name: Current Tag
     runs-on: ubuntu-latest
     outputs:
       current_tag: ${{ steps.get_tag.outputs.CURRENT_TAG }}
@@ -30,7 +30,7 @@ jobs:
           echo "CURRENT_TAG=${CURRENT_TAG}" >> $GITHUB_OUTPUT
 
   get-next-tag:
-    name: Calculate Next Tag
+    name: Next Tag
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.get_next_version.outputs.version }}
@@ -51,7 +51,7 @@ jobs:
           echo ${{ steps.get_next_version.outputs.hasNextVersion }}
 
   create-tag:
-    name: Create Tag
+    name: Tag
     needs: get-next-tag
     if: ${{ needs.get-next-tag.outputs.has-next-version == 'true' }}
     runs-on: ubuntu-latest
@@ -66,7 +66,7 @@ jobs:
           git push origin --tag "$TAG"
 
   get-commits:
-    name: Collect Release Commits
+    name: Commits
     needs:
       - get-next-tag
       - create-tag
@@ -91,12 +91,12 @@ jobs:
           echo "EOF" >> $GITHUB_OUTPUT
 
   get-apps:
-    name: Discover App Directories
+    name: Discover
     uses: ./.github/workflows/get_directories.yml
 
 
   build:
-    name: Build Release Artifacts
+    name: Build
     needs:
       - create-tag
       - get-next-tag
@@ -115,7 +115,7 @@ jobs:
       ecs_matrix: ${{ needs.get-apps.outputs.container_dirs }}
 
   code:
-    name: Prepare Shared Infra Artifacts
+    name: Artifacts
     needs:
       - create-tag
       - get-next-tag
@@ -128,7 +128,7 @@ jobs:
       infra_version: ${{ needs.get-next-tag.outputs.tag }}
 
   release:
-    name: Publish GitHub Release
+    name: Publish
     runs-on: ubuntu-latest
     needs:
       - get-next-tag

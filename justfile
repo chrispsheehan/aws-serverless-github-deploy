@@ -231,6 +231,7 @@ docker-build:
 
     docker build \
       --file "{{PROJECT_DIR}}/Dockerfile" \
+      --build-arg "SERVICE=$CONTAINER_NAME" \
       --target "$CONTAINER_NAME" \
       -t "$TAG" \
       "{{PROJECT_DIR}}"
@@ -869,7 +870,7 @@ frontend-invalidate:
         exit 1
     fi
 
-    MAX_ATTEMPTS=18
+    MAX_ATTEMPTS=30
     SLEEP_INTERVAL=10
 
     echo "🔄 Creating CloudFront invalidation..."

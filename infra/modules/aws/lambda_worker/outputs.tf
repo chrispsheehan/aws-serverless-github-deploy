@@ -18,6 +18,14 @@ output "sqs_queue_url" {
   value = module.sqs_queue.sqs_queue_url
 }
 
+output "sqs_queue_name" {
+  value = module.sqs_queue.sqs_queue_name
+}
+
+output "sqs_queue_read_policy_arn" {
+  value = module.sqs_queue.sqs_queue_read_policy_arn
+}
+
 output "dead_letter_queue_url" {
   value = module.sqs_queue.dead_letter_queue_url
 }

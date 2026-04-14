@@ -78,3 +78,15 @@ variable "additional_runtime_policy_arns" {
   type        = list(string)
   default     = []
 }
+
+variable "health_check" {
+  description = "Optional ECS container health check configuration."
+  type = object({
+    command      = list(string)
+    interval     = optional(number, 30)
+    timeout      = optional(number, 5)
+    retries      = optional(number, 3)
+    start_period = optional(number, 0)
+  })
+  default = null
+}

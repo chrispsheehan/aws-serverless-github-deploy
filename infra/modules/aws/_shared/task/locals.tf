@@ -84,6 +84,15 @@ locals {
       essential   = true
       environment = concat(local.shared_environment, var.additional_env_vars)
     },
+    var.health_check == null ? {} : {
+      healthCheck = {
+        command     = var.health_check.command
+        interval    = var.health_check.interval
+        timeout     = var.health_check.timeout
+        retries     = var.health_check.retries
+        startPeriod = var.health_check.start_period
+      }
+    },
     var.command == null ? {} : {
       command = var.command
     }

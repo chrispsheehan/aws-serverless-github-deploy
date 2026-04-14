@@ -32,7 +32,20 @@ The repo `network` module also owns the shared internal ALB and shared HTTP API 
 - VPC link
 - internal ALB and target groups
 
+This repo now includes a sample ECS API container service exposed separately from the Lambda API:
+
+- public Lambda path via CloudFront: `/api/*`
+- public ECS path via CloudFront: `/api/ecs/*`
+- API Gateway Lambda route namespace: `/*`
+- API Gateway ECS route namespace: `/ecs/*`
+- deployment model: ECS CodeDeploy `blue_green`
+- ALB shape: shared private ALB with a dedicated ECS API listener on port `8080`
+- stacks: `task_api` and `service_api`
+- the sample frontend calls both backends and renders both responses so the path split is visible in the UI
+
 The `api` module is Lambda-specific and plugs the Lambda integration and root routes into that shared API.
+
+The frontend infra module also uploads a bootstrap `index.html` during infra apply so CloudFront serves a placeholder page before the built frontend assets are deployed.
 
 Terragrunt also provides a shared default ECR repository name to ECS task modules:
 
@@ -41,9 +54,22 @@ Terragrunt also provides a shared default ECR repository name to ECS task module
 - override it in `infra/live/<environment>/environment_vars.hcl` only if the repository naming diverges from that convention
 - the concrete ECS worker task wrapper defaults `local_tunnel = false` and `xray_enabled = false` unless you explicitly set them
 
-The reusable deploy workflows follow the same split: `prod` `*_code` and `*_infra` wrappers read shared artifact resources from `ci`, but `*_infra` still applies `prod` infrastructure stacks using the repo's directory-derived service and lambda matrices.
+The reusable deploy workflows follow the same split: `prod` `*_code` and `*_infra` wrappers read shared artifact resources from `ci`, but `*_infra` only applies `prod` infrastructure stacks using the repo's directory-derived service and lambda matrices.
 
 For `*_code` release deploys, pass explicit release versions for each runtime you want to roll out. In particular, ECS code deploys should provide an `ecs_version` rather than relying on a Lambda-version fallback.
+
+The ECS worker queue is now owned by `task_worker`, and `service_worker` reads that queue name from `task_worker` remote state. That keeps the ECS worker queue aligned with the worker stack lifecycle without depending on the Lambda worker queue.
+For bootstrap service applies, `service_worker` now uses placeholder task and queue values locally rather than spreading `count`-indexed remote-state access through the module.
+The ECS worker task uses a local heartbeat-file health check, which is a better fit for a non-HTTP worker than probing a service endpoint or tying task health directly to transient AWS API calls.
+
+## 🧪 example prompts
+
+Use prompts like these when asking for a new service in this repo:
+
+- `Add a new ECS service called billing_api exposed on /billing via API Gateway VPC link, with task_billing_api/service_billing_api, canary deploys, and update the docs.`
+- `Create a new internal ECS worker called report_worker using task_report_worker/service_report_worker, rolling deploys, and hook it into the existing container build flow.`
+- `Add a new Lambda called invoice_sync with its live stacks in dev and prod, wire it into the existing lambda build/deploy workflows, and document the new module contract.`
+- `Create a new public Lambda API endpoint for /reports, keep it Lambda-backed rather than ECS, and update the repo docs and workflow expectations.`
 
 ## 🛠️ local plan some infra
 
@@ -195,15 +221,14 @@ deployment_strategy = "blue_green"
 ```
 
 - ECS CodeDeploy is only created for load-balanced ECS services in `_shared/service`
+- subpath ECS services need a dedicated ALB listener if they are meant to use CodeDeploy blue/green in this repo
 - internal ECS services without load balancer integration should use native ECS rolling updates instead
-- the shared ECS service resource ignores `task_definition` drift so later infra applies do not revert the live task revision after either a rolling deploy or a CodeDeploy rollout
+- infra ignores ECS `task_definition` drift
+- for CodeDeploy ECS services, infra also ignores `load_balancer` drift
 - the deployment workflow:
   - applies the new `task_*` revision
-  - if the service has CodeDeploy resources, reads `codedeploy_app_name` and `codedeploy_deployment_group_name` from `service_*`
-  - renders [`appspec-ecs.yml`](appspec-ecs.yml)
-  - uploads the AppSpec to the code bucket
-  - runs `just ecs-deploy`
-  - otherwise updates the ECS service to the new task definition with a native rolling deploy
+  - uses CodeDeploy for load-balanced services
+  - uses native rolling deploys for internal services
 
 ## 🔥↩️ deployment roll-back
 

@@ -44,6 +44,7 @@ Choose deployment modes that match the runtime shape.
 
 - ECS CodeDeploy requires a load-balanced service shape in this repo.
 - In practice that means `connection_type` must be `internal_dns` or `vpc_link` for CodeDeploy-backed ECS deploys.
+- In this repo, subpath ECS services need a dedicated ALB listener if they are meant to use CodeDeploy blue/green.
 - If `connection_type = "internal"`, prefer `rolling`.
 
 ## Feasibility Check
@@ -83,10 +84,13 @@ When changing CI workflows or Terraform module dependencies, check dependency be
 - when the same setup or lookup pattern appears in multiple workflows, suggest extracting it into a shared reusable workflow or shared `just` recipe instead of repeating it
 - check workflow dependency wiring such as `needs`, job outputs, matrix values, and reused workflow inputs
 - watch for `data.terraform_remote_state` dependencies that can fail if another stack has not been created yet or has already been destroyed
+- avoid cross-runtime ownership when a resource is really part of one app shape; for example, keep the ECS worker queue with `task_worker` rather than making ECS consume `lambda_worker` state
+- when a bootstrap path needs placeholder values, prefer hiding that conditional logic in locals instead of repeating `count`-indexed remote-state references through the module body
+- if you do add a genuinely new stack type, update the discovery and lifecycle workflows too: `get_directories.yml`, `infra.yml`, and `destroy.yml`
 - check required Terraform input variables on destroy paths as well as apply paths; destroy can still fail before resource deletion if required vars are unset
 - make sure every referenced `needs.<job>.outputs.*` value is actually in scope for that job
 - make sure matrix values match the expected naming contract for the workflow, module, or path being used
-- for `*_infra` deploy wrappers, verify the infra workflow receives the directory-based infra matrices it needs, while deploy workflows receive the artifact-based matrices and image URIs they need
+- for `*_infra` wrappers, verify they stop at infrastructure apply and do not also run the reusable `deploy.yml` code rollout
 - for prod wrappers in this repo, remember that shared artifact resources come from `ci`, while deploy target resources are still in `prod`
 - prefer making modules tolerant of unnecessary upstream state dependencies where possible
 - do not change CI ordering blindly; first check whether the real issue is an avoidable cross-stack dependency

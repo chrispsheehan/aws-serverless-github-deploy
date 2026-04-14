@@ -15,3 +15,8 @@ variable "vpc_name" {
 variable "container_port" {
   type = number
 }
+
+variable "additional_listener_port" {
+  type    = number
+  default = 8080
+}

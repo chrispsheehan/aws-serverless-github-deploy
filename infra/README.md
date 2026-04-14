@@ -63,20 +63,26 @@ stores state at:
 - `service_*`
   Own the ECS services and, when applicable, CodeDeploy resources.
 
+Current examples include:
+
+- `task_worker` / `service_worker`
+  Internal ECS worker service shape, with the worker queue owned by `task_worker` and a container health check based on a local worker heartbeat file.
+- `task_api` / `service_api`
+  ECS API service shape exposed on the shared API Gateway at `/ecs` using `vpc_link` and `blue_green`, backed by a dedicated listener on the shared ALB. Through the frontend distribution it is reached at `/api/ecs/*`, while the Lambda API is reached at `/api/*`.
+
 ## Dependency Notes
 
 - many modules use `data.terraform_remote_state` to read outputs from other stacks
 - because of that, workflow ordering matters for apply, deploy, and destroy
+- avoid making one runtime depend on another runtime's state ownership unnecessarily; for example, the ECS worker queue is owned by `task_worker` rather than by `lambda_worker`
 - some shared infrastructure, such as the landing-zone VPC and tagged private subnets, is discovered with `data` lookups and must already exist
 
 ## Deployment Model
 
 - infra workflows create or update infrastructure stacks
 - build workflows produce Lambda zips and container images
-- `*_infra` deploy wrappers need two kinds of reusable-workflow inputs:
-  - directory-derived infra matrices for stack applies
-  - artifact-derived versions, task matrices, and image URIs for code deploys
-- in `prod`, the wrappers read shared artifact resources from `ci` but still apply service and task stacks in `prod`
+- `*_infra` wrappers need the inputs required to apply infra safely, such as directory-derived stack matrices and any artifact-derived bootstrap references
+- in `prod`, the `*_infra` wrappers read shared artifact resources from `ci` but only apply service and task stacks in `prod`
 - deploy workflows:
   - publish Lambda versions and use Lambda CodeDeploy
   - register ECS task revisions

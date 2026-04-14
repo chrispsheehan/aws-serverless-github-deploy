@@ -1,8 +1,8 @@
-module "service_consumer" {
+module "service_worker" {
   source = "../_shared/service"
 
   service_name        = var.service_name
-  task_definition_arn = var.bootstrap ? "" : data.terraform_remote_state.task_worker[0].outputs.task_definition_arn
+  task_definition_arn = local.task_definition_arn
   container_port      = var.container_port
   root_path           = var.root_path
   connection_type     = var.connection_type
@@ -35,13 +35,13 @@ module "service_consumer" {
   scaling_strategy = {
     max_scaled_task_count = 4
     sqs = {
-      scale_out_threshold  = 10    # Start scaling at 10 msgs avg
-      scale_in_threshold   = 2     # Scale in below 2 msgs avg  
-      scale_out_adjustment = 2     # Add 2 tasks at once
-      scale_in_adjustment  = 1     # Remove 1 task
-      cooldown_out         = 60    # 1min cooldown (more stable)
-      cooldown_in          = 300   # 5min cooldown (prevent flapping)
-      queue_name           = "tbc" # SQS queue name to monitor for scaling
+      scale_out_threshold  = 10  # Start scaling at 10 msgs avg
+      scale_in_threshold   = 2   # Scale in below 2 msgs avg  
+      scale_out_adjustment = 2   # Add 2 tasks at once
+      scale_in_adjustment  = 1   # Remove 1 task
+      cooldown_out         = 60  # 1min cooldown (more stable)
+      cooldown_in          = 300 # 5min cooldown (prevent flapping)
+      queue_name           = local.autoscaling_queue_name
     }
   }
 }

@@ -41,6 +41,11 @@ variable "default_target_group_arn" {
   type = string
 }
 
+variable "load_balancer_arn" {
+  type    = string
+  default = ""
+}
+
 variable "default_http_listener_arn" {
   type = string
 }
@@ -67,6 +72,11 @@ variable "internal_invoke_url" {
 
 variable "api_invoke_url" {
   type = string
+}
+
+variable "dedicated_listener_port" {
+  type    = number
+  default = null
 }
 
 variable "root_path" {

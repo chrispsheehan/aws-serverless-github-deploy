@@ -1,4 +1,4 @@
-name: Pull Request
+name: PR
 
 on:
   pull_request:
@@ -14,7 +14,7 @@ on:
 
 jobs:
   check-pr-title:
-    name: Validate PR Title
+    name: PR Title
     runs-on: ubuntu-latest
     env:
       PR_TITLE: ${{ github.event.pull_request.title }}
@@ -33,7 +33,7 @@ jobs:
           exit 1
 
   check:
-    name: Detect Changes
+    name: Changes
     needs: check-pr-title
     permissions:
       pull-requests: read
@@ -47,7 +47,7 @@ jobs:
     needs: check
     runs-on: ubuntu-latest
     if: ${{ needs.check.outputs.github == 'true' }}
-    name: Run github formatting checks
+    name: GH Fmt
     timeout-minutes: 2
     steps:
       - uses: actions/checkout@v6
@@ -60,7 +60,7 @@ jobs:
     needs: check
     runs-on: ubuntu-latest
     if: ${{ needs.check.outputs.terragrunt == 'true' }}
-    name: Run terragrunt formatting checks
+    name: TG Fmt
     timeout-minutes: 2
     steps:
       - uses: actions/checkout@v6
@@ -81,7 +81,7 @@ jobs:
     needs: check
     runs-on: ubuntu-latest
     if: ${{ needs.check.outputs.terraform == 'true' }}
-    name: Run terraform lint checks
+    name: TF Lint
     timeout-minutes: 2
     steps:
       - uses: actions/checkout@v6
@@ -98,7 +98,7 @@ jobs:
   check-lambda-naming:
     needs: check
     runs-on: ubuntu-latest
-    name: Check lambda directory naming uses underscores
+    name: Lambda Names
     steps:
       - uses: actions/checkout@v6
       - name: Fail if any lambda directory uses hyphens
@@ -113,7 +113,7 @@ jobs:
   check-ecs-module-pairs:
     needs: check
     runs-on: ubuntu-latest
-    name: Check ECS task/service module pairs
+    name: ECS Pairs
     steps:
       - uses: actions/checkout@v6
 
@@ -160,13 +160,13 @@ jobs:
           echo "✅ All ECS task_/service_ pairs are present."
 
   setup:
-    name: Discover App Directories
+    name: Discover
     if: ${{ needs.check.outputs.lambdas == 'true' || needs.check.outputs.containers == 'true' }}
     needs: check
     uses: ./.github/workflows/get_directories.yml
 
   build-lambdas:
-    name: Build Lambda Changes
+    name: Build Lambdas
     if: ${{ needs.check.outputs.lambdas == 'true' }}
     needs:
       - check
@@ -187,7 +187,7 @@ jobs:
           just_action: lambda-build
 
   build-containers:
-    name: Build Container Changes
+    name: Build Containers
     if: ${{ needs.check.outputs.containers == 'true' }}
     needs:
       - check
@@ -213,7 +213,7 @@ jobs:
     needs: 
       - check
     runs-on: ubuntu-latest
-    name: Build frontend
+    name: Build Frontend
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v6

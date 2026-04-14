@@ -19,6 +19,16 @@ Shared ECS service module.
 - `bootstrap`
 - `bootstrap_image_uri`
 - `codedeploy_alarm_names`
+- optional `dedicated_listener_port`
+
+Subpath services match both `/<root_path>` and `/<root_path>/*`.
+If `dedicated_listener_port` is set, the service gets its own ALB listener and uses that listener for API Gateway integration and ECS CodeDeploy traffic routing.
+
+## Bootstrap behavior
+
+Bootstrap ECS services use the shared placeholder image.
+Bootstrap health checks use `/`.
+Real task deploys use the normal app health path, such as `/health` or `/<root_path>/health`.
 
 ## Deployment strategies
 
@@ -32,11 +42,13 @@ For internal non-load-balanced services, the deploy workflow falls back to nativ
 
 ## Drift ownership
 
-The ECS service ignores changes to `task_definition`.
+The ECS service ignores:
 
-That is intentional:
+- `task_definition`
+- `load_balancer`
 
-- deploy workflows own the live task revision
-- infra applies own the stable service shape
+Reason:
 
-Without that split, a later infra apply would revert a successful rolling or CodeDeploy deployment back to the older task definition stored in Terraform state.
+- deploy workflows own the live revision
+- infra owns the stable service shape
+- CodeDeploy ECS services reject `load_balancer` updates via `UpdateService`

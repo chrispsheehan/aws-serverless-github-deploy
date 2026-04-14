@@ -25,6 +25,14 @@ resource "aws_s3_bucket_policy" "frontend" {
   policy = data.aws_iam_policy_document.frontend_bucket_policy.json
 }
 
+resource "aws_s3_object" "bootstrap_index" {
+  bucket       = aws_s3_bucket.frontend.id
+  key          = local.root_file
+  source       = "${path.module}/bootstrap/index.html"
+  etag         = filemd5("${path.module}/bootstrap/index.html")
+  content_type = "text/html; charset=utf-8"
+}
+
 resource "aws_cloudfront_function" "spa_routing" {
   name    = "${local.name}-spa-routing"
   runtime = "cloudfront-js-2.0"

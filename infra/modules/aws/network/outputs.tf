@@ -2,6 +2,10 @@ output "default_target_group_arn" {
   value = aws_lb_target_group.default.arn
 }
 
+output "load_balancer_arn" {
+  value = aws_lb.this.arn
+}
+
 output "default_http_listener_arn" {
   value = aws_lb_listener.http.arn
 }

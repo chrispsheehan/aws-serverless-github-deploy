@@ -1,5 +1,5 @@
 output "service_name" {
-  value = module.service_consumer.service_name
+  value = module.service_worker.service_name
 }
 
 output "cluster_name" {
@@ -7,11 +7,11 @@ output "cluster_name" {
 }
 
 output "codedeploy_app_name" {
-  value = module.service_consumer.codedeploy_app_name
+  value = module.service_worker.codedeploy_app_name
 }
 
 output "codedeploy_deployment_group_name" {
-  value = module.service_consumer.codedeploy_deployment_group_name
+  value = module.service_worker.codedeploy_deployment_group_name
 }
 
 output "container_port" {
