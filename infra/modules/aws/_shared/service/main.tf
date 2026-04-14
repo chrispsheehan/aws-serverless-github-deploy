@@ -253,7 +253,7 @@ resource "aws_codedeploy_deployment_group" "ecs" {
   load_balancer_info {
     target_group_pair_info {
       prod_traffic_route {
-        listener_arns = [var.default_http_listener_arn]
+        listener_arns = [local.traffic_route_arn]
       }
 
       target_group {

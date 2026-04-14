@@ -23,6 +23,7 @@ locals {
   proxy_route_key        = local.is_default_path ? "ANY /{proxy+}" : "ANY /${var.root_path}/{proxy+}"
   target_group_arn       = local.is_default_path ? var.default_target_group_arn : aws_lb_target_group.service_target_group[0].arn
   blue_target_group_name = local.is_default_path ? element(split("/", var.default_target_group_arn), 1) : aws_lb_target_group.service_target_group[0].name
+  traffic_route_arn      = local.is_default_path ? var.default_http_listener_arn : aws_lb_listener_rule.service[0].arn
 
   load_balancers = var.connection_type == "internal_dns" || var.connection_type == "vpc_link" ? [{
     target_group_arn = local.target_group_arn

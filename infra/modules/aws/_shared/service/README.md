@@ -20,6 +20,9 @@ Shared ECS service module.
 - `bootstrap_image_uri`
 - `codedeploy_alarm_names`
 
+Subpath services match both `/<root_path>` and `/<root_path>/*`.
+For CodeDeploy-backed subpath services, the traffic route uses the ALB listener-rule ARN.
+
 ## Bootstrap behavior
 
 Bootstrap ECS services use the shared placeholder image.
