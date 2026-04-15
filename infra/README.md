@@ -60,6 +60,8 @@ stores state at:
   Owns the Lambda-backed API integration and routes into the shared HTTP API.
 - `database`
   Owns the shared Aurora PostgreSQL Serverless v2 database stack and its SSM connection parameters.
+- `migrations`
+  Owns the VPC-attached Lambda used to run schema migrations against the shared Aurora PostgreSQL stack.
 - `worker_messaging`
   Owns the shared worker SNS topic plus the Lambda-worker and ECS-worker SQS queues used for fanout.
 - `task_*`

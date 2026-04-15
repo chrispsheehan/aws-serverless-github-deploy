@@ -1,9 +1,11 @@
 import boto3
+import json
 import os
 import time
 
 from opentelemetry.trace import SpanKind
 
+from db_shared import connect
 from ecs_tracing import start_span
 
 QUEUE_URL    = os.environ['AWS_SQS_QUEUE_URL']
@@ -30,8 +32,35 @@ def process_message(msg):
             "messaging.message.id": msg["MessageId"],
         },
     ):
-        # TODO: implement business logic
-        print({"message_id": msg['MessageId'], "body": msg['Body'][:200]})
+        job_id = extract_job_id(msg["Body"])
+        persist_message(msg["MessageId"], msg["Body"], job_id)
+        print({
+            "message_id": msg['MessageId'],
+            "job_id": job_id,
+            "persisted_to_postgres": True,
+            "body": msg['Body'][:200],
+        })
+
+
+def extract_job_id(body):
+    try:
+        payload = json.loads(body)
+    except json.JSONDecodeError:
+        return None
+    return payload.get("job_id") if isinstance(payload, dict) else None
+
+
+def persist_message(message_id, body, job_id):
+    with connect() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                insert into worker_messages (sqs_message_id, job_id, message_body)
+                values (%s, %s, %s)
+                on conflict (sqs_message_id) do nothing
+                """,
+                (message_id, job_id, body),
+            )
 
 
 def poll():

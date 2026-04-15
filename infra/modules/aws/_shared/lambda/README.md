@@ -16,6 +16,9 @@ Shared Lambda module with versioned deploys through CodeDeploy.
 - `provisioned_config`
 - `codedeploy_alarm_names`
 - `code_bucket`
+- optional `vpc_subnet_ids` and `vpc_security_group_ids` when the Lambda must run inside private subnets
+
+When VPC attachment is enabled, the module creates and attaches its own Lambda VPC access policy covering the EC2 network-interface permissions needed for private-subnet execution.
 
 ## Key outputs
 

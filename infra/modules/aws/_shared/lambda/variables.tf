@@ -48,6 +48,26 @@ variable "additional_policy_arns" {
   default     = []
 }
 
+variable "vpc_subnet_ids" {
+  description = "Optional private subnet ids for Lambda VPC attachment"
+  type        = list(string)
+  default     = []
+}
+
+variable "vpc_security_group_ids" {
+  description = "Optional security group ids for Lambda VPC attachment"
+  type        = list(string)
+  default     = []
+
+  validation {
+    condition = (
+      (length(var.vpc_subnet_ids) == 0 && length(var.vpc_security_group_ids) == 0)
+      || (length(var.vpc_subnet_ids) > 0 && length(var.vpc_security_group_ids) > 0)
+    )
+    error_message = "Set both vpc_subnet_ids and vpc_security_group_ids together, or leave both empty."
+  }
+}
+
 variable "codedeploy_alarm_names" {
   description = "Optional list of CloudWatch alarm names that trigger CodeDeploy rollback"
   type        = list(string)

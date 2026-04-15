@@ -4,9 +4,9 @@ resource "aws_security_group" "load_balancer" {
   vpc_id      = data.aws_vpc.this.id
 }
 
-resource "aws_security_group" "ecs" {
-  name        = local.ecs_sg_name
-  description = "Security group for ECS services"
+resource "aws_security_group" "runtime" {
+  name        = local.runtime_sg_name
+  description = "Security group for shared application runtimes"
   vpc_id      = data.aws_vpc.this.id
 }
 
@@ -53,20 +53,20 @@ resource "aws_vpc_security_group_egress_rule" "load_balancer_to_internet" {
   description       = "Allow load balancer outbound traffic"
 }
 
-resource "aws_vpc_security_group_ingress_rule" "ecs_from_load_balancer" {
-  security_group_id            = aws_security_group.ecs.id
+resource "aws_vpc_security_group_ingress_rule" "runtime_from_load_balancer" {
+  security_group_id            = aws_security_group.runtime.id
   referenced_security_group_id = aws_security_group.load_balancer.id
   from_port                    = var.container_port
   to_port                      = var.container_port
   ip_protocol                  = "tcp"
-  description                  = "Allow load balancer traffic to ECS services"
+  description                  = "Allow load balancer traffic to shared application runtimes"
 }
 
-resource "aws_vpc_security_group_egress_rule" "ecs_to_internet" {
-  security_group_id = aws_security_group.ecs.id
+resource "aws_vpc_security_group_egress_rule" "runtime_to_internet" {
+  security_group_id = aws_security_group.runtime.id
   cidr_ipv4         = "0.0.0.0/0"
   ip_protocol       = "-1"
-  description       = "Allow ECS outbound traffic"
+  description       = "Allow shared application runtime outbound traffic"
 }
 
 resource "aws_vpc_security_group_ingress_rule" "vpc_endpoint_https_from_vpc" {
@@ -101,11 +101,11 @@ resource "aws_vpc_security_group_egress_rule" "postgres_to_vpc" {
   description       = "Allow PostgreSQL outbound traffic within the VPC"
 }
 
-resource "aws_vpc_security_group_ingress_rule" "postgres_from_ecs" {
+resource "aws_vpc_security_group_ingress_rule" "postgres_from_runtime" {
   security_group_id            = aws_security_group.postgres.id
-  referenced_security_group_id = aws_security_group.ecs.id
+  referenced_security_group_id = aws_security_group.runtime.id
   from_port                    = 5432
   to_port                      = 5432
   ip_protocol                  = "tcp"
-  description                  = "Allow PostgreSQL access from ECS services only"
+  description                  = "Allow PostgreSQL access from shared application runtimes only"
 }

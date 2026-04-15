@@ -20,6 +20,20 @@ resource "aws_iam_role_policy_attachment" "additional_iam_attachments" {
   policy_arn = each.value
 }
 
+resource "aws_iam_policy" "lambda_vpc_access" {
+  count = length(var.vpc_subnet_ids) > 0 ? 1 : 0
+
+  name   = "${local.lambda_name}-vpc-access"
+  policy = data.aws_iam_policy_document.lambda_vpc_access.json
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_vpc_access" {
+  count = length(var.vpc_subnet_ids) > 0 ? 1 : 0
+
+  role       = aws_iam_role.iam_for_lambda.name
+  policy_arn = aws_iam_policy.lambda_vpc_access[0].arn
+}
+
 resource "aws_s3_object" "bootstrap_lambda_zip" {
   bucket = data.aws_s3_bucket.code_bucket.bucket
   key    = local.lambda_bootstrap_zip_key
@@ -55,6 +69,14 @@ resource "aws_lambda_function" "lambda" {
 
   tracing_config {
     mode = "Active"
+  }
+
+  dynamic "vpc_config" {
+    for_each = length(var.vpc_subnet_ids) > 0 ? [1] : []
+    content {
+      subnet_ids         = var.vpc_subnet_ids
+      security_group_ids = var.vpc_security_group_ids
+    }
   }
 
   environment {

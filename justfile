@@ -378,6 +378,8 @@ lambda-build:
     echo "📦 Building $LAMBDA_NAME Lambda..."
     pip install --target "$LAMBDA_BUILD_DIR/$LAMBDA_NAME" -r "{{PROJECT_DIR}}/{{LAMBDA_DIR}}/$LAMBDA_NAME/requirements.txt"
     cp "{{PROJECT_DIR}}/{{LAMBDA_DIR}}/$LAMBDA_NAME"/*.py "$LAMBDA_BUILD_DIR/$LAMBDA_NAME/"
+    cp "{{PROJECT_DIR}}/lambda_shared.py" "$LAMBDA_BUILD_DIR/$LAMBDA_NAME/"
+    cp "{{PROJECT_DIR}}/db_shared.py" "$LAMBDA_BUILD_DIR/$LAMBDA_NAME/"
     (
         cd "$LAMBDA_BUILD_DIR/$LAMBDA_NAME"
         zip -r "../../$LAMBDA_NAME.zip" . > /dev/null
