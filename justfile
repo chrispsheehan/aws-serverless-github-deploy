@@ -214,6 +214,7 @@ lambda-get-directories:
     set -euo pipefail
     find "{{LAMBDA_DIR}}" -mindepth 1 -maxdepth 1 -type d \
       | xargs -I{} basename "{}" \
+      | grep -v '^build$' \
       | tr '-' '_' \
       | jq -R . \
       | jq -s -c .
@@ -634,6 +635,36 @@ lambda-prune:
         echo "Deleting $FUNCTION_NAME:$v"
         aws lambda delete-function --function-name "$FUNCTION_NAME" --qualifier "$v" --region "$AWS_REGION"
     done
+
+
+lambda-invoke:
+    #!/bin/bash
+    set -euo pipefail
+    if [[ -z "$LAMBDA_NAME" ]]; then
+        echo "Error: LAMBDA_NAME environment variable is not set."
+        exit 1
+    fi
+
+    OUTPUT_FILE=output.json
+    PAYLOAD="{}"
+    rm -f $OUTPUT_FILE
+    RESPONSE=$(aws lambda invoke --cli-read-timeout 300 --function-name $LAMBDA_NAME --region $AWS_REGION --payload "$PAYLOAD" $OUTPUT_FILE)
+    LAMBDA_RETURN_CODE=$(jq -r '.StatusCode' <<< "$RESPONSE")
+    if [ "$LAMBDA_RETURN_CODE" -eq 200 ]; then
+        echo "Lambda function invoked successfully."
+    else
+        echo "Lambda function failed with return code: $LAMBDA_RETURN_CODE"
+    fi
+    cat $OUTPUT_FILE
+    LAMBDA_STATUS_CODE=$(jq -r '.statusCode // empty' "$OUTPUT_FILE")
+
+    if [ "$LAMBDA_STATUS_CODE" = "200" ]; then
+        echo "✅ Lambda function completed successfully."
+        exit 0
+    else
+        echo "❌ Lambda function failed or returned non-200 status code: $LAMBDA_STATUS_CODE"
+        exit 1
+    fi
 
 
 ecs-prepare-appspec:
