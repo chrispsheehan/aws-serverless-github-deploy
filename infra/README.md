@@ -51,7 +51,7 @@ stores state at:
 ## Shared Stack Responsibilities
 
 - `network`
-  Owns the internal ALB, shared HTTP API Gateway API, VPC link, and VPC endpoints, including the SQS interface endpoint used by private ECS workers.
+  Owns the internal ALB, shared HTTP API Gateway API, VPC link, and VPC endpoints, including the SQS interface endpoint used by private ECS workers and the SSM interface endpoint used by private runtimes reading Parameter Store values.
 - `security`
   Owns shared security groups.
 - `cluster`

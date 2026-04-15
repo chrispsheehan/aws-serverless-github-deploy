@@ -32,7 +32,7 @@ The repo `network` module also owns the shared internal ALB and shared HTTP API 
 - default API stage
 - VPC link
 - internal ALB and target groups
-- interface VPC endpoints required by private ECS tasks, including SQS for the worker poller
+- interface VPC endpoints required by private runtimes, including SQS for the worker poller and SSM for Parameter Store reads from VPC-attached Lambdas such as `migrations`
 
 This repo now includes a sample ECS API container service exposed separately from the Lambda API:
 

@@ -8,6 +8,7 @@ locals {
     ecr_dkr = "ecr.dkr"
     logs    = "logs"
     sqs     = "sqs"
+    ssm     = "ssm"
   }
 
   tunnel_interface_endpoints = var.local_tunnel ? {
