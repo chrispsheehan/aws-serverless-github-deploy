@@ -15,16 +15,6 @@ variable "database_name" {
   description = "Logical database name used for naming resources and the initial database"
 }
 
-variable "state_bucket" {
-  type        = string
-  description = "Terraform state bucket used to read shared security outputs"
-}
-
-variable "aws_region" {
-  type        = string
-  description = "AWS region for provider resources and remote state lookups"
-}
-
 variable "vpc_name" {
   type        = string
   description = "VPC name tag used to look up the database VPC and subnets"
@@ -92,4 +82,14 @@ variable "rds_max_reader_count" {
   type        = number
   description = "Maximum number of Aurora reader instances to create"
   default     = 0
+}
+
+variable "database_security_group_id" {
+  type        = string
+  description = "Security group id to attach to the Aurora cluster"
+
+  validation {
+    condition     = length(trimspace(var.database_security_group_id)) > 0
+    error_message = "database_security_group_id must be specified."
+  }
 }

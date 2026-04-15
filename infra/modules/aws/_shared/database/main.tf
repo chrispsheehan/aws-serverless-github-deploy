@@ -29,7 +29,7 @@ resource "aws_rds_cluster" "aurora_postgres" {
   preferred_backup_window = local.postgres_backup_window
 
   skip_final_snapshot    = true
-  vpc_security_group_ids = [data.terraform_remote_state.security.outputs.postgres_sg]
+  vpc_security_group_ids = [var.database_security_group_id]
   db_subnet_group_name   = aws_db_subnet_group.default.name
   storage_encrypted      = true
 

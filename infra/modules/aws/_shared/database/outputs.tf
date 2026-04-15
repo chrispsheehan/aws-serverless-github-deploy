@@ -27,7 +27,7 @@ output "cluster_identifier" {
 }
 
 output "security_group_id" {
-  value = data.terraform_remote_state.security.outputs.postgres_sg
+  value = var.database_security_group_id
 }
 
 output "database_name" {

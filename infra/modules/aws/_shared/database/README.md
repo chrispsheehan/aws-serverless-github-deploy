@@ -11,11 +11,12 @@ Shared Aurora PostgreSQL Serverless v2 module.
 
 ## Depends on
 
-- shared PostgreSQL security group from the `security` stack
+- a PostgreSQL security group passed in by the caller, typically from the `security` stack
 
 ## Inputs
 
 - `database_name`
+- `database_security_group_id`
 - `vpc_name`
 - `publicly_accessible`
 - `database_port`
@@ -41,3 +42,4 @@ Shared Aurora PostgreSQL Serverless v2 module.
 - `readwrite_endpoint`
 
 This module is intentionally Aurora PostgreSQL Serverless v2 specific. It does not currently support provisioned RDS instances or non-Postgres engines.
+In this repo the shared infra workflow injects `database_security_group_id` from the `security` stack via `TF_VAR_database_security_group_id`.
