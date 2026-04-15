@@ -39,8 +39,8 @@ variable "database_port" {
 
 variable "engine_version" {
   type        = string
-  description = "Aurora PostgreSQL engine version to use"
-  default     = "13.15"
+  description = "Aurora PostgreSQL engine version selector to use. Partial versions are allowed and resolved to the latest matching version."
+  default     = "16"
 }
 
 variable "backup_retention_period" {

@@ -43,3 +43,4 @@ Shared Aurora PostgreSQL Serverless v2 module.
 
 This module is intentionally Aurora PostgreSQL Serverless v2 specific. It does not currently support provisioned RDS instances or non-Postgres engines.
 In this repo the shared infra workflow injects `database_security_group_id` from the `security` stack via `TF_VAR_database_security_group_id`.
+By default the module tracks the latest matching Aurora PostgreSQL 16.x engine version rather than pinning a specific patch release.

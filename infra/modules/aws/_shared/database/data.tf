@@ -1,6 +1,7 @@
 data "aws_rds_engine_version" "postgres" {
   engine  = local.postgres_engine
   version = var.engine_version
+  latest  = true
 }
 
 data "aws_subnets" "this" {
