@@ -31,6 +31,7 @@ The repo `network` module also owns the shared internal ALB and shared HTTP API 
 - default API stage
 - VPC link
 - internal ALB and target groups
+- interface VPC endpoints required by private ECS tasks, including SQS for the worker poller
 
 This repo now includes a sample ECS API container service exposed separately from the Lambda API:
 
