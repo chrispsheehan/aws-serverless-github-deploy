@@ -1,7 +1,7 @@
 locals {
   password_length             = 30
   username_length             = 8
-  ssm_name_prefix             = "/${var.project_name}/${var.database_name}"
+  ssm_name_prefix             = "/${var.environment}/${var.project_name}/${var.database_name}"
   database_ssm_name           = "${local.ssm_name_prefix}/db-name"
   username_ssm_name           = "${local.ssm_name_prefix}/username"
   password_ssm_name           = "${local.ssm_name_prefix}/password"
