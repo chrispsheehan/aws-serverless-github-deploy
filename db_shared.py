@@ -1,8 +1,10 @@
 import os
 from functools import lru_cache
+from urllib.parse import quote
 
 import boto3
 import psycopg
+import time
 
 
 def _required_env(name: str) -> str:
@@ -14,6 +16,7 @@ def _required_env(name: str) -> str:
 
 @lru_cache(maxsize=1)
 def _load_db_credentials() -> dict[str, str]:
+    start = time.monotonic()
     region = _required_env("AWS_REGION")
     username_parameter = _required_env("DB_USERNAME_SSM_PARAMETER")
     password_parameter = _required_env("DB_PASSWORD_SSM_PARAMETER")
@@ -35,6 +38,14 @@ def _load_db_credentials() -> dict[str, str]:
         for parameter in response.get("Parameters", [])
     }
 
+    print(
+        {
+            "event": "db_credentials_loaded",
+            "duration_ms": round((time.monotonic() - start) * 1000, 1),
+            "region": region,
+        }
+    )
+
     return {
         "user": values[username_parameter],
         "password": values[password_parameter],
@@ -42,12 +53,32 @@ def _load_db_credentials() -> dict[str, str]:
 
 
 def connect():
+    start = time.monotonic()
     credentials = _load_db_credentials()
-    return psycopg.connect(
+    connection = psycopg.connect(
         host=_required_env("DB_HOST"),
         dbname=_required_env("DB_NAME"),
         port=int(_required_env("DB_PORT")),
         user=credentials["user"],
         password=credentials["password"],
         connect_timeout=5,
+    )
+    print(
+        {
+            "event": "db_connected",
+            "duration_ms": round((time.monotonic() - start) * 1000, 1),
+            "host": _required_env("DB_HOST"),
+            "database": _required_env("DB_NAME"),
+            "port": int(_required_env("DB_PORT")),
+        }
+    )
+    return connection
+
+
+def postgres_url() -> str:
+    credentials = _load_db_credentials()
+    return (
+        f"postgres://{quote(credentials['user'])}:{quote(credentials['password'])}"
+        f"@{_required_env('DB_HOST')}:{int(_required_env('DB_PORT'))}"
+        f"/{quote(_required_env('DB_NAME'))}"
     )

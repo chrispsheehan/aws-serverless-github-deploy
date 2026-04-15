@@ -33,6 +33,12 @@ variable "environment_variables" {
   type        = map(string)
   default     = {}
 }
+
+variable "timeout_seconds" {
+  type        = number
+  description = "Lambda timeout in seconds"
+  default     = 3
+}
 ### end of dynamic vars required for resources ###
 
 

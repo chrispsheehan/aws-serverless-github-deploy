@@ -10,6 +10,7 @@ module "migrations" {
   environment      = var.environment
   code_bucket      = var.code_bucket
   otel_sample_rate = var.otel_sample_rate
+  timeout_seconds  = 120
 
   lambda_name = local.lambda_name
 

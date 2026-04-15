@@ -59,6 +59,7 @@ resource "aws_lambda_function" "lambda" {
   role                           = aws_iam_role.iam_for_lambda.arn
   handler                        = local.lambda_handler
   runtime                        = local.lambda_runtime
+  timeout                        = var.timeout_seconds
   reserved_concurrent_executions = local.pc_reserved_count
 
   s3_bucket = data.aws_s3_bucket.code_bucket.bucket

@@ -1,0 +1,35 @@
+{
+  "operations": [
+    {
+      "create_table": {
+        "name": "worker_messages",
+        "columns": [
+          {
+            "name": "id",
+            "type": "bigserial",
+            "pk": true
+          },
+          {
+            "name": "sqs_message_id",
+            "type": "text",
+            "unique": true
+          },
+          {
+            "name": "job_id",
+            "type": "text",
+            "nullable": true
+          },
+          {
+            "name": "message_body",
+            "type": "text"
+          },
+          {
+            "name": "created_at",
+            "type": "timestamptz",
+            "default": "now()"
+          }
+        ]
+      }
+    }
+  ]
+}

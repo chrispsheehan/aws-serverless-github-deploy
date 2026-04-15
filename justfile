@@ -8,6 +8,7 @@ CONTAINERS_DIR := "containers"
 FRONTEND_DIR := "frontend"
 EXTRA_CONTAINER_DIRECTORIES := "[\"debug\",\"otel_collector\"]"
 NON_SERVICE_CONTAINER_DIRECTORIES := "[\"shared\"]"
+PGROLL_VERSION := "0.16.1"
 
 
 tf-lint-check:
@@ -381,6 +382,17 @@ lambda-build:
     cp "{{PROJECT_DIR}}/{{LAMBDA_DIR}}/$LAMBDA_NAME"/*.py "$LAMBDA_BUILD_DIR/$LAMBDA_NAME/"
     cp "{{PROJECT_DIR}}/lambda_shared.py" "$LAMBDA_BUILD_DIR/$LAMBDA_NAME/"
     cp "{{PROJECT_DIR}}/db_shared.py" "$LAMBDA_BUILD_DIR/$LAMBDA_NAME/"
+    if [[ -d "{{PROJECT_DIR}}/{{LAMBDA_DIR}}/$LAMBDA_NAME/migrations" ]]; then
+        mkdir -p "$LAMBDA_BUILD_DIR/$LAMBDA_NAME/migrations"
+        cp "{{PROJECT_DIR}}/{{LAMBDA_DIR}}/$LAMBDA_NAME/migrations/"* "$LAMBDA_BUILD_DIR/$LAMBDA_NAME/migrations/"
+    fi
+    if [[ "$LAMBDA_NAME" == "migrations" ]]; then
+        mkdir -p "$LAMBDA_BUILD_DIR/$LAMBDA_NAME/bin"
+        curl -fsSL \
+          "https://github.com/xataio/pgroll/releases/download/v{{PGROLL_VERSION}}/pgroll.linux.amd64" \
+          -o "$LAMBDA_BUILD_DIR/$LAMBDA_NAME/bin/pgroll"
+        chmod +x "$LAMBDA_BUILD_DIR/$LAMBDA_NAME/bin/pgroll"
+    fi
     (
         cd "$LAMBDA_BUILD_DIR/$LAMBDA_NAME"
         zip -r "../../$LAMBDA_NAME.zip" . > /dev/null
