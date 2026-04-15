@@ -7,6 +7,7 @@ locals {
     ecr_api = "ecr.api"
     ecr_dkr = "ecr.dkr"
     logs    = "logs"
+    sqs     = "sqs"
   }
 
   tunnel_interface_endpoints = var.local_tunnel ? {

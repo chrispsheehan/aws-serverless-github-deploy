@@ -905,45 +905,20 @@ frontend-invalidate:
     exit 1
 
 
-test-api-deploy-500s:
+sns-publish:
     #!/usr/bin/env bash
     set -euo pipefail
 
-    if [[ -z "$API_URL" ]]; then
-        echo "❌ API_URL environment variable is not set."
+    if [[ -z "${TOPIC_ARN:-}" ]]; then
+        echo "❌ TOPIC_ARN environment variable is not set."
         exit 1
     fi
 
-    echo "Sending requests to $API_URL to trigger 500 errors..."
-
-    END=$((SECONDS+180))
-
-    while [ $SECONDS -lt $END ]; do
-        curl -s -o /dev/null "$API_URL/error"
-    done
-
-    echo "Finished sending requests."
-
-
-test-send-dlq-messages:
-    #!/usr/bin/env bash
-    set -euo pipefail
-
-    if [[ -z "$SQS_DLQ_QUEUE_URL" ]]; then
-        echo "❌ SQS_DLQ_QUEUE_URL environment variable is not set."
+    if [[ -z "${MESSAGE:-}" ]]; then
+        echo "❌ MESSAGE environment variable is not set."
         exit 1
     fi
 
-    if [[ -z "$AWS_REGION" ]]; then
-        echo "❌ AWS_REGION environment variable is not set."
-        exit 1
-    fi
-
-    echo "Sending messages to SQS DLQ at $SQS_DLQ_QUEUE_URL..."
-
-    for i in {1..180}; do
-        aws sqs send-message --region $AWS_REGION --queue-url "$SQS_DLQ_QUEUE_URL" --message-body "Test message $i"
-        sleep 1
-    done
-
-    echo "Finished sending messages."
+    aws sns publish \
+      --topic-arn "$TOPIC_ARN" \
+      --message "$MESSAGE"

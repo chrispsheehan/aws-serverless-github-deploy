@@ -53,6 +53,20 @@ jobs:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/oidc
 
+  worker_messaging:
+    needs: oidc
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.infra_version }}
+
+      - name: Deploy worker messaging infra
+        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          tg_directory: infra/live/${{ inputs.environment }}/aws/worker_messaging
+
   frontend:
     needs: lambdas
     runs-on: ubuntu-latest
@@ -131,6 +145,7 @@ jobs:
       - oidc
       - security
       - network
+      - worker_messaging
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false # this is to prevent terraform lock issues
@@ -151,6 +166,7 @@ jobs:
     needs:
       - cluster
       - network
+      - worker_messaging
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

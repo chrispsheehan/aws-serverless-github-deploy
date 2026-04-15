@@ -31,6 +31,7 @@ The repo `network` module also owns the shared internal ALB and shared HTTP API 
 - default API stage
 - VPC link
 - internal ALB and target groups
+- interface VPC endpoints required by private ECS tasks, including SQS for the worker poller
 
 This repo now includes a sample ECS API container service exposed separately from the Lambda API:
 
@@ -59,7 +60,8 @@ The reusable deploy workflows follow the same split: `prod` `*_code` and `*_infr
 
 For `*_code` release deploys, pass explicit release versions for each runtime you want to roll out. In particular, ECS code deploys should provide an `ecs_version` rather than relying on a Lambda-version fallback.
 
-The ECS worker queue is now owned by `task_worker`, and `service_worker` reads that queue name from `task_worker` remote state. That keeps the ECS worker queue aligned with the worker stack lifecycle without depending on the Lambda worker queue.
+The worker runtimes now share a dedicated `worker_messaging` stack that owns one SNS topic plus two SQS queues, with one queue consumed by `lambda_worker` and the other by the ECS worker stack. Publishing once to the shared topic fans the same message out to both runtimes independently.
+`lambda_worker`, `task_worker`, and `service_worker` now read queue details from `worker_messaging` remote state instead of owning worker queues inside the runtime stacks.
 For bootstrap service applies, `service_worker` now uses placeholder task and queue values locally rather than spreading `count`-indexed remote-state access through the module.
 The ECS worker task uses a local heartbeat-file health check, which is a better fit for a non-HTTP worker than probing a service endpoint or tying task health directly to transient AWS API calls.
 All ECS app containers now use a shared tracing helper under `containers/shared` so API requests and worker SQS operations emit X-Ray traces when `xray_enabled = true`.
@@ -80,6 +82,16 @@ Given a terragrunt file is found at `infra/live/dev/aws/api/terragrunt.hcl`
 
 ```sh
 just tg dev aws/api plan
+```
+
+## 📨 publish a worker message
+
+To publish directly to the shared worker SNS topic from your shell:
+
+```sh
+TOPIC_ARN=arn:aws:sns:eu-west-2:123456789012:aws-serverless-github-deploy-dev-worker-events \
+MESSAGE='{"job_id":"demo-1","source":"local","payload":{"hello":"world"}}' \
+just sns-publish
 ```
 
 ## ⚙️ types of lambda provisioned concurrency

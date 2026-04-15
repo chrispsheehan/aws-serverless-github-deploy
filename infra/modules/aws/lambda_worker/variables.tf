@@ -9,6 +9,16 @@ variable "environment" {
   description = "Environment reference used in naming resources i.e. 'dev'"
 }
 
+variable "state_bucket" {
+  type        = string
+  description = "Remote state bucket used to read shared stack outputs"
+}
+
+variable "aws_region" {
+  type        = string
+  description = "AWS region for remote state and provider resources"
+}
+
 variable "code_bucket" {
   type        = string
   description = "Bucket where deployable code artifacts are uploaded"
@@ -20,11 +30,6 @@ variable "otel_sample_rate" {
   default     = 1.0 # 100%
 }
 ### end of static vars set in root.hcl ###
-
-variable "sqs_queue_name" {
-  type        = string
-  description = "The name of the SQS queue"
-}
 
 variable "deployment_config" {
   description = "Traffic shifting: all_at_once | canary | linear"

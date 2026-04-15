@@ -51,13 +51,15 @@ stores state at:
 ## Shared Stack Responsibilities
 
 - `network`
-  Owns the internal ALB, shared HTTP API Gateway API, VPC link, and VPC endpoints.
+  Owns the internal ALB, shared HTTP API Gateway API, VPC link, and VPC endpoints, including the SQS interface endpoint used by private ECS workers.
 - `security`
   Owns shared security groups.
 - `cluster`
   Owns the ECS cluster.
 - `api`
   Owns the Lambda-backed API integration and routes into the shared HTTP API.
+- `worker_messaging`
+  Owns the shared worker SNS topic plus the Lambda-worker and ECS-worker SQS queues used for fanout.
 - `task_*`
   Register ECS task definitions.
 - `service_*`
@@ -65,8 +67,10 @@ stores state at:
 
 Current examples include:
 
+- `worker_messaging`
+  Shared worker fanout shape: one SNS topic publishes to two independent worker queues so Lambda and ECS consumers each receive the same event.
 - `task_worker` / `service_worker`
-  Internal ECS worker service shape, with the worker queue owned by `task_worker` and a container health check based on a local worker heartbeat file.
+  Internal ECS worker service shape, with the ECS worker queue owned by `worker_messaging` and a container health check based on a local worker heartbeat file.
 - `task_api` / `service_api`
   ECS API service shape exposed on the shared API Gateway at `/ecs` using `vpc_link` and `blue_green`, backed by a dedicated listener on the shared ALB. Through the frontend distribution it is reached at `/api/ecs/*`, while the Lambda API is reached at `/api/*`.
 
@@ -78,7 +82,7 @@ That `containers/shared` directory is helper code only and is not treated as a d
 - many modules use `data.terraform_remote_state` to read outputs from other stacks
 - because of that, workflow ordering matters for apply, deploy, and destroy
 - on destroy, `network` and `cluster` can tear down in parallel once `service_*`, `task_*`, and `frontend` stacks are gone
-- avoid making one runtime depend on another runtime's state ownership unnecessarily; for example, the ECS worker queue is owned by `task_worker` rather than by `lambda_worker`
+- avoid making one runtime depend on another runtime's state ownership unnecessarily; for example, shared worker fanout state is owned by `worker_messaging` rather than by `lambda_worker` or `task_worker`
 - some shared infrastructure, such as the landing-zone VPC and tagged private subnets, is discovered with `data` lookups and must already exist
 
 ## Deployment Model

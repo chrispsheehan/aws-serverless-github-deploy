@@ -5,14 +5,14 @@ Worker Lambda wrapper module.
 ## Owns
 
 - worker Lambda via `_shared/lambda`
-- Lambda worker queue integration via `_shared/sqs`
+- Lambda worker event-source mapping onto the shared worker messaging queue
+- DLQ alarming for the Lambda worker queue
 
 ## Key outputs
 
 - Lambda function and alias names
 - queue name and queue URLs
 - SQS read policy ARN
-- queue URLs
 - log group
 
-This is the concrete worker implementation on top of the shared Lambda primitives. Its queue is owned for Lambda worker processing and is no longer the queue used by the ECS worker service.
+This is the concrete worker implementation on top of the shared Lambda primitives. It reads the Lambda worker queue from the `worker_messaging` stack so the same SNS event can fan out to both the Lambda and ECS worker consumers.

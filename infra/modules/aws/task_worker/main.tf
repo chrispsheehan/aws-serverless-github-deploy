@@ -1,10 +1,3 @@
-module "sqs_queue" {
-  source = "../_shared/sqs"
-
-  sqs_queue_name = local.sqs_queue_name
-  sqs_dlq_name   = local.sqs_dlq_name
-}
-
 module "task_worker" {
   source = "../_shared/task"
 
@@ -26,7 +19,7 @@ module "task_worker" {
   additional_env_vars = [
     {
       name  = "AWS_SQS_QUEUE_URL"
-      value = module.sqs_queue.sqs_queue_url
+      value = data.terraform_remote_state.worker_messaging.outputs.ecs_worker_queue_url
     },
     {
       name  = "HEARTBEAT_FILE"
@@ -34,7 +27,7 @@ module "task_worker" {
     }
   ]
   additional_runtime_policy_arns = [
-    module.sqs_queue.sqs_queue_read_policy_arn
+    data.terraform_remote_state.worker_messaging.outputs.ecs_worker_queue_read_policy_arn
   ]
 
   health_check = {

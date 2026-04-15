@@ -9,7 +9,7 @@ Shared network and routing module.
 - shared HTTP API Gateway API
 - default API stage
 - VPC link
-- interface VPC endpoints
+- interface VPC endpoints, including SQS for private ECS workers
 - S3 gateway endpoint
 
 ## Dependencies

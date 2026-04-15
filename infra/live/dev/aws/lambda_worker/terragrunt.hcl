@@ -2,13 +2,7 @@ include {
   path = find_in_parent_folders("root.hcl")
 }
 
-locals {
-  sqs_queue_name = "dev-serverless-lambda-worker-queue"
-}
-
 inputs = {
-  sqs_queue_name = local.sqs_queue_name
-
   sqs_dlq_alarm_threshold           = 1 # fail when any messages are in the DLQ (quick fail for testing)
   sqs_dlq_alarm_evaluation_periods  = 1
   sqs_dlq_alarm_datapoints_to_alarm = 1
@@ -24,7 +18,6 @@ inputs = {
       min                        = 1
       max                        = 5
       visible_messages           = 10
-      queue_name                 = local.sqs_queue_name
       scale_in_cooldown_seconds  = 60
       scale_out_cooldown_seconds = 60
     }
