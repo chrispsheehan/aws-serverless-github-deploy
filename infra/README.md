@@ -99,10 +99,12 @@ That `containers/shared` directory is helper code only and is not treated as a d
 - in `prod`, the `*_infra` wrappers read shared artifact resources from `ci` but only apply service and task stacks in `prod`
 - deploy workflows:
   - publish Lambda versions and use Lambda CodeDeploy
+  - optionally invoke the `migrations` Lambda when it is part of the Lambda deploy matrix
   - register ECS task revisions
   - then either:
     - use ECS CodeDeploy for load-balanced services
     - or use native ECS rolling updates for internal services
+  - ECS task rollout is not implicitly blocked on Lambda or migration jobs; add that ordering only where a caller actually needs it
 
 ## Naming Conventions
 
