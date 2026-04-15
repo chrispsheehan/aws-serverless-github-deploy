@@ -15,6 +15,16 @@ variable "database_name" {
   description = "Logical database name used for naming resources and the initial database"
 }
 
+variable "state_bucket" {
+  type        = string
+  description = "Terraform state bucket used to read shared security outputs"
+}
+
+variable "aws_region" {
+  type        = string
+  description = "AWS region for provider resources and remote state lookups"
+}
+
 variable "vpc_name" {
   type        = string
   description = "VPC name tag used to look up the database VPC and subnets"

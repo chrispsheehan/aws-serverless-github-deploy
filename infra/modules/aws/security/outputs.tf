@@ -13,3 +13,7 @@ output "vpc_endpoint_sg" {
 output "api_vpc_link_sg" {
   value = aws_security_group.api_vpc_link.id
 }
+
+output "postgres_sg" {
+  value = aws_security_group.postgres.id
+}

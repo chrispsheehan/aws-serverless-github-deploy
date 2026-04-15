@@ -10,26 +10,6 @@ resource "random_string" "db_user" {
   upper   = false
 }
 
-resource "aws_security_group" "database" {
-  name        = local.security_group_name
-  description = "Security group for ${var.database_name} Aurora PostgreSQL"
-  vpc_id      = data.aws_vpc.this.id
-
-  ingress {
-    from_port   = var.database_port
-    to_port     = var.database_port
-    protocol    = "tcp"
-    cidr_blocks = [data.aws_vpc.this.cidr_block]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = [data.aws_vpc.this.cidr_block]
-  }
-}
-
 resource "aws_db_subnet_group" "default" {
   name       = local.subnet_group_name
   subnet_ids = data.aws_subnets.this.ids
@@ -49,7 +29,7 @@ resource "aws_rds_cluster" "aurora_postgres" {
   preferred_backup_window = local.postgres_backup_window
 
   skip_final_snapshot    = true
-  vpc_security_group_ids = [aws_security_group.database.id]
+  vpc_security_group_ids = [data.terraform_remote_state.security.outputs.postgres_sg]
   db_subnet_group_name   = aws_db_subnet_group.default.name
   storage_encrypted      = true
 
