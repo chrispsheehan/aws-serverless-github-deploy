@@ -210,7 +210,6 @@ jobs:
   cluster:
     name: Cluster
     needs:
-      - frontend
       - services
       - tasks
       - database
