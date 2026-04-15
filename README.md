@@ -65,6 +65,7 @@ The worker runtimes now share a dedicated `worker_messaging` stack that owns one
 `lambda_worker`, `task_worker`, and `service_worker` now read queue details from `worker_messaging` remote state instead of owning worker queues inside the runtime stacks.
 The repo also includes a shared `database` stack in `dev` and `prod` for Aurora PostgreSQL Serverless v2, intended to be available before Lambda or ECS services start taking dependencies on it.
 The ECS worker now persists consumed messages into Aurora PostgreSQL, and a separate `migrations` Lambda exists for running schema changes against that shared database from inside the VPC.
+When `migrations` is present in the Lambda deployment matrix, the reusable code deploy workflow invokes it automatically after Lambda rollout and before ECS task/service rollout.
 CI and deploy workflow Lambda discovery now treats top-level directories under `lambdas/` as deployable functions but explicitly ignores the generated `lambdas/build` directory, so `migrations` is included in the normal Lambda build and deploy flow without polluting the matrix with build artifacts.
 For bootstrap service applies, `service_worker` now uses placeholder task and queue values locally rather than spreading `count`-indexed remote-state access through the module.
 The ECS worker task uses a local heartbeat-file health check, which is a better fit for a non-HTTP worker than probing a service endpoint or tying task health directly to transient AWS API calls.

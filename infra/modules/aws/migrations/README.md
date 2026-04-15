@@ -15,3 +15,4 @@ Lambda wrapper for database migrations.
 - `cloudwatch_log_group`
 
 This module is intended for manual or pipeline-triggered schema migrations against the shared Aurora PostgreSQL database. It runs inside the VPC and reuses the shared runtime security group from `security` so it can reach the database without introducing a second database-ingress rule pattern.
+In this repo's reusable code deploy workflow, the function is also invoked automatically when `migrations` is part of the Lambda deployment matrix.
