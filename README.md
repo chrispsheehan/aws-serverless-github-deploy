@@ -14,6 +14,7 @@ just tg prod aws/oidc apply
 ```
 
 The `ci` OIDC role is intentionally narrower than the `dev` and `prod` roles. In this repo it is limited to build-artifact management, including the shared code bucket, IAM interactions needed by the existing CI flow, and publishing container images to ECR. It is not the repo's broad deployment role.
+The deploy roles for `dev` and `prod` now also include the `rds` and `ssm` permissions needed by the shared database stack.
 
 ## 🧱 prerequisite network
 
@@ -62,6 +63,7 @@ For `*_code` release deploys, pass explicit release versions for each runtime yo
 
 The worker runtimes now share a dedicated `worker_messaging` stack that owns one SNS topic plus two SQS queues, with one queue consumed by `lambda_worker` and the other by the ECS worker stack. Publishing once to the shared topic fans the same message out to both runtimes independently.
 `lambda_worker`, `task_worker`, and `service_worker` now read queue details from `worker_messaging` remote state instead of owning worker queues inside the runtime stacks.
+The repo also includes a shared `database` stack in `dev` and `prod` for Aurora PostgreSQL Serverless v2, intended to be available before Lambda or ECS services start taking dependencies on it.
 For bootstrap service applies, `service_worker` now uses placeholder task and queue values locally rather than spreading `count`-indexed remote-state access through the module.
 The ECS worker task uses a local heartbeat-file health check, which is a better fit for a non-HTTP worker than probing a service endpoint or tying task health directly to transient AWS API calls.
 All ECS app containers now use a shared tracing helper under `containers/shared` so API requests and worker SQS operations emit X-Ray traces when `xray_enabled = true`.

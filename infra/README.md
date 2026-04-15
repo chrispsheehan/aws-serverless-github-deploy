@@ -58,6 +58,8 @@ stores state at:
   Owns the ECS cluster.
 - `api`
   Owns the Lambda-backed API integration and routes into the shared HTTP API.
+- `database`
+  Owns the shared Aurora PostgreSQL Serverless v2 database stack and its SSM connection parameters.
 - `worker_messaging`
   Owns the shared worker SNS topic plus the Lambda-worker and ECS-worker SQS queues used for fanout.
 - `task_*`
@@ -67,6 +69,8 @@ stores state at:
 
 Current examples include:
 
+- `database`
+  Shared Aurora PostgreSQL Serverless v2 shape for repo-managed relational data stores.
 - `worker_messaging`
   Shared worker fanout shape: one SNS topic publishes to two independent worker queues so Lambda and ECS consumers each receive the same event.
 - `task_worker` / `service_worker`

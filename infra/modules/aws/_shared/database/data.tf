@@ -6,7 +6,7 @@ data "aws_rds_engine_version" "postgres" {
 data "aws_subnets" "this" {
   filter {
     name   = "vpc-id"
-    values = [var.vpc_id]
+    values = [data.aws_vpc.this.id]
   }
 
   filter {
@@ -21,5 +21,8 @@ data "aws_subnet" "selected" {
 }
 
 data "aws_vpc" "this" {
-  id = var.vpc_id
+  filter {
+    name   = "tag:Name"
+    values = [var.vpc_name]
+  }
 }

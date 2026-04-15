@@ -126,6 +126,20 @@ jobs:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/security
 
+  database:
+    needs: oidc
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.infra_version }}
+
+      - name: Deploy database infra
+        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          tg_directory: infra/live/${{ inputs.environment }}/aws/database
+
   network:
     needs: security
     runs-on: ubuntu-latest
@@ -145,6 +159,7 @@ jobs:
       - oidc
       - security
       - network
+      - database
       - worker_messaging
     runs-on: ubuntu-latest
     strategy:
@@ -166,6 +181,7 @@ jobs:
     needs:
       - cluster
       - network
+      - database
       - worker_messaging
     runs-on: ubuntu-latest
     strategy:

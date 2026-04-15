@@ -15,13 +15,13 @@ variable "database_name" {
   description = "Logical database name used for naming resources and the initial database"
 }
 
-variable "vpc_id" {
+variable "vpc_name" {
   type        = string
-  description = "VPC ID that owns the database subnets and security group"
+  description = "VPC name tag used to look up the database VPC and subnets"
 
   validation {
-    condition     = length(trimspace(var.vpc_id)) > 0
-    error_message = "vpc_id must be specified."
+    condition     = length(trimspace(var.vpc_name)) > 0
+    error_message = "vpc_name must be specified."
   }
 }
 

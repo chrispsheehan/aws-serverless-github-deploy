@@ -13,7 +13,7 @@ Shared Aurora PostgreSQL Serverless v2 module.
 ## Inputs
 
 - `database_name`
-- `vpc_id`
+- `vpc_name`
 - `publicly_accessible`
 - `database_port`
 - `engine_version`

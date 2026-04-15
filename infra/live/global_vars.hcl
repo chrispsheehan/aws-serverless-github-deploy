@@ -18,6 +18,8 @@ locals {
     "ecs:*",
     "ecr:*",
     "elasticloadbalancing:*",
+    "rds:*",
+    "ssm:*",
   ]
   container_port = 80
 }
