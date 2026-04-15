@@ -44,7 +44,7 @@ stores state at:
 ## Module Types
 
 - `_shared/*`
-  Reusable building blocks such as Lambda, ECS task, ECS service, ECR, SQS, cluster, and code bucket.
+  Reusable building blocks such as Lambda, ECS task, ECS service, ECR, SQS, cluster, database, and code bucket.
 - concrete modules such as `task_worker`, `service_worker`, `lambda_worker`, `api`
   Thin wrappers that apply repo-specific behavior on top of shared modules.
 
