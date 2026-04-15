@@ -904,3 +904,21 @@ frontend-invalidate:
     echo "❌ Invalidation $INVALIDATION_ID did not complete within expected time."
     exit 1
 
+
+sns-publish:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "${TOPIC_ARN:-}" ]]; then
+        echo "❌ TOPIC_ARN environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "${MESSAGE:-}" ]]; then
+        echo "❌ MESSAGE environment variable is not set."
+        exit 1
+    fi
+
+    aws sns publish \
+      --topic-arn "$TOPIC_ARN" \
+      --message "$MESSAGE"

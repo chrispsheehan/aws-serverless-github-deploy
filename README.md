@@ -83,6 +83,16 @@ Given a terragrunt file is found at `infra/live/dev/aws/api/terragrunt.hcl`
 just tg dev aws/api plan
 ```
 
+## 📨 publish a worker message
+
+To publish directly to the shared worker SNS topic from your shell:
+
+```sh
+TOPIC_ARN=arn:aws:sns:eu-west-2:123456789012:aws-serverless-github-deploy-dev-worker-events \
+MESSAGE='{"job_id":"demo-1","source":"local","payload":{"hello":"world"}}' \
+just sns-publish
+```
+
 ## ⚙️ types of lambda provisioned concurrency
 
 ```hcl
