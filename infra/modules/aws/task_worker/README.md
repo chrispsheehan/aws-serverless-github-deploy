@@ -5,14 +5,13 @@ Concrete ECS worker task wrapper.
 ## Owns
 
 - worker ECS task definition via `_shared/task`
-- ECS worker queue via `_shared/sqs`
 
 ## Key behavior
 
 - runs `python -u app.py`
 - publishes worker task revisions for ECS deploys
 - uses the shared ECR repository named by `ecr_repository_name`
-- injects its own queue URL into the container via `AWS_SQS_QUEUE_URL`
+- injects the shared ECS worker queue URL into the container via `AWS_SQS_QUEUE_URL`
 - updates a local heartbeat file as it polls and uses an ECS container health check against that heartbeat
 - uses the shared ECS tracing helper so SQS receive/process/delete work emits X-Ray spans when `xray_enabled` is enabled
 - defaults `local_tunnel` and `xray_enabled` to `false` unless explicitly enabled
@@ -25,4 +24,4 @@ Concrete ECS worker task wrapper.
 - `sqs_queue_url`
 - log group name
 
-This module is the image-driven deployment unit for the ECS worker and owns the ECS worker queue directly so queue creation follows the task stack lifecycle.
+This module is the image-driven deployment unit for the ECS worker. It reads the ECS worker queue from the `worker_messaging` stack so the task definition and service can consume the same fanout event stream as the Lambda worker.

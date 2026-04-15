@@ -15,13 +15,13 @@ output "service_name" {
 }
 
 output "sqs_queue_name" {
-  value = module.sqs_queue.sqs_queue_name
+  value = data.terraform_remote_state.worker_messaging.outputs.ecs_worker_queue_name
 }
 
 output "sqs_queue_url" {
-  value = module.sqs_queue.sqs_queue_url
+  value = data.terraform_remote_state.worker_messaging.outputs.ecs_worker_queue_url
 }
 
 output "sqs_queue_read_policy_arn" {
-  value = module.sqs_queue.sqs_queue_read_policy_arn
+  value = data.terraform_remote_state.worker_messaging.outputs.ecs_worker_queue_read_policy_arn
 }
