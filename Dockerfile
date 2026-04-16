@@ -37,7 +37,7 @@ CMD ["python", "-u", "app.py"]
 FROM python-base AS debug
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl \
+    && apt-get install -y --no-install-recommends curl postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
 CMD ["sleep", "infinity"]
