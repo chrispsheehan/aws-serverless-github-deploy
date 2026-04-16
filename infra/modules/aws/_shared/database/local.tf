@@ -6,8 +6,6 @@ locals {
   ssm_name_prefix             = "/${var.environment}/${var.project_name}/${var.database_name}"
   credentials_secret_name     = "${local.ssm_name_prefix}/credentials"
   database_ssm_name           = "${local.ssm_name_prefix}/db-name"
-  username_ssm_name           = "${local.ssm_name_prefix}/username"
-  password_ssm_name           = "${local.ssm_name_prefix}/password"
   readonly_endpoint_ssm_name  = "${local.ssm_name_prefix}/readonly-endpoint"
   readwrite_endpoint_ssm_name = "${local.ssm_name_prefix}/readwrite-endpoint"
 

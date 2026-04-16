@@ -45,4 +45,4 @@ This module is intentionally Aurora PostgreSQL Serverless v2 specific. It does n
 In this repo the shared infra workflow injects `database_security_group_id` from the `security` stack via `TF_VAR_database_security_group_id`.
 By default the module tracks the latest matching Aurora PostgreSQL 16.x engine version rather than pinning a specific patch release.
 SSM parameter paths and the database credentials secret name are rooted at `/<environment>/<project>/<database>/...` so they do not collide with AWS-reserved `/aws` prefixes.
-The single Secrets Manager credentials object is the primary runtime contract. The legacy split username/password SSM parameters are still written for compatibility during migration, but new consumers should use the secret object instead.
+The single Secrets Manager credentials object is the runtime contract for database credentials.

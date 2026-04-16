@@ -90,20 +90,6 @@ resource "aws_secretsmanager_secret_version" "db_credentials" {
   })
 }
 
-resource "aws_ssm_parameter" "db_password_parameter" {
-  name        = local.password_ssm_name
-  description = "Legacy compatibility password parameter for ${var.database_name}"
-  type        = "SecureString"
-  value       = random_password.db_password.result
-}
-
-resource "aws_ssm_parameter" "db_username_parameter" {
-  name        = local.username_ssm_name
-  description = "Legacy compatibility username parameter for ${var.database_name}"
-  type        = "SecureString"
-  value       = local.master_username
-}
-
 resource "aws_ssm_parameter" "db_readonly_endpoint_parameter" {
   name        = local.readonly_endpoint_ssm_name
   description = "Read only endpoint for ${var.database_name}"
