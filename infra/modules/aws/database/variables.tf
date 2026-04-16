@@ -15,13 +15,13 @@ variable "database_name" {
   description = "Logical database name used for naming resources and the initial database"
 }
 
-variable "subnet_ids" {
-  type        = list(string)
-  description = "Subnet ids to use for the database subnet group and reader availability-zone selection"
+variable "vpc_name" {
+  type        = string
+  description = "VPC name tag used to look up the database VPC and subnets"
 
   validation {
-    condition     = length(var.subnet_ids) > 0
-    error_message = "subnet_ids must contain at least one subnet id."
+    condition     = length(trimspace(var.vpc_name)) > 0
+    error_message = "vpc_name must be specified."
   }
 }
 

@@ -18,7 +18,7 @@ locals {
   postgres_instance_class = "db.serverless"
   postgres_backup_window  = "07:00-09:00"
 
-  subnet_ids_ordered = tolist(data.aws_subnets.this.ids)
+  subnet_ids_ordered = tolist(var.subnet_ids)
   subnet_azs_all     = [for id in local.subnet_ids_ordered : data.aws_subnet.selected[id].availability_zone]
   subnet_azs         = slice(distinct(local.subnet_azs_all), 0, var.rds_max_reader_count)
 }

@@ -12,5 +12,5 @@ inputs = {
 }
 
 terraform {
-  source = "../../../../modules//aws//_shared//database"
+  source = "../../../../modules//aws//database"
 }
