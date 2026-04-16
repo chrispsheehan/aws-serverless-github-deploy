@@ -21,6 +21,9 @@ locals {
     "rds:*",
     "ssm:*",
     "secretsmanager:*",
+    "acm:*",
+    "route53:*",
+    "cognito-idp:*",
   ]
   container_port = 80
 }
