@@ -7,10 +7,10 @@ locals {
   auth_config = jsonencode({
     enabled          = true
     region           = var.aws_region
-    userPoolId       = data.terraform_remote_state.cognito.outputs.user_pool_id
-    userPoolClientId = data.terraform_remote_state.cognito.outputs.user_pool_client_id
-    hostedUiUrl      = data.terraform_remote_state.cognito.outputs.hosted_ui_url
-    readonlyGroup    = data.terraform_remote_state.cognito.outputs.readonly_group_name
+    userPoolId       = var.auth_user_pool_id
+    userPoolClientId = var.auth_user_pool_client_id
+    hostedUiUrl      = var.auth_hosted_ui_url
+    readonlyGroup    = var.auth_readonly_group_name
     scopes           = ["openid", "email", "profile"]
   })
 

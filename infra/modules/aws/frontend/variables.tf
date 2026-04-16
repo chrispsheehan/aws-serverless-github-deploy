@@ -44,3 +44,23 @@ variable "frontend_hosted_zone_name" {
   description = "Optional Route53 hosted zone name for the frontend custom domain"
   default     = ""
 }
+
+variable "auth_user_pool_id" {
+  type        = string
+  description = "Cognito user pool id exposed to the frontend auth config"
+}
+
+variable "auth_user_pool_client_id" {
+  type        = string
+  description = "Cognito user pool client id exposed to the frontend auth config"
+}
+
+variable "auth_hosted_ui_url" {
+  type        = string
+  description = "Cognito Hosted UI URL exposed to the frontend auth config"
+}
+
+variable "auth_readonly_group_name" {
+  type        = string
+  description = "Cognito readonly group name exposed to the frontend auth config"
+}

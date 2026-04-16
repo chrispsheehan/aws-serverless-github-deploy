@@ -60,6 +60,10 @@ jobs:
         env:
           TF_VAR_api_invoke_url: "https://placeholder.execute-api.us-east-1.amazonaws.com"
           TF_VAR_domain_name: ${{ env.DOMAIN_NAME }}
+          TF_VAR_auth_user_pool_id: "destroy-placeholder"
+          TF_VAR_auth_user_pool_client_id: "destroy-placeholder"
+          TF_VAR_auth_hosted_ui_url: "https://destroy-placeholder"
+          TF_VAR_auth_readonly_group_name: "readonly"
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/frontend
