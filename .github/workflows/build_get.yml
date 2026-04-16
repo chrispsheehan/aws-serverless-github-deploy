@@ -70,7 +70,7 @@ jobs:
           ref: ${{ inputs.lambda_version }}
 
       - name: Get code bucket outputs
-        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+        uses: ./.github/actions/terragrunt
         id: code_action
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
@@ -106,7 +106,7 @@ jobs:
 
       - name: Get ECR infra
         id: get-ecr
-        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+        uses: ./.github/actions/terragrunt
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/ecr
@@ -145,7 +145,7 @@ jobs:
 
       - name: Get ECR version images
         id: get_version_images
-        uses: chrispsheehan/just-aws-oidc-action@0.3.0
+        uses: ./.github/actions/just
         env:
           REPOSITORY_URL: ${{ needs.ecr.outputs.repository_url }}
           VERSION: ${{ inputs.ecs_version != '' && inputs.ecs_version || inputs.lambda_version }}
@@ -178,7 +178,7 @@ jobs:
 
       - name: Build ECS task matrix
         id: task_matrix
-        uses: chrispsheehan/just-aws-oidc-action@0.3.0
+        uses: ./.github/actions/just
         env:
           REPOSITORY_URL: ${{ needs.ecr.outputs.repository_url }}
           VERSION: ${{ inputs.ecs_version != '' && inputs.ecs_version || inputs.lambda_version }}
@@ -204,7 +204,7 @@ jobs:
           ref: ${{ inputs.lambda_version }}
 
       - name: Check frontend version exists
-        uses: chrispsheehan/just-aws-oidc-action@0.3.0
+        uses: ./.github/actions/just
         env:
           BUCKET_NAME: ${{ needs.bucket.outputs.code_bucket_name }}
           VERSION: ${{ inputs.frontend_version != '' && inputs.frontend_version || inputs.lambda_version }}
@@ -225,7 +225,7 @@ jobs:
           ref: ${{ inputs.lambda_version }}
 
       - name: Check Lambda version exists
-        uses: chrispsheehan/just-aws-oidc-action@0.3.0
+        uses: ./.github/actions/just
         env:
           BUCKET_NAME: ${{ needs.bucket.outputs.code_bucket_name }}
           VERSION: ${{ inputs.lambda_version }}
@@ -235,7 +235,7 @@ jobs:
 
       - name: Get lambda names
         id: get_build_files
-        uses: chrispsheehan/just-aws-oidc-action@0.3.0
+        uses: ./.github/actions/just
         env:
           BUCKET_NAME: ${{ needs.bucket.outputs.code_bucket_name }}
           VERSION: ${{ inputs.lambda_version }}
@@ -245,7 +245,7 @@ jobs:
 
       - name: Get lambda S3 keys
         id: get_build_file_keys
-        uses: chrispsheehan/just-aws-oidc-action@0.3.0
+        uses: ./.github/actions/just
         env:
           BUCKET_NAME: ${{ needs.bucket.outputs.code_bucket_name }}
           VERSION: ${{ inputs.lambda_version }}

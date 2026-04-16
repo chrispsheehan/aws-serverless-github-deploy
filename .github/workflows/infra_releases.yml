@@ -44,7 +44,7 @@ jobs:
 
       - name: Deploy ECR
         id: deploy_ecr
-        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+        uses: ./.github/actions/terragrunt
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/ecr
@@ -57,7 +57,7 @@ jobs:
           echo "repository_url=$(echo "$TG_OUTPUTS" | jq -r '.repository_url.value')" >> "$GITHUB_OUTPUT"
 
       - name: Build and push bootstrap image
-        uses: chrispsheehan/just-aws-oidc-action@0.3.0
+        uses: ./.github/actions/just
         env:
           SOURCE_IMAGE: nginx:latest
           IMAGE_URI: ${{ steps.get_repository_url.outputs.repository_url }}:bootstrap-${{ inputs.infra_version }}
@@ -83,7 +83,7 @@ jobs:
 
       - name: Deploy build artifact bucket
         id: deploy_bucket
-        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+        uses: ./.github/actions/terragrunt
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/code_bucket
