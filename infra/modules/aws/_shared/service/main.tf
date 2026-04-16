@@ -126,19 +126,21 @@ resource "aws_lb_listener" "service" {
 resource "aws_apigatewayv2_route" "service_exact" {
   count = local.vpc_link_count
 
-  api_id    = var.api_id
-  route_key = local.exact_route_key
-
-  target = "integrations/${aws_apigatewayv2_integration.service[0].id}"
+  api_id             = var.api_id
+  route_key          = local.exact_route_key
+  target             = "integrations/${aws_apigatewayv2_integration.service[0].id}"
+  authorization_type = var.authorization_type
+  authorizer_id      = var.authorization_type == "JWT" ? var.authorizer_id : null
 }
 
 resource "aws_apigatewayv2_route" "service_proxy" {
   count = local.vpc_link_count
 
-  api_id    = var.api_id
-  route_key = local.proxy_route_key
-
-  target = "integrations/${aws_apigatewayv2_integration.service[0].id}"
+  api_id             = var.api_id
+  route_key          = local.proxy_route_key
+  target             = "integrations/${aws_apigatewayv2_integration.service[0].id}"
+  authorization_type = var.authorization_type
+  authorizer_id      = var.authorization_type == "JWT" ? var.authorizer_id : null
 }
 
 resource "aws_apigatewayv2_integration" "service" {

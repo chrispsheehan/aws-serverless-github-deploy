@@ -929,7 +929,7 @@ frontend-deploy:
     TMPDIR=$(mktemp -d)
     aws s3 cp "s3://$BUCKET_NAME/frontend/$VERSION/frontend.zip" "$TMPDIR/frontend.zip"
     unzip -q "$TMPDIR/frontend.zip" -d "$TMPDIR/dist"
-    aws s3 sync "$TMPDIR/dist/" "s3://$WEBSITE_BUCKET/" --delete
+    aws s3 sync "$TMPDIR/dist/" "s3://$WEBSITE_BUCKET/" --delete --exclude "auth-config.json"
     echo "✅ Frontend deployed to s3://$WEBSITE_BUCKET"
 
 
@@ -970,6 +970,48 @@ frontend-invalidate:
 
     echo "❌ Invalidation $INVALIDATION_ID did not complete within expected time."
     exit 1
+
+
+cognito-create-readonly-user env email password:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    aws_region="${AWS_REGION:-eu-west-2}"
+    project_name="$(basename "{{PROJECT_DIR}}")"
+    user_pool_id="$(
+      aws cognito-idp list-user-pools \
+        --region "$aws_region" \
+        --max-results 60 \
+        --query "UserPools[?Name=='${project_name}-{{env}}-users'].Id | [0]" \
+        --output text
+    )"
+
+    if [[ -z "$user_pool_id" || "$user_pool_id" == "None" ]]; then
+        echo "❌ Could not find Cognito user pool ${project_name}-{{env}}-users."
+        exit 1
+    fi
+
+    aws cognito-idp admin-create-user \
+      --region "$aws_region" \
+      --user-pool-id "$user_pool_id" \
+      --username "{{email}}" \
+      --user-attributes Name=email,Value="{{email}}" Name=email_verified,Value=true \
+      --message-action SUPPRESS >/dev/null
+
+    aws cognito-idp admin-set-user-password \
+      --region "$aws_region" \
+      --user-pool-id "$user_pool_id" \
+      --username "{{email}}" \
+      --password "{{password}}" \
+      --permanent >/dev/null
+
+    aws cognito-idp admin-add-user-to-group \
+      --region "$aws_region" \
+      --user-pool-id "$user_pool_id" \
+      --username "{{email}}" \
+      --group-name readonly >/dev/null
+
+    echo "✅ Created readonly Cognito user {{email}} in {{env}}."
 
 
 sns-publish:

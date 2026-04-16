@@ -51,3 +51,12 @@ data "aws_cloudfront_cache_policy" "caching_disabled" {
 
 data "aws_caller_identity" "current" {}
 
+data "terraform_remote_state" "cognito" {
+  backend = "s3"
+
+  config = {
+    bucket = var.state_bucket
+    key    = "${var.environment}/aws/cognito/terraform.tfstate"
+    region = var.aws_region
+  }
+}

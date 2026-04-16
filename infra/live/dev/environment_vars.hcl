@@ -5,6 +5,8 @@ locals {
   local_tunnel             = true
   xray_enabled             = true
   otel_sampling_percentage = 100
+  cognito_callback_urls    = ["http://localhost:5173"]
+  cognito_logout_urls      = ["http://localhost:5173"]
 }
 
 inputs = {
@@ -14,4 +16,6 @@ inputs = {
   local_tunnel             = local.local_tunnel
   xray_enabled             = local.xray_enabled
   otel_sampling_percentage = local.otel_sampling_percentage
+  callback_urls            = local.cognito_callback_urls
+  logout_urls              = local.cognito_logout_urls
 }

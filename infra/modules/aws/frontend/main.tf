@@ -33,6 +33,14 @@ resource "aws_s3_object" "bootstrap_index" {
   content_type = "text/html; charset=utf-8"
 }
 
+resource "aws_s3_object" "auth_config" {
+  bucket       = aws_s3_bucket.frontend.id
+  key          = local.auth_config_file
+  content      = local.auth_config
+  etag         = md5(local.auth_config)
+  content_type = "application/json; charset=utf-8"
+}
+
 resource "aws_cloudfront_function" "spa_routing" {
   name    = "${local.name}-spa-routing"
   runtime = "cloudfront-js-2.0"
@@ -45,6 +53,33 @@ resource "aws_cloudfront_function" "api_strip_prefix" {
   runtime = "cloudfront-js-2.0"
   publish = true
   code    = file("${path.module}/functions/api-strip-prefix.js")
+}
+
+resource "aws_cloudfront_origin_request_policy" "api" {
+  name    = "${local.name}-api"
+  comment = "Forward auth and CORS headers to API Gateway"
+
+  cookies_config {
+    cookie_behavior = "none"
+  }
+
+  headers_config {
+    header_behavior = "whitelist"
+
+    headers {
+      items = [
+        "Authorization",
+        "Content-Type",
+        "Origin",
+        "Access-Control-Request-Headers",
+        "Access-Control-Request-Method",
+      ]
+    }
+  }
+
+  query_strings_config {
+    query_string_behavior = "all"
+  }
 }
 
 resource "aws_cloudfront_distribution" "frontend" {
@@ -86,13 +121,23 @@ resource "aws_cloudfront_distribution" "frontend" {
   }
 
   ordered_cache_behavior {
+    path_pattern             = "/auth-config.json"
+    target_origin_id         = local.s3_origin_id
+    viewer_protocol_policy   = "redirect-to-https"
+    allowed_methods          = ["GET", "HEAD", "OPTIONS"]
+    cached_methods           = ["GET", "HEAD"]
+    cache_policy_id          = data.aws_cloudfront_cache_policy.caching_disabled.id
+    origin_request_policy_id = data.aws_cloudfront_origin_request_policy.origin_request.id
+  }
+
+  ordered_cache_behavior {
     path_pattern             = "/api/*"
     target_origin_id         = local.api_origin_id
     viewer_protocol_policy   = "https-only"
     allowed_methods          = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
     cached_methods           = ["GET", "HEAD"]
     cache_policy_id          = data.aws_cloudfront_cache_policy.caching_disabled.id
-    origin_request_policy_id = data.aws_cloudfront_origin_request_policy.origin_request.id
+    origin_request_policy_id = aws_cloudfront_origin_request_policy.api.id
 
     function_association {
       event_type   = "viewer-request"

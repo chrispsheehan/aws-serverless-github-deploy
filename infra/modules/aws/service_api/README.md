@@ -10,11 +10,12 @@ Concrete ECS API service wrapper for the sample API service.
 ## Dependencies
 
 - `task_api` remote state
-- `cluster`, `network`, and `security` remote state
+- `api`, `cluster`, `network`, and `security` remote state
 
 ## Key behavior
 
 - exposes the ECS API container on the shared HTTP API Gateway using `connection_type = "vpc_link"`
+- reuses the shared Cognito-backed JWT authorizer from the `api` stack for `/ecs` routes
 - uses `deployment_strategy = "blue_green"`
 - uses a dedicated ALB listener on port `8080` so ECS CodeDeploy can own traffic
 - defaults `local_tunnel` and `xray_enabled` to `false` unless explicitly enabled

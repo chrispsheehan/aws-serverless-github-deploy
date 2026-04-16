@@ -61,12 +61,14 @@ Terragrunt also provides a shared default ECR repository name to ECS task module
 - in `dev`, `otel_sampling_percentage` is set to `100` so ECS traces are easy to verify while iterating
 
 The reusable deploy workflows follow the same split: `prod` `*_code` and `*_infra` wrappers read shared artifact resources from `ci`, but `*_infra` only applies `prod` infrastructure stacks using the repo's directory-derived service and lambda matrices.
+The infra workflow now applies `cognito` before `api`, and the destroy workflow tears Cognito down only after frontend and API consumers are gone so JWT-authenticated routes do not race their auth upstream on destroy.
 
 For `*_code` release deploys, pass explicit release versions for each runtime you want to roll out. In particular, ECS code deploys should provide an `ecs_version` rather than relying on a Lambda-version fallback.
 
 The worker runtimes now share a dedicated `worker_messaging` stack that owns one SNS topic plus two SQS queues, with one queue consumed by `lambda_worker` and the other by the ECS worker stack. Publishing once to the shared topic fans the same message out to both runtimes independently.
 `lambda_worker`, `task_worker`, and `service_worker` now read queue details from `worker_messaging` remote state instead of owning worker queues inside the runtime stacks.
 The repo also includes a shared `database` stack in `dev` and `prod` for Aurora PostgreSQL Serverless v2, intended to be available before Lambda or ECS services start taking dependencies on it.
+The repo also includes a `cognito` stack for Cognito Hosted UI login, a read-only user group, and JWT protection on the shared API routes.
 Database credentials are now managed as a single Secrets Manager object rather than separate username and password parameters, so Lambda, ECS, and debug tooling can all read one credentials payload.
 The ECS worker now persists consumed messages into Aurora PostgreSQL, and a separate `migrations` Lambda exists for running schema changes against that shared database from inside the VPC.
 The migrations Lambda now packages the `pgroll` CLI from `xataio/pgroll` and runs the checked-in migration definition from the Lambda artifact instead of executing raw SQL directly.
@@ -128,6 +130,23 @@ From inside that shell, a one-line check for persisted worker rows is:
 ```sh
 psql -h "$DB_HOST" -p "$DB_PORT" -U "$PGUSER" -d "$DB_NAME" -c "select count(*) from worker_messages;"
 ```
+
+## 🔐 frontend auth
+
+The sample frontend now uses Cognito Hosted UI with the authorization-code-plus-PKCE flow.
+
+- unauthenticated users are redirected to Cognito before the app calls `/api/*`
+- after sign-in, the frontend exchanges the callback code for tokens and sends `Authorization: Bearer ...` to `/api/*`
+- CloudFront still owns the `/api/*` prefix strip, and now explicitly forwards the `Authorization` header to API Gateway
+
+The Cognito stack creates the user pool, app client, Hosted UI domain, and `readonly` group. It does not create actual users automatically. To seed the initial read-only user after `cognito` is applied:
+
+```sh
+just cognito-create-readonly-user dev readonly@example.com 'ChangeMe123!'
+```
+
+The allowed callback and logout URLs live in `infra/live/<environment>/environment_vars.hcl`. They currently default to `http://localhost:5173`, so add the deployed frontend CloudFront URL there before expecting Hosted UI login to work from the deployed site.
+For local `vite` dev, the repo includes [`frontend/public/auth-config.json`](</Users/chrissheehan/git/chrispsheehan/aws-serverless-github-deploy/frontend/public/auth-config.json>) as a disabled placeholder; update that file locally if you want the localhost frontend to use the same Cognito flow.
 
 ## ⚙️ types of lambda provisioned concurrency
 

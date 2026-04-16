@@ -1,0 +1,9 @@
+{
+  "enabled": false,
+  "region": "eu-west-2",
+  "userPoolId": "",
+  "userPoolClientId": "",
+  "hostedUiUrl": "",
+  "readonlyGroup": "readonly",
+  "scopes": ["openid", "email", "profile"]
+}

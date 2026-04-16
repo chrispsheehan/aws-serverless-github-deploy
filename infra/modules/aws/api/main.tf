@@ -21,6 +21,18 @@ module "lambda_api" {
   provisioned_config = var.provisioned_config
 }
 
+resource "aws_apigatewayv2_authorizer" "cognito_jwt" {
+  api_id           = data.terraform_remote_state.network.outputs.api_id
+  name             = "${var.project_name}-${var.environment}-cognito-jwt"
+  authorizer_type  = "JWT"
+  identity_sources = ["$request.header.Authorization"]
+
+  jwt_configuration {
+    audience = [data.terraform_remote_state.cognito.outputs.user_pool_client_id]
+    issuer   = data.terraform_remote_state.cognito.outputs.issuer_url
+  }
+}
+
 resource "aws_apigatewayv2_integration" "lambda_proxy" {
   api_id                 = data.terraform_remote_state.network.outputs.api_id
   integration_type       = "AWS_PROXY"
@@ -29,15 +41,19 @@ resource "aws_apigatewayv2_integration" "lambda_proxy" {
 }
 
 resource "aws_apigatewayv2_route" "root" {
-  api_id    = data.terraform_remote_state.network.outputs.api_id
-  route_key = "ANY /"
-  target    = "integrations/${aws_apigatewayv2_integration.lambda_proxy.id}"
+  api_id             = data.terraform_remote_state.network.outputs.api_id
+  route_key          = "ANY /"
+  target             = "integrations/${aws_apigatewayv2_integration.lambda_proxy.id}"
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito_jwt.id
 }
 
 resource "aws_apigatewayv2_route" "proxy" {
-  api_id    = data.terraform_remote_state.network.outputs.api_id
-  route_key = "ANY /{proxy+}"
-  target    = "integrations/${aws_apigatewayv2_integration.lambda_proxy.id}"
+  api_id             = data.terraform_remote_state.network.outputs.api_id
+  route_key          = "ANY /{proxy+}"
+  target             = "integrations/${aws_apigatewayv2_integration.lambda_proxy.id}"
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito_jwt.id
 }
 
 resource "aws_lambda_permission" "allow_invoke" {

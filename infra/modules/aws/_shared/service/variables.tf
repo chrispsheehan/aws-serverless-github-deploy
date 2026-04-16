@@ -74,6 +74,23 @@ variable "api_invoke_url" {
   type = string
 }
 
+variable "authorization_type" {
+  type        = string
+  description = "API Gateway route authorization type for VPC link routes"
+  default     = "NONE"
+
+  validation {
+    condition     = contains(["NONE", "JWT"], var.authorization_type)
+    error_message = "authorization_type must be one of: NONE, JWT."
+  }
+}
+
+variable "authorizer_id" {
+  type        = string
+  description = "API Gateway authorizer id for protected routes"
+  default     = ""
+}
+
 variable "dedicated_listener_port" {
   type    = number
   default = null

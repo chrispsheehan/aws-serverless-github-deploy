@@ -25,6 +25,8 @@ module "service_api" {
   vpc_link_id         = data.terraform_remote_state.network.outputs.vpc_link_id
   internal_invoke_url = data.terraform_remote_state.network.outputs.internal_invoke_url
   api_invoke_url      = data.terraform_remote_state.network.outputs.api_invoke_url
+  authorization_type  = "JWT"
+  authorizer_id       = data.terraform_remote_state.api.outputs.http_api_authorizer_id
 
   bootstrap             = var.bootstrap
   bootstrap_image_uri   = var.bootstrap_image_uri

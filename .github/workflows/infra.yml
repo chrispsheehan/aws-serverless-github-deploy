@@ -67,6 +67,20 @@ jobs:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/worker_messaging
 
+  cognito:
+    needs: oidc
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.infra_version }}
+
+      - name: Deploy cognito infra
+        uses: ./.github/actions/terragrunt
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          tg_directory: infra/live/${{ inputs.environment }}/aws/cognito
+
   frontend:
     needs: lambdas
     runs-on: ubuntu-latest
@@ -175,6 +189,7 @@ jobs:
       - network
       - database
       - worker_messaging
+      - cognito
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false # this is to prevent terraform lock issues
@@ -197,6 +212,7 @@ jobs:
       - network
       - database
       - worker_messaging
+      - lambdas
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

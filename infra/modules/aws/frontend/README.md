@@ -6,15 +6,18 @@ Static frontend hosting module.
 
 - website bucket and distribution resources
 - bootstrap `index.html` object for first-time infra deploys
+- `auth-config.json` for runtime Cognito/frontend configuration
 - deployment destination for built frontend assets
 - path-based forwarding of `/api/*` requests to the shared API origin
 
 ## Routing behavior
 
+- `/auth-config.json`
+  served from the frontend bucket with caching disabled so auth configuration changes are visible immediately
 - `/api/*`
-  forwarded to API Gateway and stripped to `/*` for the Lambda-backed API
+  forwarded to API Gateway, stripped to `/*`, and forwards the `Authorization` header for Cognito-backed JWT auth
 - `/api/ecs/*`
-  forwarded to API Gateway and stripped to `/ecs/*`
+  forwarded to API Gateway, stripped to `/ecs/*`, and forwards the `Authorization` header for Cognito-backed JWT auth
 - all other paths
   served from the frontend bucket with SPA routing
 
