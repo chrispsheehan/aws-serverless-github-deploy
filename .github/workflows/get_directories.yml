@@ -31,30 +31,30 @@ jobs:
 
       - name: Get Lambda Directories
         id: lambda_dirs
-        uses: chrispsheehan/just-aws-oidc-action@0.3.0
+        uses: ./.github/actions/just
         with:
           just_action: lambda-get-directories
 
       - name: Get Service Directories
         id: service_dirs
-        uses: chrispsheehan/just-aws-oidc-action@0.3.0
+        uses: ./.github/actions/just
         with:
           just_action: service-get-directories
 
       - name: Get Container Directories
         id: container_dirs
-        uses: chrispsheehan/just-aws-oidc-action@0.3.0
+        uses: ./.github/actions/just
         with:
           just_action: container-get-directories
 
       - name: Get Task Directories
         id: task_dirs
-        uses: chrispsheehan/just-aws-oidc-action@0.3.0
+        uses: ./.github/actions/just
         with:
           just_action: task-get-directories
 
       - name: Get ECS Service Directories
         id: ecs_service_dirs
-        uses: chrispsheehan/just-aws-oidc-action@0.3.0
+        uses: ./.github/actions/just
         with:
           just_action: ecs-service-get-directories

@@ -48,7 +48,7 @@ jobs:
           ref: ${{ inputs.infra_version }}
 
       - name: Deploy oidc role infra
-        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+        uses: ./.github/actions/terragrunt
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/oidc
@@ -62,7 +62,7 @@ jobs:
           ref: ${{ inputs.infra_version }}
 
       - name: Deploy worker messaging infra
-        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+        uses: ./.github/actions/terragrunt
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/worker_messaging
@@ -76,7 +76,7 @@ jobs:
           ref: ${{ inputs.infra_version }}
 
       - name: Get api infra
-        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+        uses: ./.github/actions/terragrunt
         id: get-api
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
@@ -91,7 +91,7 @@ jobs:
           echo "invoke_url=$(echo $TG_OUTPUTS | jq -r '.invoke_url.value')" >> $GITHUB_OUTPUT
 
       - name: Deploy frontend infra
-        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+        uses: ./.github/actions/terragrunt
         env:
           TF_VAR_api_invoke_url: ${{ steps.get_api_vars.outputs.invoke_url }}
         with:
@@ -107,7 +107,7 @@ jobs:
           ref: ${{ inputs.infra_version }}
 
       - name: Deploy cluster infra
-        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+        uses: ./.github/actions/terragrunt
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/cluster
@@ -124,7 +124,7 @@ jobs:
 
       - name: Deploy security infra
         id: deploy-security
-        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+        uses: ./.github/actions/terragrunt
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/security
@@ -147,7 +147,7 @@ jobs:
           ref: ${{ inputs.infra_version }}
 
       - name: Deploy database infra
-        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+        uses: ./.github/actions/terragrunt
         env:
           TF_VAR_database_security_group_id: ${{ needs.security.outputs.postgres_sg }}
         with:
@@ -163,7 +163,7 @@ jobs:
           ref: ${{ inputs.infra_version }}
 
       - name: Deploy network infra
-        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+        uses: ./.github/actions/terragrunt
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/network
@@ -186,7 +186,7 @@ jobs:
           ref: ${{ inputs.infra_version }}
 
       - name: Deploy ${{ matrix.value }} infra
-        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+        uses: ./.github/actions/terragrunt
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.value }}
@@ -208,7 +208,7 @@ jobs:
           ref: ${{ inputs.infra_version }}
 
       - name: Deploy ${{ matrix.value }} bootstrap service infra
-        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+        uses: ./.github/actions/terragrunt
         env:
           TF_VAR_bootstrap: "true"
           TF_VAR_bootstrap_image_uri: ${{ inputs.bootstrap_image_uri }}

@@ -91,7 +91,7 @@ jobs:
         run: tflint --init
 
       - name: "Run terraform lint checks"
-        uses: chrispsheehan/just-aws-oidc-action@0.3.0
+        uses: ./.github/actions/just
         with:
           just_action: tf-lint-check
 
@@ -180,7 +180,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: "Build ${{ matrix.value }} Lambda"
-        uses: chrispsheehan/just-aws-oidc-action@0.3.0
+        uses: ./.github/actions/just
         env:
           LAMBDA_NAME: ${{ matrix.value }}
         with:
@@ -202,7 +202,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: "Build ${{ matrix.value }} ECS image"
-        uses: chrispsheehan/just-aws-oidc-action@0.3.0
+        uses: ./.github/actions/just
         env:
           CONTAINER_NAME: ${{ matrix.value }}
         with:
@@ -218,6 +218,6 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: "Build"
-        uses: chrispsheehan/just-aws-oidc-action@0.3.0
+        uses: ./.github/actions/just
         with:
           just_action: frontend-build

@@ -40,7 +40,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Deploy ${{ matrix.value }} infra
-        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+        uses: ./.github/actions/terragrunt
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.value }}
@@ -53,7 +53,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Destroy frontend infra
-        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+        uses: ./.github/actions/terragrunt
         env:
           TF_VAR_api_invoke_url: "https://placeholder.execute-api.us-east-1.amazonaws.com"
         with:
@@ -73,7 +73,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Destroy ${{ matrix.value }} infra
-        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+        uses: ./.github/actions/terragrunt
         env:
           TF_VAR_bootstrap: "true"
           TF_VAR_bootstrap_image_uri: "destroy-placeholder"
@@ -96,7 +96,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Destroy ${{ matrix.value }} infra
-        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+        uses: ./.github/actions/terragrunt
         env:
           TF_VAR_image_uri: "destroy-placeholder"
           TF_VAR_debug_image_uri: "destroy-placeholder"
@@ -117,7 +117,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Destroy worker messaging infra
-        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+        uses: ./.github/actions/terragrunt
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/worker_messaging
@@ -134,7 +134,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Destroy database infra
-        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+        uses: ./.github/actions/terragrunt
         env:
           TF_VAR_database_security_group_id: "destroy-placeholder"
         with:
@@ -154,7 +154,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Destroy network infra
-        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+        uses: ./.github/actions/terragrunt
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/network
@@ -169,7 +169,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Destroy security infra
-        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+        uses: ./.github/actions/terragrunt
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/security
@@ -185,7 +185,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Destroy code
-        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+        uses: ./.github/actions/terragrunt
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/code_bucket
@@ -201,7 +201,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Destroy code
-        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+        uses: ./.github/actions/terragrunt
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/ecr
@@ -218,7 +218,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Destroy cluster infra
-        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+        uses: ./.github/actions/terragrunt
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/cluster
