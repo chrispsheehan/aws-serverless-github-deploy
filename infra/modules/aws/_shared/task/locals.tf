@@ -137,6 +137,7 @@ locals {
 
     command = ["sleep", "infinity"]
 
-    essential = false
+    essential   = false
+    environment = concat(local.shared_environment, var.additional_env_vars)
   }
 }

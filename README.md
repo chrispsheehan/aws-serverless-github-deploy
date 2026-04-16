@@ -3,6 +3,8 @@
 **Terraform + GitHub Actions for AWS serverless deployments.**  
 Lambda + ECS with CodeDeploy rollouts, plus provisioned concurrency controls for Lambda — driven by clean module variables and `just` recipes.
 
+Workflow dependency diagrams and CI orchestration notes live in [docs/ci/README.md](/Users/chrissheehan/git/chrispsheehan/aws-serverless-github-deploy/docs/ci/README.md).
+
 ---
 
 ## 🚀 setup roles for ci
@@ -14,6 +16,7 @@ just tg prod aws/oidc apply
 ```
 
 The `ci` OIDC role is intentionally narrower than the `dev` and `prod` roles. In this repo it is limited to build-artifact management, including the shared code bucket, IAM interactions needed by the existing CI flow, and publishing container images to ECR. It is not the repo's broad deployment role.
+The deploy roles for `dev` and `prod` now also include the `rds`, `ssm`, and `secretsmanager` permissions needed by the shared database stack.
 
 ## 🧱 prerequisite network
 
@@ -31,7 +34,7 @@ The repo `network` module also owns the shared internal ALB and shared HTTP API 
 - default API stage
 - VPC link
 - internal ALB and target groups
-- interface VPC endpoints required by private ECS tasks, including SQS for the worker poller
+- interface VPC endpoints required by private runtimes, including SQS for the worker poller, SSM for Parameter Store reads where still used, and Secrets Manager for the shared database credentials object consumed by ECS and Lambda runtimes
 
 This repo now includes a sample ECS API container service exposed separately from the Lambda API:
 
@@ -62,6 +65,13 @@ For `*_code` release deploys, pass explicit release versions for each runtime yo
 
 The worker runtimes now share a dedicated `worker_messaging` stack that owns one SNS topic plus two SQS queues, with one queue consumed by `lambda_worker` and the other by the ECS worker stack. Publishing once to the shared topic fans the same message out to both runtimes independently.
 `lambda_worker`, `task_worker`, and `service_worker` now read queue details from `worker_messaging` remote state instead of owning worker queues inside the runtime stacks.
+The repo also includes a shared `database` stack in `dev` and `prod` for Aurora PostgreSQL Serverless v2, intended to be available before Lambda or ECS services start taking dependencies on it.
+Database credentials are now managed as a single Secrets Manager object rather than separate username and password parameters, so Lambda, ECS, and debug tooling can all read one credentials payload.
+The ECS worker now persists consumed messages into Aurora PostgreSQL, and a separate `migrations` Lambda exists for running schema changes against that shared database from inside the VPC.
+The migrations Lambda now packages the `pgroll` CLI from `xataio/pgroll` and runs the checked-in migration definition from the Lambda artifact instead of executing raw SQL directly.
+The shared Lambda module now exposes `timeout_seconds`, and `migrations` sets it explicitly to `120` so database work and VPC/database startup do not hit the AWS default 3-second timeout.
+When `migrations` is present in the Lambda deployment matrix, the reusable code deploy workflow invokes it automatically after Lambda rollout. ECS task rollout is not serialized behind Lambda or migration jobs unless a workflow adds that explicitly.
+CI and deploy workflow Lambda discovery now treats top-level directories under `lambdas/` as deployable functions but explicitly ignores the generated `lambdas/build` directory, so `migrations` is included in the normal Lambda build and deploy flow without polluting the matrix with build artifacts.
 For bootstrap service applies, `service_worker` now uses placeholder task and queue values locally rather than spreading `count`-indexed remote-state access through the module.
 The ECS worker task uses a local heartbeat-file health check, which is a better fit for a non-HTTP worker than probing a service endpoint or tying task health directly to transient AWS API calls.
 All ECS app containers now use a shared tracing helper under `containers/shared` so API requests and worker SQS operations emit X-Ray traces when `xray_enabled = true`.
@@ -92,6 +102,30 @@ To publish directly to the shared worker SNS topic from your shell:
 TOPIC_ARN=arn:aws:sns:eu-west-2:123456789012:aws-serverless-github-deploy-dev-worker-events \
 MESSAGE='{"job_id":"demo-1","source":"local","payload":{"hello":"world"}}' \
 just sns-publish
+```
+
+## 🗃️ run database migrations
+
+The `migrations` Lambda is VPC-attached so it can reach the private Aurora cluster. After the infra stack and Lambda code are deployed, you can run it with the existing invoke recipe:
+
+```sh
+AWS_REGION=eu-west-2 \
+LAMBDA_NAME=dev-aws-serverless-github-deploy-migrations \
+just lambda-invoke
+```
+
+To inspect the ECS worker runtime from inside the VPC-connected debug sidecar in `dev`, use:
+
+```sh
+just worker-debug-shell dev
+```
+
+The shared debug image includes `psql`, and `worker-debug-shell` now injects `PGPASSWORD`, `PGUSER`, and `DB_USER` into the shell from the shared database credentials secret on your local machine before opening ECS Exec.
+
+From inside that shell, a one-line check for persisted worker rows is:
+
+```sh
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$PGUSER" -d "$DB_NAME" -c "select count(*) from worker_messages;"
 ```
 
 ## ⚙️ types of lambda provisioned concurrency

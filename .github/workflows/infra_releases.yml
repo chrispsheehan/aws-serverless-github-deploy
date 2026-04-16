@@ -18,7 +18,7 @@ on:
         value: ${{ jobs.ecr.outputs.repository_url }}
       bootstrap_image_uri:
         description: "Bootstrap ECS image URI"
-        value: ${{ jobs.bootstrap.outputs.bootstrap_image_uri }}
+        value: ${{ jobs.ecr.outputs.bootstrap_image_uri }}
 
 concurrency: # only run one instance of workflow at any one time
   group: ${{ github.workflow }}-${{ inputs.environment }}
@@ -36,6 +36,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       repository_url: ${{ steps.get_repository_url.outputs.repository_url }}
+      bootstrap_image_uri: ${{ steps.set_bootstrap_image_uri.outputs.bootstrap_image_uri }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -55,21 +56,11 @@ jobs:
         run: |
           echo "repository_url=$(echo "$TG_OUTPUTS" | jq -r '.repository_url.value')" >> "$GITHUB_OUTPUT"
 
-  bootstrap:
-    needs: ecr
-    runs-on: ubuntu-latest
-    outputs:
-      bootstrap_image_uri: ${{ steps.set_bootstrap_image_uri.outputs.bootstrap_image_uri }}
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ inputs.infra_version }}
-
       - name: Build and push bootstrap image
         uses: chrispsheehan/just-aws-oidc-action@0.3.0
         env:
           SOURCE_IMAGE: nginx:latest
-          IMAGE_URI: ${{ needs.ecr.outputs.repository_url }}:bootstrap-${{ inputs.infra_version }}
+          IMAGE_URI: ${{ steps.get_repository_url.outputs.repository_url }}:bootstrap-${{ inputs.infra_version }}
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           just_action: docker-mirror docker-push
@@ -77,7 +68,7 @@ jobs:
       - name: Set bootstrap image uri
         id: set_bootstrap_image_uri
         env:
-          BOOTSTRAP_IMAGE_URI: ${{ needs.ecr.outputs.repository_url }}:bootstrap-${{ inputs.infra_version }}
+          BOOTSTRAP_IMAGE_URI: ${{ steps.get_repository_url.outputs.repository_url }}:bootstrap-${{ inputs.infra_version }}
         run: |
           echo "bootstrap_image_uri=$BOOTSTRAP_IMAGE_URI" >> "$GITHUB_OUTPUT"
 

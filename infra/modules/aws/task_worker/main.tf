@@ -1,3 +1,8 @@
+resource "aws_iam_policy" "database_secret_read" {
+  name   = "${var.project_name}-${var.environment}-task-worker-database-secret-read"
+  policy = data.aws_iam_policy_document.database_secret_read.json
+}
+
 module "task_worker" {
   source = "../_shared/task"
 
@@ -22,12 +27,29 @@ module "task_worker" {
       value = data.terraform_remote_state.worker_messaging.outputs.ecs_worker_queue_url
     },
     {
+      name  = "DB_HOST"
+      value = data.terraform_remote_state.database.outputs.readwrite_endpoint
+    },
+    {
+      name  = "DB_NAME"
+      value = data.terraform_remote_state.database.outputs.database_name
+    },
+    {
+      name  = "DB_PORT"
+      value = tostring(data.terraform_remote_state.database.outputs.database_port)
+    },
+    {
+      name  = "DB_SECRET_ARN"
+      value = data.terraform_remote_state.database.outputs.credentials_secret_arn
+    },
+    {
       name  = "HEARTBEAT_FILE"
       value = "/tmp/worker-heartbeat"
     }
   ]
   additional_runtime_policy_arns = [
-    data.terraform_remote_state.worker_messaging.outputs.ecs_worker_queue_read_policy_arn
+    data.terraform_remote_state.worker_messaging.outputs.ecs_worker_queue_read_policy_arn,
+    aws_iam_policy.database_secret_read.arn,
   ]
 
   health_check = {

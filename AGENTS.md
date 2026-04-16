@@ -6,6 +6,8 @@ Update documentation in the same change:
 
 - update the repo root `README.md` for cross-cutting behavior changes
 - update affected module `README.md` files under `infra/modules/**` for module contract or responsibility changes
+- when changing `.github/workflows/**`, update `docs/ci/README.md` if job dependencies, reusable workflow contracts, lifecycle ordering, or workflow-call structure changed
+- prefer Mermaid diagrams in `docs/ci/README.md` that show jobs, `needs`, and reusable-workflow relationships rather than trying to reproduce the exact GitHub Actions UI
 
 ## CI OIDC Scope
 

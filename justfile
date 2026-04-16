@@ -8,6 +8,7 @@ CONTAINERS_DIR := "containers"
 FRONTEND_DIR := "frontend"
 EXTRA_CONTAINER_DIRECTORIES := "[\"debug\",\"otel_collector\"]"
 NON_SERVICE_CONTAINER_DIRECTORIES := "[\"shared\"]"
+PGROLL_VERSION := "0.16.1"
 
 
 tf-lint-check:
@@ -86,6 +87,58 @@ tg-all op:
     #!/usr/bin/env bash
     cd {{justfile_directory()}}/infra/live 
     terragrunt run-all {{op}}
+
+
+worker-debug-shell env:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if ! command -v session-manager-plugin >/dev/null 2>&1; then
+        echo "❌ session-manager-plugin is not installed or not on PATH."
+        exit 1
+    fi
+
+    aws_region="${AWS_REGION:-eu-west-2}"
+    project_name="$(basename "{{PROJECT_DIR}}")"
+    cluster_name="{{env}}-${project_name}-cluster"
+    service_name="ecs-worker"
+    container_name="${service_name}-debug"
+    credentials_secret_id="/{{env}}/${project_name}/app/credentials"
+    credentials_json="$(
+        aws secretsmanager get-secret-value \
+          --secret-id "$credentials_secret_id" \
+          --region "$aws_region" \
+          --query 'SecretString' \
+          --output text
+    )"
+    db_user="$(printf '%s' "$credentials_json" | jq -r '.username')"
+    db_password="$(printf '%s' "$credentials_json" | jq -r '.password')"
+
+    escaped_db_user="${db_user//\'/\'\"\'\"\'}"
+    escaped_db_password="${db_password//\'/\'\"\'\"\'}"
+
+    task_arn="$(
+        aws ecs list-tasks \
+          --region "$aws_region" \
+          --cluster "$cluster_name" \
+          --service-name "$service_name" \
+          --query 'taskArns[0]' \
+          --output text
+    )"
+
+    if [[ -z "$task_arn" || "$task_arn" == "None" ]]; then
+        echo "❌ No running task found for service ${service_name} in cluster ${cluster_name}."
+        exit 1
+    fi
+
+    echo "🔌 Opening ECS Exec shell to ${container_name} in ${service_name}..."
+    aws ecs execute-command \
+      --region "$aws_region" \
+      --cluster "$cluster_name" \
+      --task "$task_arn" \
+      --container "$container_name" \
+      --interactive \
+      --command "/bin/sh -lc 'export PGUSER='\''${escaped_db_user}'\''; export DB_USER='\''${escaped_db_user}'\''; export PGPASSWORD='\''${escaped_db_password}'\''; exec /bin/sh'"
 
 
 lambda-check-version:
@@ -214,6 +267,7 @@ lambda-get-directories:
     set -euo pipefail
     find "{{LAMBDA_DIR}}" -mindepth 1 -maxdepth 1 -type d \
       | xargs -I{} basename "{}" \
+      | grep -v '^build$' \
       | tr '-' '_' \
       | jq -R . \
       | jq -s -c .
@@ -378,6 +432,19 @@ lambda-build:
     echo "📦 Building $LAMBDA_NAME Lambda..."
     pip install --target "$LAMBDA_BUILD_DIR/$LAMBDA_NAME" -r "{{PROJECT_DIR}}/{{LAMBDA_DIR}}/$LAMBDA_NAME/requirements.txt"
     cp "{{PROJECT_DIR}}/{{LAMBDA_DIR}}/$LAMBDA_NAME"/*.py "$LAMBDA_BUILD_DIR/$LAMBDA_NAME/"
+    cp "{{PROJECT_DIR}}/lambda_shared.py" "$LAMBDA_BUILD_DIR/$LAMBDA_NAME/"
+    cp "{{PROJECT_DIR}}/db_shared.py" "$LAMBDA_BUILD_DIR/$LAMBDA_NAME/"
+    if [[ -d "{{PROJECT_DIR}}/{{LAMBDA_DIR}}/$LAMBDA_NAME/migrations" ]]; then
+        mkdir -p "$LAMBDA_BUILD_DIR/$LAMBDA_NAME/migrations"
+        cp "{{PROJECT_DIR}}/{{LAMBDA_DIR}}/$LAMBDA_NAME/migrations/"* "$LAMBDA_BUILD_DIR/$LAMBDA_NAME/migrations/"
+    fi
+    if [[ "$LAMBDA_NAME" == "migrations" ]]; then
+        mkdir -p "$LAMBDA_BUILD_DIR/$LAMBDA_NAME/bin"
+        curl -fsSL \
+          "https://github.com/xataio/pgroll/releases/download/v{{PGROLL_VERSION}}/pgroll.linux.amd64" \
+          -o "$LAMBDA_BUILD_DIR/$LAMBDA_NAME/bin/pgroll"
+        chmod +x "$LAMBDA_BUILD_DIR/$LAMBDA_NAME/bin/pgroll"
+    fi
     (
         cd "$LAMBDA_BUILD_DIR/$LAMBDA_NAME"
         zip -r "../../$LAMBDA_NAME.zip" . > /dev/null

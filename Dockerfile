@@ -18,6 +18,7 @@ FROM service-base AS worker
 ARG SERVICE
 
 COPY containers/shared/ecs_tracing.py /usr/app/ecs_tracing.py
+COPY db_shared.py /usr/app/db_shared.py
 COPY containers/${SERVICE}/app.py /usr/app/app.py
 
 CMD ["python", "-u", "app.py"]
@@ -36,7 +37,7 @@ CMD ["python", "-u", "app.py"]
 FROM python-base AS debug
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl \
+    && apt-get install -y --no-install-recommends curl postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
 CMD ["sleep", "infinity"]

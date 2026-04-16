@@ -33,6 +33,12 @@ variable "environment_variables" {
   type        = map(string)
   default     = {}
 }
+
+variable "timeout_seconds" {
+  type        = number
+  description = "Lambda timeout in seconds"
+  default     = 3
+}
 ### end of dynamic vars required for resources ###
 
 
@@ -46,6 +52,26 @@ variable "additional_policy_arns" {
   description = "List of IAM policy ARNs to attach to the role"
   type        = list(string)
   default     = []
+}
+
+variable "vpc_subnet_ids" {
+  description = "Optional private subnet ids for Lambda VPC attachment"
+  type        = list(string)
+  default     = []
+}
+
+variable "vpc_security_group_ids" {
+  description = "Optional security group ids for Lambda VPC attachment"
+  type        = list(string)
+  default     = []
+
+  validation {
+    condition = (
+      (length(var.vpc_subnet_ids) == 0 && length(var.vpc_security_group_ids) == 0)
+      || (length(var.vpc_subnet_ids) > 0 && length(var.vpc_security_group_ids) > 0)
+    )
+    error_message = "Set both vpc_subnet_ids and vpc_security_group_ids together, or leave both empty."
+  }
 }
 
 variable "codedeploy_alarm_names" {

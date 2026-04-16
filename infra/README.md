@@ -44,20 +44,24 @@ stores state at:
 ## Module Types
 
 - `_shared/*`
-  Reusable building blocks such as Lambda, ECS task, ECS service, ECR, SQS, cluster, and code bucket.
+  Reusable building blocks such as Lambda, ECS task, ECS service, ECR, SQS, cluster, database, and code bucket.
 - concrete modules such as `task_worker`, `service_worker`, `lambda_worker`, `api`
   Thin wrappers that apply repo-specific behavior on top of shared modules.
 
 ## Shared Stack Responsibilities
 
 - `network`
-  Owns the internal ALB, shared HTTP API Gateway API, VPC link, and VPC endpoints, including the SQS interface endpoint used by private ECS workers.
+  Owns the internal ALB, shared HTTP API Gateway API, VPC link, and VPC endpoints, including the SQS interface endpoint used by private ECS workers, the SSM interface endpoint used by private runtimes reading Parameter Store values, and the Secrets Manager interface endpoint used by private runtimes reading the shared database credentials object.
 - `security`
   Owns shared security groups.
 - `cluster`
   Owns the ECS cluster.
 - `api`
   Owns the Lambda-backed API integration and routes into the shared HTTP API.
+- `database`
+  Owns the shared Aurora PostgreSQL Serverless v2 database stack and its SSM connection parameters.
+- `migrations`
+  Owns the VPC-attached Lambda used to run schema migrations against the shared Aurora PostgreSQL stack.
 - `worker_messaging`
   Owns the shared worker SNS topic plus the Lambda-worker and ECS-worker SQS queues used for fanout.
 - `task_*`
@@ -67,6 +71,8 @@ stores state at:
 
 Current examples include:
 
+- `database`
+  Shared Aurora PostgreSQL Serverless v2 shape for repo-managed relational data stores.
 - `worker_messaging`
   Shared worker fanout shape: one SNS topic publishes to two independent worker queues so Lambda and ECS consumers each receive the same event.
 - `task_worker` / `service_worker`
@@ -81,7 +87,8 @@ That `containers/shared` directory is helper code only and is not treated as a d
 
 - many modules use `data.terraform_remote_state` to read outputs from other stacks
 - because of that, workflow ordering matters for apply, deploy, and destroy
-- on destroy, `network` and `cluster` can tear down in parallel once `service_*`, `task_*`, and `frontend` stacks are gone
+- on destroy, `network` can tear down once downstream consumers such as `frontend`, `service_*`, `task_*`, and `database` are gone
+- on destroy, `cluster` can tear down in parallel with `network` once `service_*`, `task_*`, and other real cluster consumers are gone; `frontend` is not a cluster dependency
 - avoid making one runtime depend on another runtime's state ownership unnecessarily; for example, shared worker fanout state is owned by `worker_messaging` rather than by `lambda_worker` or `task_worker`
 - some shared infrastructure, such as the landing-zone VPC and tagged private subnets, is discovered with `data` lookups and must already exist
 
@@ -93,10 +100,12 @@ That `containers/shared` directory is helper code only and is not treated as a d
 - in `prod`, the `*_infra` wrappers read shared artifact resources from `ci` but only apply service and task stacks in `prod`
 - deploy workflows:
   - publish Lambda versions and use Lambda CodeDeploy
+  - optionally invoke the `migrations` Lambda when it is part of the Lambda deploy matrix
   - register ECS task revisions
   - then either:
     - use ECS CodeDeploy for load-balanced services
     - or use native ECS rolling updates for internal services
+  - ECS task rollout is not implicitly blocked on Lambda or migration jobs; add that ordering only where a caller actually needs it
 
 ## Naming Conventions
 

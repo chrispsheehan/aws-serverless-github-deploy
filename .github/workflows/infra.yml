@@ -115,16 +115,44 @@ jobs:
   security:
     needs: oidc
     runs-on: ubuntu-latest
+    outputs:
+      postgres_sg: ${{ steps.get_security_outputs.outputs.postgres_sg }}
     steps:
       - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.infra_version }}
 
       - name: Deploy security infra
+        id: deploy-security
         uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/security
+
+      - name: Get security outputs
+        id: get_security_outputs
+        env:
+          TG_OUTPUTS: ${{ steps.deploy-security.outputs.tg_outputs }}
+        run: |
+          echo "postgres_sg=$(echo "$TG_OUTPUTS" | jq -r '.postgres_sg.value')" >> "$GITHUB_OUTPUT"
+
+  database:
+    needs:
+      - oidc
+      - security
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.infra_version }}
+
+      - name: Deploy database infra
+        uses: chrispsheehan/terragrunt-aws-oidc-action@0.4.1
+        env:
+          TF_VAR_database_security_group_id: ${{ needs.security.outputs.postgres_sg }}
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          tg_directory: infra/live/${{ inputs.environment }}/aws/database
 
   network:
     needs: security
@@ -145,6 +173,7 @@ jobs:
       - oidc
       - security
       - network
+      - database
       - worker_messaging
     runs-on: ubuntu-latest
     strategy:
@@ -166,6 +195,7 @@ jobs:
     needs:
       - cluster
       - network
+      - database
       - worker_messaging
     runs-on: ubuntu-latest
     strategy:
