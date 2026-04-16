@@ -113,6 +113,14 @@ LAMBDA_NAME=dev-aws-serverless-github-deploy-migrations \
 just lambda-invoke
 ```
 
+To inspect the ECS worker runtime from inside the VPC-connected debug sidecar in `dev`, use:
+
+```sh
+just worker-debug-shell dev
+```
+
+The shared debug image includes `psql`, so you can inspect the Aurora data from inside that sidecar once the ECS task is running a current debug image.
+
 ## ⚙️ types of lambda provisioned concurrency
 
 ```hcl

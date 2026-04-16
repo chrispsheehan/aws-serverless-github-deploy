@@ -89,6 +89,45 @@ tg-all op:
     terragrunt run-all {{op}}
 
 
+worker-debug-shell env:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if ! command -v session-manager-plugin >/dev/null 2>&1; then
+        echo "❌ session-manager-plugin is not installed or not on PATH."
+        exit 1
+    fi
+
+    aws_region="${AWS_REGION:-eu-west-2}"
+    project_name="$(basename "{{PROJECT_DIR}}")"
+    cluster_name="{{env}}-${project_name}-cluster"
+    service_name="ecs-worker"
+    container_name="${service_name}-debug"
+
+    task_arn="$(
+        aws ecs list-tasks \
+          --region "$aws_region" \
+          --cluster "$cluster_name" \
+          --service-name "$service_name" \
+          --query 'taskArns[0]' \
+          --output text
+    )"
+
+    if [[ -z "$task_arn" || "$task_arn" == "None" ]]; then
+        echo "❌ No running task found for service ${service_name} in cluster ${cluster_name}."
+        exit 1
+    fi
+
+    echo "🔌 Opening ECS Exec shell to ${container_name} in ${service_name}..."
+    aws ecs execute-command \
+      --region "$aws_region" \
+      --cluster "$cluster_name" \
+      --task "$task_arn" \
+      --container "$container_name" \
+      --interactive \
+      --command "/bin/sh"
+
+
 lambda-check-version:
     #!/usr/bin/env bash
     set -euo pipefail
