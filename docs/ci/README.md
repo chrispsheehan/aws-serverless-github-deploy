@@ -39,6 +39,33 @@ flowchart LR
   build --> publish["Publish GitHub Release"]
 ```
 
+## Pull Request Checks
+
+Workflow:
+
+- `pull_request.yml`
+
+Trigger:
+
+- pull request opened, updated, reopened, or marked ready for review
+
+Process:
+
+- check title and changed-file categories
+- run workflow formatting first, then Terraform linting and module-level `terraform validate` only after the fmt checks pass when infra files changed
+- build changed Lambdas, ECS images, and frontend assets
+
+Outcome:
+
+- fast PR feedback on workflow syntax, Terraform module validity, and buildability before deploy-time workflows run
+
+```mermaid
+flowchart LR
+  trigger["Pull Request"] --> detect["Detect Changes"]
+  detect --> checks["Fmt + Lint + Validate"]
+  checks --> builds["Build Changed Runtimes"]
+```
+
 ## Infra Artifact Prep
 
 Workflow:
