@@ -15,10 +15,10 @@ module "migrations" {
   lambda_name = local.lambda_name
 
   environment_variables = {
-    DB_HOST                   = data.terraform_remote_state.database.outputs.readwrite_endpoint
-    DB_NAME                   = data.terraform_remote_state.database.outputs.database_name
-    DB_PORT                   = tostring(data.terraform_remote_state.database.outputs.database_port)
-    DB_SECRET_ARN             = data.terraform_remote_state.database.outputs.credentials_secret_arn
+    DB_HOST       = data.terraform_remote_state.database.outputs.readwrite_endpoint
+    DB_NAME       = data.terraform_remote_state.database.outputs.database_name
+    DB_PORT       = tostring(data.terraform_remote_state.database.outputs.database_port)
+    DB_SECRET_ARN = data.terraform_remote_state.database.outputs.credentials_secret_arn
   }
 
   additional_policy_arns = [

@@ -4,11 +4,11 @@ locals {
   target_group_name  = "tg-${var.environment}-${local.resource_suffix}"
 
   base_interface_endpoints = {
-    ecr_api = "ecr.api"
-    ecr_dkr = "ecr.dkr"
-    logs    = "logs"
-    sqs     = "sqs"
-    ssm     = "ssm"
+    ecr_api        = "ecr.api"
+    ecr_dkr        = "ecr.dkr"
+    logs           = "logs"
+    sqs            = "sqs"
+    ssm            = "ssm"
     secretsmanager = "secretsmanager"
   }
 
