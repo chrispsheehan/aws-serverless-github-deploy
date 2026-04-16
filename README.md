@@ -17,7 +17,7 @@ just tg prod aws/oidc apply
 ```
 
 The `ci` OIDC role is intentionally narrower than the `dev` and `prod` roles. In this repo it is limited to build-artifact management, including the shared code bucket, IAM interactions needed by the existing CI flow, and publishing container images to ECR. It is not the repo's broad deployment role.
-The deploy roles for `dev` and `prod` now also include the `rds`, `ssm`, and `secretsmanager` permissions needed by the shared database stack, plus `acm`, `route53`, and `cognito-idp` for the frontend/Cognito custom-domain and auth resources.
+The deploy roles for `dev` and `prod` now also include the `rds`, `ssm`, `secretsmanager`, and `kms` permissions needed by the shared database stack, plus `acm`, `route53`, and `cognito-idp` for the frontend/Cognito custom-domain and auth resources.
 
 ## 🧱 prerequisite network
 
