@@ -13,7 +13,7 @@ resource "random_string" "db_user_suffix" {
 
 resource "aws_db_subnet_group" "default" {
   name       = local.subnet_group_name
-  subnet_ids = data.aws_subnets.this.ids
+  subnet_ids = var.subnet_ids
 }
 
 resource "aws_rds_cluster" "aurora_postgres" {

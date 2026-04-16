@@ -13,13 +13,14 @@ Shared Aurora PostgreSQL Serverless v2 module.
 
 ## Depends on
 
+- subnet ids passed in by the caller
 - a PostgreSQL security group passed in by the caller, typically from the `security` stack
 
 ## Inputs
 
 - `database_name`
+- `subnet_ids`
 - `database_security_group_id`
-- `vpc_name`
 - `publicly_accessible`
 - `database_port`
 - `engine_version`
@@ -42,7 +43,7 @@ Shared Aurora PostgreSQL Serverless v2 module.
 - `readwrite_endpoint`
 
 This module is intentionally Aurora PostgreSQL Serverless v2 specific. It does not currently support provisioned RDS instances or non-Postgres engines.
-In this repo the shared infra workflow injects `database_security_group_id` from the `security` stack via `TF_VAR_database_security_group_id`.
+In this repo the concrete `database` wrapper resolves the VPC and public or private subnet ids, while the shared infra workflow injects `database_security_group_id` from the `security` stack via `TF_VAR_database_security_group_id`.
 By default the module tracks the latest matching Aurora PostgreSQL 16.x engine version rather than pinning a specific patch release.
 SSM parameter paths and the database credentials secret name are rooted at `/<environment>/<project>/<database>/...` so they do not collide with AWS-reserved `/aws` prefixes.
 The single Secrets Manager credentials object is the runtime contract for database credentials.
