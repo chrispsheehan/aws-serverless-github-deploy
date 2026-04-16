@@ -8,6 +8,7 @@ Shared Aurora PostgreSQL Serverless v2 module.
 - one writer instance and optional reader instances
 - database subnet group
 - SSM parameters for database name, username, password, and endpoints
+- a generated master username that always starts with a letter so Aurora accepts it reliably
 
 ## Depends on
 

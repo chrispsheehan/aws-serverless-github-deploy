@@ -4,10 +4,11 @@ resource "random_password" "db_password" {
   override_special = "!#$%&()*+,-.:;<=>?[]^_{|}~" # Excluding /, @, ", and space
 }
 
-resource "random_string" "db_user" {
-  length  = local.username_length
+resource "random_string" "db_user_suffix" {
+  length  = local.username_suffix_length
   special = false
   upper   = false
+  numeric = true
 }
 
 resource "aws_db_subnet_group" "default" {
@@ -88,7 +89,7 @@ resource "aws_ssm_parameter" "db_username_parameter" {
   name        = local.username_ssm_name
   description = "Username for ${var.database_name}"
   type        = "SecureString"
-  value       = random_string.db_user.result
+  value       = local.master_username
 }
 
 resource "aws_ssm_parameter" "db_readonly_endpoint_parameter" {
