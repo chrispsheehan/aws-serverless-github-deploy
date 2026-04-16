@@ -147,6 +147,8 @@ The Cognito stack creates the user pool, app client, Hosted UI domain, and `read
 just cognito-create-readonly-user dev readonly@example.com 'ChangeMe123!'
 ```
 
+The recipe is safe to re-run for an existing user. The password you pass still needs to satisfy the user-pool password policy, for example including an uppercase character.
+
 Set the GitHub environment variable `DOMAIN_NAME` to the hosted zone base domain, for example:
 
 ```text

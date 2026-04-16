@@ -998,12 +998,23 @@ cognito-create-readonly-user env email password:
         exit 1
     fi
 
-    aws cognito-idp admin-create-user \
-      --region "$aws_region" \
-      --user-pool-id "$user_pool_id" \
-      --username "{{email}}" \
-      --user-attributes Name=email,Value="{{email}}" Name=email_verified,Value=true \
-      --message-action SUPPRESS >/dev/null
+    user_exists="$(
+      aws cognito-idp admin-get-user \
+        --region "$aws_region" \
+        --user-pool-id "$user_pool_id" \
+        --username "{{email}}" \
+        --query 'Username' \
+        --output text 2>/dev/null || true
+    )"
+
+    if [[ -z "$user_exists" || "$user_exists" == "None" ]]; then
+      aws cognito-idp admin-create-user \
+        --region "$aws_region" \
+        --user-pool-id "$user_pool_id" \
+        --username "{{email}}" \
+        --user-attributes Name=email,Value="{{email}}" Name=email_verified,Value=true \
+        --message-action SUPPRESS >/dev/null
+    fi
 
     aws cognito-idp admin-set-user-password \
       --region "$aws_region" \
@@ -1018,7 +1029,7 @@ cognito-create-readonly-user env email password:
       --username "{{email}}" \
       --group-name readonly >/dev/null
 
-    echo "✅ Created readonly Cognito user {{email}} in {{env}}."
+    echo "✅ Ensured readonly Cognito user {{email}} exists in {{env}}."
 
 
 sns-publish:
