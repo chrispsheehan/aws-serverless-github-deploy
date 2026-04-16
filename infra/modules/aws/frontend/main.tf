@@ -55,33 +55,6 @@ resource "aws_cloudfront_function" "api_strip_prefix" {
   code    = file("${path.module}/functions/api-strip-prefix.js")
 }
 
-resource "aws_cloudfront_origin_request_policy" "api" {
-  name    = "${local.name}-api"
-  comment = "Forward auth and CORS headers to API Gateway"
-
-  cookies_config {
-    cookie_behavior = "none"
-  }
-
-  headers_config {
-    header_behavior = "whitelist"
-
-    headers {
-      items = [
-        "Authorization",
-        "Content-Type",
-        "Origin",
-        "Access-Control-Request-Headers",
-        "Access-Control-Request-Method",
-      ]
-    }
-  }
-
-  query_strings_config {
-    query_string_behavior = "all"
-  }
-}
-
 resource "aws_acm_certificate" "frontend" {
   count    = 1
   provider = aws.domain_aws_region
@@ -170,7 +143,7 @@ resource "aws_cloudfront_distribution" "frontend" {
     allowed_methods          = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
     cached_methods           = ["GET", "HEAD"]
     cache_policy_id          = data.aws_cloudfront_cache_policy.caching_disabled.id
-    origin_request_policy_id = aws_cloudfront_origin_request_policy.api.id
+    origin_request_policy_id = data.aws_cloudfront_origin_request_policy.api_origin_request.id
 
     function_association {
       event_type   = "viewer-request"

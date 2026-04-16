@@ -41,6 +41,10 @@ data "aws_cloudfront_origin_request_policy" "origin_request" {
   name = local.origin_request_policy_id
 }
 
+data "aws_cloudfront_origin_request_policy" "api_origin_request" {
+  name = local.api_origin_request_policy_id
+}
+
 data "aws_cloudfront_response_headers_policy" "response_headers" {
   name = local.response_headers_policy_id
 }

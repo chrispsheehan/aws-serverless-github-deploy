@@ -16,9 +16,9 @@ Static frontend hosting module.
 - `/auth-config.json`
   served from the frontend bucket with caching disabled so auth configuration changes are visible immediately
 - `/api/*`
-  forwarded to API Gateway, stripped to `/*`, and forwards the `Authorization` header for Cognito-backed JWT auth
+  forwarded to API Gateway, stripped to `/*`, and uses CloudFront's managed `AllViewerExceptHostHeader` origin-request policy so `Authorization` and the other viewer headers reach API Gateway for Cognito-backed JWT auth
 - `/api/ecs/*`
-  forwarded to API Gateway, stripped to `/ecs/*`, and forwards the `Authorization` header for Cognito-backed JWT auth
+  forwarded to API Gateway, stripped to `/ecs/*`, and uses CloudFront's managed `AllViewerExceptHostHeader` origin-request policy so `Authorization` and the other viewer headers reach API Gateway for Cognito-backed JWT auth
 - all other paths
   served from the frontend bucket with SPA routing
 

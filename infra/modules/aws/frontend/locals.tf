@@ -17,10 +17,11 @@ locals {
   s3_origin_id  = "s3"
   api_origin_id = "api"
 
-  root_file                  = "index.html"
-  auth_config_file           = "auth-config.json"
-  caching_optimized_id       = "Managed-CachingOptimized"
-  origin_request_policy_id   = "Managed-CORS-S3Origin"
-  response_headers_policy_id = "Managed-CORS-With-Preflight"
-  caching_disabled_id        = "Managed-CachingDisabled"
+  root_file                    = "index.html"
+  auth_config_file             = "auth-config.json"
+  caching_optimized_id         = "Managed-CachingOptimized"
+  origin_request_policy_id     = "Managed-CORS-S3Origin"
+  api_origin_request_policy_id = "Managed-AllViewerExceptHostHeader"
+  response_headers_policy_id   = "Managed-CORS-With-Preflight"
+  caching_disabled_id          = "Managed-CachingDisabled"
 }
