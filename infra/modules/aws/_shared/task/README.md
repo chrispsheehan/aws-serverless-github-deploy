@@ -35,3 +35,4 @@ The ECR repository access policy uses the explicit `ecr_repository_name` input. 
 
 When `health_check` is set, the module adds an ECS container health check to the main service container.
 When `xray_enabled` is true, the module also provides the shared ECS tracing environment needed by the app containers to export spans through the OTEL sidecar to X-Ray.
+When `local_tunnel` is true, the debug sidecar inherits the same shared and task-specific environment variables as the main app container so ECS Exec sessions can use the runtime connection settings directly.
