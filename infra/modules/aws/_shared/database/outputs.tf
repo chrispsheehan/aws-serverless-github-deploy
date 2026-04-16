@@ -1,9 +1,5 @@
-output "credentials_secret_name" {
-  value = data.aws_secretsmanager_secret.db_credentials.name
-}
-
 output "credentials_secret_arn" {
-  value = data.aws_secretsmanager_secret.db_credentials.arn
+  value = try(one(aws_rds_cluster.aurora_postgres.master_user_secret).secret_arn, null)
 }
 
 output "readonly_endpoint_ssm_name" {

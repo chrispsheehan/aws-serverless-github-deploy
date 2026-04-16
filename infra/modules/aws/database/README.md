@@ -29,7 +29,6 @@ Concrete Aurora PostgreSQL wrapper.
 
 - `cluster_identifier`
 - `security_group_id`
-- `credentials_secret_name`
 - `credentials_secret_arn`
 - `readonly_endpoint_ssm_name`
 - `readwrite_endpoint_ssm_name`

@@ -33,7 +33,6 @@ Shared Aurora PostgreSQL Serverless v2 module.
 
 - `cluster_identifier`
 - `security_group_id`
-- `credentials_secret_name`
 - `credentials_secret_arn`
 - `readonly_endpoint_ssm_name`
 - `readwrite_endpoint_ssm_name`
@@ -45,5 +44,5 @@ Shared Aurora PostgreSQL Serverless v2 module.
 This module is intentionally Aurora PostgreSQL Serverless v2 specific. It does not currently support provisioned RDS instances or non-Postgres engines.
 In this repo the concrete `database` wrapper resolves the VPC and public or private subnet ids, while the shared infra workflow injects `database_security_group_id` from the `security` stack via `TF_VAR_database_security_group_id`.
 By default the module tracks the latest matching Aurora PostgreSQL 16.x engine version rather than pinning a specific patch release.
-SSM parameter paths and the database credentials secret name are rooted at `/<environment>/<project>/<database>/...` so they do not collide with AWS-reserved `/aws` prefixes.
-The runtime contract for database credentials is the Aurora-managed master secret exposed from the cluster. This avoids placing the credential payload in Terraform-managed secret state.
+SSM parameter paths are rooted at `/<environment>/<project>/<database>/...` so they do not collide with AWS-reserved `/aws` prefixes.
+The runtime contract for database credentials is the Aurora-managed master secret exposed from the cluster. Terraform reads the managed secret ARN directly from the cluster resource rather than doing a separate Secrets Manager lookup during the same apply, because AWS may not populate that managed-secret reference early enough for an immediate data read.
