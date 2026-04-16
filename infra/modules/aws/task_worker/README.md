@@ -16,6 +16,7 @@ Concrete ECS worker task wrapper.
 - updates a local heartbeat file as it polls and uses an ECS container health check against that heartbeat
 - uses the shared ECS tracing helper so SQS receive/process/delete work emits X-Ray spans when `xray_enabled` is enabled
 - defaults `local_tunnel` and `xray_enabled` to `false` unless explicitly enabled
+- when `local_tunnel` is enabled, the debug sidecar can be reached with ECS Exec and inherits the worker runtime database settings for ad hoc `psql` inspection
 
 ## Key outputs
 

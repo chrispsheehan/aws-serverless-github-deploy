@@ -119,7 +119,13 @@ To inspect the ECS worker runtime from inside the VPC-connected debug sidecar in
 just worker-debug-shell dev
 ```
 
-The shared debug image includes `psql`, and the debug sidecar now inherits the worker runtime environment variables, so you can inspect the Aurora data from inside that sidecar once the ECS task is running a current task revision.
+The shared debug image includes `psql`, and `worker-debug-shell` now injects `PGPASSWORD`, `PGUSER`, and `DB_USER` into the shell from SSM on your local machine before opening ECS Exec.
+
+From inside that shell, a one-line check for persisted worker rows is:
+
+```sh
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$PGUSER" -d "$DB_NAME" -c "select count(*) from worker_messages;"
+```
 
 ## ⚙️ types of lambda provisioned concurrency
 

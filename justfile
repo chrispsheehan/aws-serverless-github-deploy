@@ -103,6 +103,28 @@ worker-debug-shell env:
     cluster_name="{{env}}-${project_name}-cluster"
     service_name="ecs-worker"
     container_name="${service_name}-debug"
+    username_param="/{{env}}/${project_name}/app/username"
+    password_param="/{{env}}/${project_name}/app/password"
+
+    db_user="$(
+        aws ssm get-parameter \
+          --name "$username_param" \
+          --with-decryption \
+          --region "$aws_region" \
+          --query 'Parameter.Value' \
+          --output text
+    )"
+    db_password="$(
+        aws ssm get-parameter \
+          --name "$password_param" \
+          --with-decryption \
+          --region "$aws_region" \
+          --query 'Parameter.Value' \
+          --output text
+    )"
+
+    escaped_db_user="${db_user//\'/\'\"\'\"\'}"
+    escaped_db_password="${db_password//\'/\'\"\'\"\'}"
 
     task_arn="$(
         aws ecs list-tasks \
@@ -125,7 +147,7 @@ worker-debug-shell env:
       --task "$task_arn" \
       --container "$container_name" \
       --interactive \
-      --command "/bin/sh"
+      --command "/bin/sh -lc 'export PGUSER='\''${escaped_db_user}'\''; export DB_USER='\''${escaped_db_user}'\''; export PGPASSWORD='\''${escaped_db_password}'\''; exec /bin/sh'"
 
 
 lambda-check-version:
