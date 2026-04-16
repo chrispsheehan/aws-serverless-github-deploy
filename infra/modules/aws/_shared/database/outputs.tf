@@ -1,9 +1,9 @@
 output "credentials_secret_name" {
-  value = aws_secretsmanager_secret.db_credentials.name
+  value = data.aws_secretsmanager_secret.db_credentials.name
 }
 
 output "credentials_secret_arn" {
-  value = aws_secretsmanager_secret.db_credentials.arn
+  value = data.aws_secretsmanager_secret.db_credentials.arn
 }
 
 output "readonly_endpoint_ssm_name" {

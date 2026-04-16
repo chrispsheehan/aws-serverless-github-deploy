@@ -70,7 +70,7 @@ The worker runtimes now share a dedicated `worker_messaging` stack that owns one
 `lambda_worker`, `task_worker`, and `service_worker` now read queue details from `worker_messaging` remote state instead of owning worker queues inside the runtime stacks.
 The repo also includes a shared `database` stack in `dev` and `prod` for Aurora PostgreSQL Serverless v2, intended to be available before Lambda or ECS services start taking dependencies on it.
 The repo also includes a `cognito` stack for Cognito Hosted UI login, a read-only user group, and JWT protection on the shared API routes.
-Database credentials are now managed as a single Secrets Manager object rather than separate username and password parameters, so Lambda, ECS, and debug tooling can all read one credentials payload.
+Aurora now manages the master credentials secret internally, and Lambda, ECS, and debug tooling read that Aurora-managed secret through the database stack outputs.
 The ECS worker now persists consumed messages into Aurora PostgreSQL, and a separate `migrations` Lambda exists for running schema changes against that shared database from inside the VPC.
 The migrations Lambda now packages the `pgroll` CLI from `xataio/pgroll` and runs the checked-in migration definition from the Lambda artifact instead of executing raw SQL directly.
 The shared Lambda module now exposes `timeout_seconds`, and `migrations` sets it explicitly to `120` so database work and VPC/database startup do not hit the AWS default 3-second timeout.
@@ -125,6 +125,7 @@ just worker-debug-shell dev
 ```
 
 The shared debug image includes `psql`, and `worker-debug-shell` now injects `PGPASSWORD`, `PGUSER`, and `DB_USER` into the shell from the shared database credentials secret on your local machine before opening ECS Exec.
+`worker-debug-shell` resolves the live database credentials secret ARN from the Aurora cluster metadata, so it continues to work even though Aurora now owns the underlying secret name.
 
 From inside that shell, a one-line check for persisted worker rows is:
 

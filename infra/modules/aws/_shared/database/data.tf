@@ -8,3 +8,7 @@ data "aws_subnet" "selected" {
   for_each = toset(var.subnet_ids)
   id       = each.value
 }
+
+data "aws_secretsmanager_secret" "db_credentials" {
+  arn = aws_rds_cluster.aurora_postgres.master_user_secret[0].secret_arn
+}

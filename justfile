@@ -103,7 +103,14 @@ worker-debug-shell env:
     cluster_name="{{env}}-${project_name}-cluster"
     service_name="ecs-worker"
     container_name="${service_name}-debug"
-    credentials_secret_id="/{{env}}/${project_name}/app/credentials"
+    database_cluster_identifier="${project_name}-{{env}}-app-aurora"
+    credentials_secret_id="$(
+        aws rds describe-db-clusters \
+          --region "$aws_region" \
+          --db-cluster-identifier "$database_cluster_identifier" \
+          --query 'DBClusters[0].MasterUserSecret.SecretArn' \
+          --output text
+    )"
     credentials_json="$(
         aws secretsmanager get-secret-value \
           --secret-id "$credentials_secret_id" \
