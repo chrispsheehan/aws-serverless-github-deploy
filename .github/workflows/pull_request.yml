@@ -78,11 +78,9 @@ jobs:
         working-directory: infra
 
   lint-terraform:
-    needs:
-      - check
-      - format-terragrunt
+    needs: check
     runs-on: ubuntu-latest
-    if: ${{ (needs.check.outputs.terraform == 'true' || needs.check.outputs.terragrunt == 'true') && needs.format-terragrunt.result == 'success' }}
+    if: ${{ needs.check.outputs.terraform == 'true' }}
     name: TF Lint
     timeout-minutes: 2
     steps:
