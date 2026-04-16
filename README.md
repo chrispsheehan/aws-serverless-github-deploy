@@ -3,6 +3,8 @@
 **Terraform + GitHub Actions for AWS serverless deployments.**  
 Lambda + ECS with CodeDeploy rollouts, plus provisioned concurrency controls for Lambda — driven by clean module variables and `just` recipes.
 
+Workflow dependency diagrams and CI orchestration notes live in [docs/ci/README.md](/Users/chrissheehan/git/chrispsheehan/aws-serverless-github-deploy/docs/ci/README.md).
+
 ---
 
 ## 🚀 setup roles for ci
