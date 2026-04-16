@@ -22,6 +22,7 @@ permissions:
 env:
   TF_VAR_lambda_version: this
   AWS_OIDC_ROLE_ARN: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/aws-serverless-github-deploy-${{ inputs.environment }}-github-oidc-role
+  DOMAIN_NAME: ${{ vars.DOMAIN_NAME }}
 
 jobs:
   setup:
@@ -31,7 +32,9 @@ jobs:
   lambdas:
     name: Lambdas
     runs-on: ubuntu-latest
-    needs: setup
+    needs:
+      - setup
+      - services
     strategy:
       fail-fast: false
       matrix:
@@ -56,9 +59,32 @@ jobs:
         uses: ./.github/actions/terragrunt
         env:
           TF_VAR_api_invoke_url: "https://placeholder.execute-api.us-east-1.amazonaws.com"
+          TF_VAR_domain_name: ${{ env.DOMAIN_NAME }}
+          TF_VAR_auth_user_pool_id: "destroy-placeholder"
+          TF_VAR_auth_user_pool_client_id: "destroy-placeholder"
+          TF_VAR_auth_hosted_ui_url: "https://destroy-placeholder"
+          TF_VAR_auth_readonly_group_name: "readonly"
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/frontend
+          tg_action: destroy
+
+  cognito:
+    name: Cognito
+    runs-on: ubuntu-latest
+    needs:
+      - lambdas
+      - frontend
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Destroy cognito infra
+        uses: ./.github/actions/terragrunt
+        env:
+          TF_VAR_domain_name: ${{ env.DOMAIN_NAME }}
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          tg_directory: infra/live/${{ inputs.environment }}/aws/cognito
           tg_action: destroy
 
   services:
@@ -164,6 +190,7 @@ jobs:
     name: Security
     needs:
       - network
+      - lambdas
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6

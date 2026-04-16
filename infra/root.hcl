@@ -82,6 +82,18 @@ provider "aws" {
     }
   }
 }
+
+provider "aws" {
+  alias               = "domain_aws_region"
+  region              = "us-east-1"
+  allowed_account_ids = ["${local.aws_account_id}"]
+  default_tags {
+    tags = {
+      Project     = "${local.project_name}"
+      Environment = "${local.environment}"
+    }
+  }
+}
 EOF
   disable   = local.provider != "aws"
 }

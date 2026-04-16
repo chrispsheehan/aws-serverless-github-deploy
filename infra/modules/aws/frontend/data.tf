@@ -41,6 +41,10 @@ data "aws_cloudfront_origin_request_policy" "origin_request" {
   name = local.origin_request_policy_id
 }
 
+data "aws_cloudfront_origin_request_policy" "api_origin_request" {
+  name = local.api_origin_request_policy_id
+}
+
 data "aws_cloudfront_response_headers_policy" "response_headers" {
   name = local.response_headers_policy_id
 }
@@ -51,3 +55,8 @@ data "aws_cloudfront_cache_policy" "caching_disabled" {
 
 data "aws_caller_identity" "current" {}
 
+data "aws_route53_zone" "frontend" {
+  count        = 1
+  name         = "${local.hosted_zone_name}."
+  private_zone = false
+}

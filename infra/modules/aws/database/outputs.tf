@@ -1,7 +1,3 @@
-output "credentials_secret_name" {
-  value = module.database.credentials_secret_name
-}
-
 output "credentials_secret_arn" {
   value = module.database.credentials_secret_arn
 }

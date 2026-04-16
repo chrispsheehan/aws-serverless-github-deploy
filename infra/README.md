@@ -58,7 +58,11 @@ stores state at:
 - `cluster`
   Owns the ECS cluster.
 - `api`
-  Owns the Lambda-backed API integration and routes into the shared HTTP API.
+  Owns the Lambda-backed API integration, the shared Cognito-backed JWT authorizer, and the Lambda routes into the shared HTTP API.
+- `cognito`
+  Owns the Cognito user pool, frontend app client, Hosted UI domain, and read-only user group.
+- `frontend`
+  Owns the derived CloudFront custom domain, ACM certificate in `us-east-1`, and Route53 alias records using the required `DOMAIN_NAME` workflow env input.
 - `database`
   Owns the shared Aurora PostgreSQL Serverless v2 database stack and its SSM connection parameters.
 - `migrations`
@@ -88,8 +92,10 @@ That `containers/shared` directory is helper code only and is not treated as a d
 
 - many modules use `data.terraform_remote_state` to read outputs from other stacks
 - because of that, workflow ordering matters for apply, deploy, and destroy
+- `service_api` consumes the shared JWT authorizer output from `api`, so API infra must exist before that ECS API service stack applies, and the service must destroy before the `api` stack is torn down
 - on destroy, `network` can tear down once downstream consumers such as `frontend`, `service_*`, `task_*`, and `database` are gone
 - on destroy, `cluster` can tear down in parallel with `network` once `service_*`, `task_*`, and other real cluster consumers are gone; `frontend` is not a cluster dependency
+- on destroy, `security` must wait for VPC-attached lambdas such as `migrations` as well as `network`, otherwise the shared runtime security group can still be attached during Lambda ENI cleanup
 - avoid making one runtime depend on another runtime's state ownership unnecessarily; for example, shared worker fanout state is owned by `worker_messaging` rather than by `lambda_worker` or `task_worker`
 - some shared infrastructure, such as the landing-zone VPC and tagged private subnets, is discovered with `data` lookups and must already exist
 

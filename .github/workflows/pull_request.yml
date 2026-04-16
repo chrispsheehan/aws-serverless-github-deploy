@@ -59,7 +59,7 @@ jobs:
   format-terragrunt:
     needs: check
     runs-on: ubuntu-latest
-    if: ${{ needs.check.outputs.terragrunt == 'true' }}
+    if: ${{ needs.check.outputs.terraform == 'true' || needs.check.outputs.terragrunt == 'true' }}
     name: TG Fmt
     timeout-minutes: 2
     steps:

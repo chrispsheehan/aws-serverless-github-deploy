@@ -15,6 +15,7 @@ Shared ECS service module.
 
 - `task_definition_arn`
 - `connection_type`
+- optional `authorization_type` and `authorizer_id` for protected API Gateway routes
 - `deployment_strategy`
 - `bootstrap`
 - `bootstrap_image_uri`
@@ -23,6 +24,7 @@ Shared ECS service module.
 
 Subpath services match both `/<root_path>` and `/<root_path>/*`.
 If `dedicated_listener_port` is set, the service gets its own ALB listener and uses that listener for API Gateway integration and ECS CodeDeploy traffic routing.
+When `connection_type = "vpc_link"`, the module can also attach a shared API Gateway JWT authorizer to both the exact and proxy routes.
 
 ## Bootstrap behavior
 

@@ -1,10 +1,8 @@
 locals {
-  password_length             = 30
   username_prefix             = "app"
   username_suffix_length      = 8
   master_username             = "${local.username_prefix}${random_string.db_user_suffix.result}"
   ssm_name_prefix             = "/${var.environment}/${var.project_name}/${var.database_name}"
-  credentials_secret_name     = "${local.ssm_name_prefix}/credentials"
   database_ssm_name           = "${local.ssm_name_prefix}/db-name"
   readonly_endpoint_ssm_name  = "${local.ssm_name_prefix}/readonly-endpoint"
   readwrite_endpoint_ssm_name = "${local.ssm_name_prefix}/readwrite-endpoint"

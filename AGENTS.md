@@ -8,6 +8,7 @@ Update documentation in the same change:
 - update affected module `README.md` files under `infra/modules/**` for module contract or responsibility changes
 - when changing `.github/workflows/**`, update `docs/ci/README.md` if job dependencies, reusable workflow contracts, lifecycle ordering, or workflow-call structure changed
 - prefer Mermaid diagrams in `docs/ci/README.md` that show jobs, `needs`, and reusable-workflow relationships rather than trying to reproduce the exact GitHub Actions UI
+- when adding a new AWS infra type or service family, check whether the deploy role in `infra/live/global_vars.hcl` needs additional `allowed_role_actions` and update it in the same change if required
 
 ## CI OIDC Scope
 

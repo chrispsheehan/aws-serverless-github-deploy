@@ -6,17 +6,27 @@ Static frontend hosting module.
 
 - website bucket and distribution resources
 - bootstrap `index.html` object for first-time infra deploys
+- `auth-config.json` for runtime Cognito/frontend configuration
+- ACM certificate and Route53 alias records for the derived CloudFront custom domain
 - deployment destination for built frontend assets
 - path-based forwarding of `/api/*` requests to the shared API origin
 
 ## Routing behavior
 
+- `/auth-config.json`
+  served from the frontend bucket with caching disabled so auth configuration changes are visible immediately
 - `/api/*`
-  forwarded to API Gateway and stripped to `/*` for the Lambda-backed API
+  forwarded to API Gateway, stripped to `/*`, and uses CloudFront's managed `AllViewerExceptHostHeader` origin-request policy so `Authorization` and the other viewer headers reach API Gateway for Cognito-backed JWT auth
 - `/api/ecs/*`
-  forwarded to API Gateway and stripped to `/ecs/*`
+  forwarded to API Gateway, stripped to `/ecs/*`, and uses CloudFront's managed `AllViewerExceptHostHeader` origin-request policy so `Authorization` and the other viewer headers reach API Gateway for Cognito-backed JWT auth
 - all other paths
   served from the frontend bucket with SPA routing
+
+## Custom domain
+
+The module expects `domain_name` and derives the deployed frontend URL as `<project_name>.<environment>.<domain_name>`.
+It requests an ACM certificate in `us-east-1`, validates it with Route53 DNS records, and creates `A` and `AAAA` alias records in the matching hosted zone.
+If `frontend_hosted_zone_name` is omitted, the module uses `domain_name` itself as the hosted zone, which fits names like `aws-serverless-github-deploy.dev.chrispsheehan.com`.
 
 ## Key outputs
 

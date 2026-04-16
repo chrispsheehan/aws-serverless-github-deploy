@@ -39,6 +39,33 @@ flowchart LR
   build --> publish["Publish GitHub Release"]
 ```
 
+## Pull Request Checks
+
+Workflow:
+
+- `pull_request.yml`
+
+Trigger:
+
+- pull request opened, updated, reopened, or marked ready for review
+
+Process:
+
+- check title and changed-file categories
+- run workflow formatting and Terraform linting when infra files changed
+- build changed Lambdas, ECS images, and frontend assets
+
+Outcome:
+
+- fast PR feedback on workflow syntax, Terraform linting, and buildability before deploy-time workflows run
+
+```mermaid
+flowchart LR
+  trigger["Pull Request"] --> detect["Detect Changes"]
+  detect --> checks["Fmt + Lint"]
+  checks --> builds["Build Changed Runtimes"]
+```
+
 ## Infra Artifact Prep
 
 Workflow:
@@ -86,7 +113,7 @@ Trigger:
 
 Process:
 
-- apply shared prerequisites such as OIDC, security, network, cluster, database, and worker messaging
+- apply shared prerequisites such as OIDC, Cognito, security, network, cluster, database, and worker messaging
 - apply Lambda infrastructure
 - apply ECS service infrastructure in bootstrap mode
 - apply frontend infrastructure
@@ -99,7 +126,8 @@ Outcome:
 ```mermaid
 flowchart LR
   call["Workflow Call"] --> shared["Shared Infra"]
-  shared --> runtimes["Lambda + ECS Infra"]
+  shared --> auth["Cognito + API Auth"]
+  auth --> runtimes["Lambda + ECS Infra"]
   runtimes --> frontend["Frontend Infra"]
 ```
 
@@ -215,7 +243,7 @@ Process:
 
 - discover active stacks
 - destroy app/runtime layers first
-- destroy shared infrastructure after downstream consumers are gone
+- destroy auth and shared infrastructure after downstream consumers are gone
 
 Outcome:
 
@@ -225,7 +253,8 @@ Outcome:
 flowchart LR
   trigger["Trigger"] --> discover["Discover Stacks"]
   discover --> app["Destroy App Layers"]
-  app --> shared["Destroy Shared Infra"]
+  app --> auth["Destroy Cognito / API Auth Dependencies"]
+  auth --> shared["Destroy Shared Infra"]
 ```
 
 ## Wrapper Workflows
