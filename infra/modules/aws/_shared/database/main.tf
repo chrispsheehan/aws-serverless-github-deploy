@@ -16,9 +16,8 @@ resource "aws_rds_cluster" "aurora_postgres" {
   engine_version     = data.aws_rds_engine_version.postgres.version
   apply_immediately  = true
 
-  master_username               = local.master_username
-  manage_master_user_password   = true
-  master_user_secret_kms_key_id = "alias/aws/secretsmanager"
+  master_username             = local.master_username
+  manage_master_user_password = true
 
   database_name           = local.serverless_database_name
   backup_retention_period = var.backup_retention_period

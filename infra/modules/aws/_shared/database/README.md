@@ -46,4 +46,3 @@ In this repo the concrete `database` wrapper resolves the VPC and public or priv
 By default the module tracks the latest matching Aurora PostgreSQL 16.x engine version rather than pinning a specific patch release.
 SSM parameter paths are rooted at `/<environment>/<project>/<database>/...` so they do not collide with AWS-reserved `/aws` prefixes.
 The runtime contract for database credentials is the Aurora-managed master secret exposed from the cluster. Terraform reads the managed secret ARN directly from the cluster resource rather than doing a separate Secrets Manager lookup during the same apply, because AWS may not populate that managed-secret reference early enough for an immediate data read.
-The cluster explicitly uses `alias/aws/secretsmanager` for that managed secret so Aurora does not depend on an implicit KMS-key selection path during create or modify.

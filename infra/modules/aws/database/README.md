@@ -38,4 +38,4 @@ Concrete Aurora PostgreSQL wrapper.
 - `readwrite_endpoint`
 
 This module keeps repo-specific network lookup logic out of `_shared/database`. It selects public or private subnets by `tag:Name` based on `publicly_accessible` and passes the resulting subnet ids into the shared Aurora module.
-The database credentials outputs point at the Aurora-managed master secret rather than a repo-created fixed-name secret. The shared cluster module pins that secret to the AWS-managed Secrets Manager key `alias/aws/secretsmanager`.
+The database credentials outputs point at the Aurora-managed master secret rather than a repo-created fixed-name secret.
