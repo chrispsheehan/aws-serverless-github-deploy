@@ -1,3 +1,4 @@
+import json
 import os
 from functools import lru_cache
 from urllib.parse import quote
@@ -18,25 +19,16 @@ def _required_env(name: str) -> str:
 def _load_db_credentials() -> dict[str, str]:
     start = time.monotonic()
     region = _required_env("AWS_REGION")
-    username_parameter = _required_env("DB_USERNAME_SSM_PARAMETER")
-    password_parameter = _required_env("DB_PASSWORD_SSM_PARAMETER")
+    secret_arn = _required_env("DB_SECRET_ARN")
+    secretsmanager = boto3.client("secretsmanager", region_name=region)
+    response = secretsmanager.get_secret_value(SecretId=secret_arn)
+    secret_string = response.get("SecretString", "")
+    if not secret_string:
+        raise RuntimeError(f"Secret {secret_arn} did not contain SecretString")
 
-    ssm = boto3.client("ssm", region_name=region)
-    response = ssm.get_parameters(
-        Names=[username_parameter, password_parameter],
-        WithDecryption=True,
-    )
-
-    invalid_parameters = response.get("InvalidParameters", [])
-    if invalid_parameters:
-        raise RuntimeError(
-            f"Could not load SSM parameters: {', '.join(sorted(invalid_parameters))}"
-        )
-
-    values = {
-        parameter["Name"]: parameter["Value"]
-        for parameter in response.get("Parameters", [])
-    }
+    values = json.loads(secret_string)
+    if "username" not in values or "password" not in values:
+        raise RuntimeError(f"Secret {secret_arn} must contain username and password keys")
 
     print(
         {
@@ -47,8 +39,8 @@ def _load_db_credentials() -> dict[str, str]:
     )
 
     return {
-        "user": values[username_parameter],
-        "password": values[password_parameter],
+        "user": values["username"],
+        "password": values["password"],
     }
 
 

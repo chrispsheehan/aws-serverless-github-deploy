@@ -20,6 +20,7 @@ locals {
     "elasticloadbalancing:*",
     "rds:*",
     "ssm:*",
+    "secretsmanager:*",
   ]
   container_port = 80
 }

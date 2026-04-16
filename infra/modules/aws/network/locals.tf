@@ -9,6 +9,7 @@ locals {
     logs    = "logs"
     sqs     = "sqs"
     ssm     = "ssm"
+    secretsmanager = "secretsmanager"
   }
 
   tunnel_interface_endpoints = var.local_tunnel ? {

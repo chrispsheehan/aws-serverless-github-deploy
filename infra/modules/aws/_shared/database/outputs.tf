@@ -1,17 +1,9 @@
-output "username_ssm_name" {
-  value = local.username_ssm_name
+output "credentials_secret_name" {
+  value = aws_secretsmanager_secret.db_credentials.name
 }
 
-output "password_ssm_name" {
-  value = local.password_ssm_name
-}
-
-output "username_ssm_arn" {
-  value = aws_ssm_parameter.db_username_parameter.arn
-}
-
-output "password_ssm_arn" {
-  value = aws_ssm_parameter.db_password_parameter.arn
+output "credentials_secret_arn" {
+  value = aws_secretsmanager_secret.db_credentials.arn
 }
 
 output "readonly_endpoint_ssm_name" {

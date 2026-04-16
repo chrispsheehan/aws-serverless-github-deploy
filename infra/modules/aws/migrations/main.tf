@@ -1,6 +1,6 @@
-resource "aws_iam_policy" "database_ssm_read" {
-  name   = "${local.lambda_name}-database-ssm-read"
-  policy = data.aws_iam_policy_document.database_ssm_read.json
+resource "aws_iam_policy" "database_secret_read" {
+  name   = "${local.lambda_name}-database-secret-read"
+  policy = data.aws_iam_policy_document.database_secret_read.json
 }
 
 module "migrations" {
@@ -18,12 +18,11 @@ module "migrations" {
     DB_HOST                   = data.terraform_remote_state.database.outputs.readwrite_endpoint
     DB_NAME                   = data.terraform_remote_state.database.outputs.database_name
     DB_PORT                   = tostring(data.terraform_remote_state.database.outputs.database_port)
-    DB_USERNAME_SSM_PARAMETER = data.terraform_remote_state.database.outputs.username_ssm_name
-    DB_PASSWORD_SSM_PARAMETER = data.terraform_remote_state.database.outputs.password_ssm_name
+    DB_SECRET_ARN             = data.terraform_remote_state.database.outputs.credentials_secret_arn
   }
 
   additional_policy_arns = [
-    aws_iam_policy.database_ssm_read.arn,
+    aws_iam_policy.database_secret_read.arn,
   ]
 
   vpc_subnet_ids = data.aws_subnets.private.ids

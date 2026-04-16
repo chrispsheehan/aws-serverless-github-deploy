@@ -16,7 +16,7 @@ just tg prod aws/oidc apply
 ```
 
 The `ci` OIDC role is intentionally narrower than the `dev` and `prod` roles. In this repo it is limited to build-artifact management, including the shared code bucket, IAM interactions needed by the existing CI flow, and publishing container images to ECR. It is not the repo's broad deployment role.
-The deploy roles for `dev` and `prod` now also include the `rds` and `ssm` permissions needed by the shared database stack.
+The deploy roles for `dev` and `prod` now also include the `rds`, `ssm`, and `secretsmanager` permissions needed by the shared database stack.
 
 ## 🧱 prerequisite network
 
@@ -34,7 +34,7 @@ The repo `network` module also owns the shared internal ALB and shared HTTP API 
 - default API stage
 - VPC link
 - internal ALB and target groups
-- interface VPC endpoints required by private runtimes, including SQS for the worker poller and SSM for Parameter Store reads from VPC-attached Lambdas such as `migrations`
+- interface VPC endpoints required by private runtimes, including SQS for the worker poller, SSM for Parameter Store reads where still used, and Secrets Manager for the shared database credentials object consumed by ECS and Lambda runtimes
 
 This repo now includes a sample ECS API container service exposed separately from the Lambda API:
 
@@ -66,6 +66,7 @@ For `*_code` release deploys, pass explicit release versions for each runtime yo
 The worker runtimes now share a dedicated `worker_messaging` stack that owns one SNS topic plus two SQS queues, with one queue consumed by `lambda_worker` and the other by the ECS worker stack. Publishing once to the shared topic fans the same message out to both runtimes independently.
 `lambda_worker`, `task_worker`, and `service_worker` now read queue details from `worker_messaging` remote state instead of owning worker queues inside the runtime stacks.
 The repo also includes a shared `database` stack in `dev` and `prod` for Aurora PostgreSQL Serverless v2, intended to be available before Lambda or ECS services start taking dependencies on it.
+Database credentials are now managed as a single Secrets Manager object rather than separate username and password parameters, so Lambda, ECS, and debug tooling can all read one credentials payload.
 The ECS worker now persists consumed messages into Aurora PostgreSQL, and a separate `migrations` Lambda exists for running schema changes against that shared database from inside the VPC.
 The migrations Lambda now packages the `pgroll` CLI from `xataio/pgroll` and runs the checked-in migration definition from the Lambda artifact instead of executing raw SQL directly.
 The shared Lambda module now exposes `timeout_seconds`, and `migrations` sets it explicitly to `120` so database work and VPC/database startup do not hit the AWS default 3-second timeout.
@@ -119,7 +120,7 @@ To inspect the ECS worker runtime from inside the VPC-connected debug sidecar in
 just worker-debug-shell dev
 ```
 
-The shared debug image includes `psql`, and `worker-debug-shell` now injects `PGPASSWORD`, `PGUSER`, and `DB_USER` into the shell from SSM on your local machine before opening ECS Exec.
+The shared debug image includes `psql`, and `worker-debug-shell` now injects `PGPASSWORD`, `PGUSER`, and `DB_USER` into the shell from the shared database credentials secret on your local machine before opening ECS Exec.
 
 From inside that shell, a one-line check for persisted worker rows is:
 

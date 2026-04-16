@@ -6,7 +6,7 @@ Lambda wrapper for database migrations using `pgroll`.
 
 - migrations Lambda via `_shared/lambda`
 - VPC-attached Lambda execution for private Aurora access
-- least-scope SSM read policy for the database username and password parameters
+- least-scope Secrets Manager read policy for the database credentials object
 - explicit 120-second Lambda timeout so schema work and VPC/database startup do not inherit the AWS 3-second default
 - pinned `pgroll` Linux binary packaged into the Lambda artifact during the existing Lambda build flow
 

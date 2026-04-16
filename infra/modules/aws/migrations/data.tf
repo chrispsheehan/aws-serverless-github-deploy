@@ -37,16 +37,14 @@ data "aws_subnets" "private" {
   }
 }
 
-data "aws_iam_policy_document" "database_ssm_read" {
+data "aws_iam_policy_document" "database_secret_read" {
   statement {
     actions = [
-      "ssm:GetParameter",
-      "ssm:GetParameters",
+      "secretsmanager:GetSecretValue",
     ]
 
     resources = [
-      data.terraform_remote_state.database.outputs.username_ssm_arn,
-      data.terraform_remote_state.database.outputs.password_ssm_arn,
+      data.terraform_remote_state.database.outputs.credentials_secret_arn,
     ]
   }
 }

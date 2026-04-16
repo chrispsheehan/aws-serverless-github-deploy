@@ -103,25 +103,16 @@ worker-debug-shell env:
     cluster_name="{{env}}-${project_name}-cluster"
     service_name="ecs-worker"
     container_name="${service_name}-debug"
-    username_param="/{{env}}/${project_name}/app/username"
-    password_param="/{{env}}/${project_name}/app/password"
-
-    db_user="$(
-        aws ssm get-parameter \
-          --name "$username_param" \
-          --with-decryption \
+    credentials_secret_id="/{{env}}/${project_name}/app/credentials"
+    credentials_json="$(
+        aws secretsmanager get-secret-value \
+          --secret-id "$credentials_secret_id" \
           --region "$aws_region" \
-          --query 'Parameter.Value' \
+          --query 'SecretString' \
           --output text
     )"
-    db_password="$(
-        aws ssm get-parameter \
-          --name "$password_param" \
-          --with-decryption \
-          --region "$aws_region" \
-          --query 'Parameter.Value' \
-          --output text
-    )"
+    db_user="$(printf '%s' "$credentials_json" | jq -r '.username')"
+    db_password="$(printf '%s' "$credentials_json" | jq -r '.password')"
 
     escaped_db_user="${db_user//\'/\'\"\'\"\'}"
     escaped_db_password="${db_password//\'/\'\"\'\"\'}"

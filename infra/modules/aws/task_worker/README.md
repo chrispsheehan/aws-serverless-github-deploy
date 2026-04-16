@@ -12,7 +12,7 @@ Concrete ECS worker task wrapper.
 - publishes worker task revisions for ECS deploys
 - uses the shared ECR repository named by `ecr_repository_name`
 - injects the shared ECS worker queue URL into the container via `AWS_SQS_QUEUE_URL`
-- injects Aurora PostgreSQL connection details and SSM parameter names for database credentials
+- injects Aurora PostgreSQL connection details and a single Secrets Manager credentials object reference
 - updates a local heartbeat file as it polls and uses an ECS container health check against that heartbeat
 - uses the shared ECS tracing helper so SQS receive/process/delete work emits X-Ray spans when `xray_enabled` is enabled
 - defaults `local_tunnel` and `xray_enabled` to `false` unless explicitly enabled

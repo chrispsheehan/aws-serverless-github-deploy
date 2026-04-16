@@ -22,8 +22,8 @@ resource "aws_rds_cluster" "aurora_postgres" {
   engine_version     = data.aws_rds_engine_version.postgres.version
   apply_immediately  = true
 
-  master_username = aws_ssm_parameter.db_username_parameter.value
-  master_password = aws_ssm_parameter.db_password_parameter.value
+  master_username = local.master_username
+  master_password = random_password.db_password.result
 
   database_name           = local.serverless_database_name
   backup_retention_period = var.backup_retention_period
@@ -78,16 +78,28 @@ resource "aws_ssm_parameter" "db_name" {
   value       = local.serverless_database_name
 }
 
+resource "aws_secretsmanager_secret" "db_credentials" {
+  name = local.credentials_secret_name
+}
+
+resource "aws_secretsmanager_secret_version" "db_credentials" {
+  secret_id = aws_secretsmanager_secret.db_credentials.id
+  secret_string = jsonencode({
+    username = local.master_username
+    password = random_password.db_password.result
+  })
+}
+
 resource "aws_ssm_parameter" "db_password_parameter" {
   name        = local.password_ssm_name
-  description = "Password for ${var.database_name}"
+  description = "Legacy compatibility password parameter for ${var.database_name}"
   type        = "SecureString"
   value       = random_password.db_password.result
 }
 
 resource "aws_ssm_parameter" "db_username_parameter" {
   name        = local.username_ssm_name
-  description = "Username for ${var.database_name}"
+  description = "Legacy compatibility username parameter for ${var.database_name}"
   type        = "SecureString"
   value       = local.master_username
 }
