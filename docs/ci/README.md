@@ -52,17 +52,17 @@ Trigger:
 Process:
 
 - check title and changed-file categories
-- run workflow formatting first, then Terraform linting and module-level `terraform validate` only after the fmt checks pass when infra files changed
+- run workflow formatting and Terraform linting when infra files changed
 - build changed Lambdas, ECS images, and frontend assets
 
 Outcome:
 
-- fast PR feedback on workflow syntax, Terraform module validity, and buildability before deploy-time workflows run
+- fast PR feedback on workflow syntax, Terraform linting, and buildability before deploy-time workflows run
 
 ```mermaid
 flowchart LR
   trigger["Pull Request"] --> detect["Detect Changes"]
-  detect --> checks["Fmt + Lint + Validate"]
+  detect --> checks["Fmt + Lint"]
   checks --> builds["Build Changed Runtimes"]
 ```
 

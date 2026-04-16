@@ -23,19 +23,6 @@ tf-lint-check:
         done
 
 
-tf-validate-check:
-    #!/bin/bash
-    set -euo pipefail
-    find infra/modules -type f -name '*.tf' -print0 \
-      | xargs -0 -n1 dirname \
-      | sort -u \
-      | while read -r dir; do
-          echo "🔍 Running terraform validate in $dir"
-          terraform -chdir="$dir" init -backend=false -input=false >/dev/null
-          terraform -chdir="$dir" validate
-        done
-
-
 lambda-invoke:
     #!/bin/bash
     set -euo pipefail

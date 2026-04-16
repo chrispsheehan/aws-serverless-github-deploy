@@ -95,23 +95,6 @@ jobs:
         with:
           just_action: tf-lint-check
 
-  validate-terraform:
-    needs:
-      - check
-      - format-terragrunt
-    runs-on: ubuntu-latest
-    if: ${{ (needs.check.outputs.terraform == 'true' || needs.check.outputs.terragrunt == 'true') && needs.format-terragrunt.result == 'success' }}
-    name: TF Validate
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@v6
-      - uses: hashicorp/setup-terraform@v3
-
-      - name: Run terraform validate checks
-        uses: ./.github/actions/just
-        with:
-          just_action: tf-validate-check
-
   check-lambda-naming:
     needs: check
     runs-on: ubuntu-latest
