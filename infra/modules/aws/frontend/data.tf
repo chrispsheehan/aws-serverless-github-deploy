@@ -60,3 +60,9 @@ data "terraform_remote_state" "cognito" {
     region = var.aws_region
   }
 }
+
+data "aws_route53_zone" "frontend" {
+  count        = 1
+  name         = "${local.hosted_zone_name}."
+  private_zone = false
+}

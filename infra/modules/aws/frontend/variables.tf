@@ -28,3 +28,19 @@ variable "api_invoke_url" {
   type        = string
   description = "Invoke URL of the API Gateway HTTP API"
 }
+
+variable "domain_name" {
+  type        = string
+  description = "Base hosted zone domain used to derive the deployed frontend URL"
+
+  validation {
+    condition     = length(trimspace(var.domain_name)) > 0
+    error_message = "domain_name must be specified."
+  }
+}
+
+variable "frontend_hosted_zone_name" {
+  type        = string
+  description = "Optional Route53 hosted zone name for the frontend custom domain"
+  default     = ""
+}

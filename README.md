@@ -62,6 +62,7 @@ Terragrunt also provides a shared default ECR repository name to ECS task module
 
 The reusable deploy workflows follow the same split: `prod` `*_code` and `*_infra` wrappers read shared artifact resources from `ci`, but `*_infra` only applies `prod` infrastructure stacks using the repo's directory-derived service and lambda matrices.
 The infra workflow now applies `cognito` before `api`, and the destroy workflow tears Cognito down only after frontend and API consumers are gone so JWT-authenticated routes do not race their auth upstream on destroy.
+For frontend DNS, the infra and destroy workflows now read a GitHub environment variable named `DOMAIN_NAME` and pass it into the `frontend` and `cognito` stacks.
 
 For `*_code` release deploys, pass explicit release versions for each runtime you want to roll out. In particular, ECS code deploys should provide an `ecs_version` rather than relying on a Lambda-version fallback.
 
@@ -145,7 +146,24 @@ The Cognito stack creates the user pool, app client, Hosted UI domain, and `read
 just cognito-create-readonly-user dev readonly@example.com 'ChangeMe123!'
 ```
 
-The allowed callback and logout URLs live in `infra/live/<environment>/environment_vars.hcl`. They currently default to `http://localhost:5173`, so add the deployed frontend CloudFront URL there before expecting Hosted UI login to work from the deployed site.
+Set the GitHub environment variable `DOMAIN_NAME` to the hosted zone base domain, for example:
+
+```text
+chrispsheehan.com
+```
+
+The deployed frontend URL is then derived automatically as:
+
+```text
+aws-serverless-github-deploy.dev.chrispsheehan.com
+```
+
+When that value is present:
+
+- the `frontend` stack requests a CloudFront certificate in `us-east-1` and creates Route53 alias records for `<project_name>.<environment>.<domain_name>`
+- the `cognito` stack automatically adds `https://<project_name>.<environment>.<domain_name>` to its Hosted UI callback and logout URLs
+
+The repo still keeps `http://localhost:5173` in Cognito for local Vite development, so local and deployed login can coexist.
 For local `vite` dev, the repo includes [`frontend/public/auth-config.json`](</Users/chrissheehan/git/chrispsheehan/aws-serverless-github-deploy/frontend/public/auth-config.json>) as a disabled placeholder; update that file locally if you want the localhost frontend to use the same Cognito flow.
 
 ## ⚙️ types of lambda provisioned concurrency

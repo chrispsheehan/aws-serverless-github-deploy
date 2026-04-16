@@ -40,6 +40,16 @@ variable "logout_urls" {
   }
 }
 
+variable "domain_name" {
+  type        = string
+  description = "Base hosted zone domain used to derive the deployed frontend URL"
+
+  validation {
+    condition     = length(trimspace(var.domain_name)) > 0
+    error_message = "domain_name must be specified."
+  }
+}
+
 variable "readonly_group_name" {
   type        = string
   description = "Cognito group name for read-only users"

@@ -61,6 +61,8 @@ stores state at:
   Owns the Lambda-backed API integration, the shared Cognito-backed JWT authorizer, and the Lambda routes into the shared HTTP API.
 - `cognito`
   Owns the Cognito user pool, frontend app client, Hosted UI domain, and read-only user group.
+- `frontend`
+  Owns the derived CloudFront custom domain, ACM certificate in `us-east-1`, and Route53 alias records using the required `DOMAIN_NAME` workflow env input.
 - `database`
   Owns the shared Aurora PostgreSQL Serverless v2 database stack and its SSM connection parameters.
 - `migrations`

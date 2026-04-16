@@ -13,6 +13,7 @@ Concrete Cognito user-auth module for the frontend and HTTP API.
 
 - `callback_urls`
 - `logout_urls`
+- `domain_name`
 - optional token lifetime settings
 - optional `readonly_group_name`
 
@@ -27,3 +28,4 @@ Concrete Cognito user-auth module for the frontend and HTTP API.
 - `readonly_group_name`
 
 This module intentionally creates infrastructure, not individual users. In this repo, user seeding is expected to happen operationally with AWS CLI or `just` recipes so access can be granted explicitly to a small allowlist such as the initial `readonly` user.
+The module derives the deployed frontend URL as `https://<project_name>.<environment>.<domain_name>` and adds it to the Hosted UI callback and logout URLs alongside any local development URLs.
