@@ -41,3 +41,7 @@ output "api_stage_name" {
 output "vpc_link_id" {
   value = aws_apigatewayv2_vpc_link.http_api.id
 }
+
+output "http_api_authorizer_id" {
+  value = aws_apigatewayv2_authorizer.cognito_jwt.id
+}

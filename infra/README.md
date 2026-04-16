@@ -45,20 +45,20 @@ stores state at:
 
 - `_shared/*`
   Reusable building blocks such as Lambda, ECS task, ECS service, ECR, SQS, cluster, database, and code bucket.
-- concrete modules such as `task_worker`, `service_worker`, `lambda_worker`, `api`
+- concrete modules such as `task_worker`, `service_worker`, `lambda_worker`, `lambda_api`
   Thin wrappers that apply repo-specific behavior on top of shared modules.
   The `database` module is one of those wrappers: it owns the repo's VPC/subnet lookup and passes resolved subnet ids into `_shared/database`.
 
 ## Shared Stack Responsibilities
 
 - `network`
-  Owns the internal ALB, shared HTTP API Gateway API, VPC link, and VPC endpoints, including the SQS interface endpoint used by private ECS workers, the SSM interface endpoint used by private runtimes reading Parameter Store values, and the Secrets Manager interface endpoint used by private runtimes reading the shared database credentials object.
+  Owns the internal ALB, shared HTTP API Gateway API, shared Cognito-backed JWT authorizer, VPC link, and VPC endpoints, including the SQS interface endpoint used by private ECS workers, the SSM interface endpoint used by private runtimes reading Parameter Store values, and the Secrets Manager interface endpoint used by private runtimes reading the shared database credentials object.
 - `security`
   Owns shared security groups.
 - `cluster`
   Owns the ECS cluster.
-- `api`
-  Owns the Lambda-backed API integration, the shared Cognito-backed JWT authorizer, and the Lambda routes into the shared HTTP API.
+- `lambda_api`
+  Owns the Lambda-backed API integration and Lambda routes into the shared HTTP API.
 - `cognito`
   Owns the Cognito user pool, frontend app client, Hosted UI domain, and read-only user group.
 - `frontend`
@@ -92,7 +92,7 @@ That `containers/shared` directory is helper code only and is not treated as a d
 
 - many modules use `data.terraform_remote_state` to read outputs from other stacks
 - because of that, workflow ordering matters for apply, deploy, and destroy
-- `service_api` consumes the shared JWT authorizer output from `api`, so API infra must exist before that ECS API service stack applies, and the service must destroy before the `api` stack is torn down
+- `service_api` consumes the shared JWT authorizer output from `network`, so `cognito` and `network` must exist before that ECS API service stack applies, and the service must destroy before `network` is torn down
 - on destroy, `network` can tear down once downstream consumers such as `frontend`, `service_*`, `task_*`, and `database` are gone
 - on destroy, `cluster` can tear down in parallel with `network` once `service_*`, `task_*`, and other real cluster consumers are gone; `frontend` is not a cluster dependency
 - on destroy, `security` must wait for VPC-attached lambdas such as `migrations` as well as `network`, otherwise the shared runtime security group can still be attached during Lambda ENI cleanup

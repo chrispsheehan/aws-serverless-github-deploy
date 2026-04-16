@@ -48,7 +48,7 @@ This repo now includes a sample ECS API container service exposed separately fro
 - stacks: `task_api` and `service_api`
 - the sample frontend calls both backends and renders both responses so the path split is visible in the UI
 
-The `api` module is Lambda-specific and plugs the Lambda integration and root routes into that shared API.
+The `lambda_api` module is Lambda-specific and plugs the Lambda integration and root routes into that shared API, while `network` owns the shared Cognito-backed JWT authorizer used by both Lambda and ECS API routes.
 
 The frontend infra module also uploads a bootstrap `index.html` during infra apply so CloudFront serves a placeholder page before the built frontend assets are deployed.
 
@@ -61,7 +61,7 @@ Terragrunt also provides a shared default ECR repository name to ECS task module
 - in `dev`, `otel_sampling_percentage` is set to `100` so ECS traces are easy to verify while iterating
 
 The reusable deploy workflows follow the same split: `prod` `*_code` and `*_infra` wrappers read shared artifact resources from `ci`, but `*_infra` only applies `prod` infrastructure stacks using the repo's directory-derived service and lambda matrices.
-The infra workflow now applies `cognito` before `api`, and the destroy workflow tears Cognito down only after frontend and API consumers are gone so JWT-authenticated routes do not race their auth upstream on destroy.
+The infra workflow now applies `cognito` before `network` so the shared HTTP API authorizer can be created centrally, and the destroy workflow tears Cognito down only after `network` and frontend consumers are gone so JWT-authenticated routes do not race their auth upstream on destroy.
 For frontend DNS, the infra and destroy workflows now read a GitHub environment variable named `DOMAIN_NAME` and pass it into the `frontend` and `cognito` stacks.
 
 For `*_code` release deploys, pass explicit release versions for each runtime you want to roll out. In particular, ECS code deploys should provide an `ecs_version` rather than relying on a Lambda-version fallback.
@@ -92,10 +92,10 @@ Use prompts like these when asking for a new service in this repo:
 
 ## 🛠️ local plan some infra
 
-Given a terragrunt file is found at `infra/live/dev/aws/api/terragrunt.hcl`
+Given a terragrunt file is found at `infra/live/dev/aws/lambda_api/terragrunt.hcl`
 
 ```sh
-just tg dev aws/api plan
+just tg dev aws/lambda_api plan
 ```
 
 ## 📨 publish a worker message

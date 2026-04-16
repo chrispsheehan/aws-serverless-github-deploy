@@ -25,7 +25,7 @@ variable "code_bucket" {
 ### start of dynamic vars required for resources ###
 variable "lambda_name" {
   type        = string
-  description = "Must match the name of the zip - formed in /lambdas directory i.e. /lambdas/api = 'api'"
+  description = "Must match the name of the zip - formed in /lambdas directory i.e. /lambdas/lambda_api = 'lambda_api'"
 }
 
 variable "environment_variables" {

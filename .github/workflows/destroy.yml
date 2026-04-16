@@ -73,8 +73,8 @@ jobs:
     name: Cognito
     runs-on: ubuntu-latest
     needs:
-      - lambdas
       - frontend
+      - network
     steps:
       - uses: actions/checkout@v6
 

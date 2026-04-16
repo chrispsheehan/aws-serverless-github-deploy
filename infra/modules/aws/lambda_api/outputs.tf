@@ -25,7 +25,3 @@ output "lambda_function_name" {
 output "lambda_alias_name" {
   value = module.lambda_api.alias_name
 }
-
-output "http_api_authorizer_id" {
-  value = aws_apigatewayv2_authorizer.cognito_jwt.id
-}
