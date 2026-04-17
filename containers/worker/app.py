@@ -6,7 +6,7 @@ import time
 from opentelemetry.trace import SpanKind
 
 from db_shared import connect
-from ecs_tracing import start_span
+from ecs_tracing import extract_context, start_span
 from runtime_logging import get_logger
 
 QUEUE_URL    = os.environ['AWS_SQS_QUEUE_URL']
@@ -24,9 +24,11 @@ def write_heartbeat():
 
 
 def process_message(msg):
+    ctx = extract_context(lambda key: message_attribute_value(msg, key))
     with start_span(
         "worker.process_message",
         kind=SpanKind.CONSUMER,
+        context=ctx,
         attributes={
             "messaging.system": "aws.sqs",
             "messaging.operation": "process",
@@ -45,6 +47,7 @@ def process_message(msg):
                 "persisted_to_postgres": True,
                 "body_preview": msg["Body"][:200],
                 "queue_url": QUEUE_URL,
+                "trace_attributes": trace_attributes(msg),
             },
         )
 
@@ -58,16 +61,44 @@ def extract_job_id(body):
 
 
 def persist_message(message_id, body, job_id):
-    with connect() as connection:
-        with connection.cursor() as cursor:
-            cursor.execute(
-                """
-                insert into worker_messages (sqs_message_id, job_id, message_body)
-                values (%s, %s, %s)
-                on conflict (sqs_message_id) do nothing
-                """,
-                (message_id, job_id, body),
-            )
+    with start_span(
+        "db.persist_message",
+        kind=SpanKind.CLIENT,
+        attributes={
+            "db.system": "postgresql",
+            "db.operation": "insert",
+            "db.namespace": os.getenv("DB_NAME", ""),
+            "messaging.message.id": message_id,
+        },
+    ):
+        with connect() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    insert into worker_messages (sqs_message_id, job_id, message_body)
+                    values (%s, %s, %s)
+                    on conflict (sqs_message_id) do nothing
+                    """,
+                    (message_id, job_id, body),
+                )
+
+
+def message_attribute_value(message, key):
+    value = (message.get("MessageAttributes") or {}).get(key, {})
+    return value.get("StringValue")
+
+
+def trace_attributes(message):
+    return {
+        key: value
+        for key in (
+            "traceparent",
+            "tracestate",
+            "x-amzn-trace-id",
+            "correlation_id",
+        )
+        if (value := message_attribute_value(message, key))
+    }
 
 
 def poll():
@@ -83,6 +114,7 @@ def poll():
         response = sqs.receive_message(
             QueueUrl=QUEUE_URL,
             MaxNumberOfMessages=10,
+            MessageAttributeNames=["All"],
             WaitTimeSeconds=20,
             VisibilityTimeout=30,
         )

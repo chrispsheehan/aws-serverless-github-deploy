@@ -26,6 +26,9 @@ Public Lambda-backed HTTP API.
 - request body must be valid JSON
 - the published SNS message body is the normalized JSON payload
 - the API response includes the SNS `message_id` and topic name
+- the publish path also attaches trace headers as SNS message attributes so the ECS worker can continue the trace on the consumer side
+
+The consumer-side trace continuation relies on the ECS tracing helper using the AWS X-Ray OpenTelemetry propagator, so the worker can understand the AWS-native trace header emitted from the Lambda/X-Ray side of the flow.
 
 ## Operational Notes
 

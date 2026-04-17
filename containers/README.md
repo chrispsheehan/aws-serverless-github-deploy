@@ -35,6 +35,12 @@ Container source directories for this boilerplate.
 - logs are written to stdout so the ECS log driver forwards them to CloudWatch
 - prefer structured fields via logger `extra={...}` rather than ad-hoc string interpolation
 
+## Tracing
+
+- ECS runtimes use the shared tracing helper under `containers/shared/`
+- async Lambda -> SNS -> SQS -> ECS trace continuation relies on the AWS X-Ray OpenTelemetry propagator
+- that propagator lets ECS consumers understand AWS-native X-Ray trace headers, not just W3C `traceparent`
+
 ## Runtime Documentation
 
 - add a `README.md` inside a concrete service directory when the container has non-trivial request handling, worker behavior, or integration logic

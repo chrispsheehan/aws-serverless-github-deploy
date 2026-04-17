@@ -11,6 +11,9 @@ Lambda + ECS with CodeDeploy rollouts, plus provisioned concurrency controls for
 - shared deployment contracts for Lambda and ECS
 - boilerplate runtime layouts for Lambda functions and ECS services
 - shared JSON logging for Lambda and ECS runtimes through CloudWatch
+- async worker paths can propagate trace headers from `lambda_api` through SNS/SQS into the ECS worker and its database span
+
+That async trace propagation uses the AWS X-Ray OpenTelemetry propagator so ECS consumers can continue the AWS-native trace context emitted from the Lambda side, rather than only understanding W3C `traceparent` headers.
 
 ## Read This Next
 

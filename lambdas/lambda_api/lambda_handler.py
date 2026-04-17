@@ -34,11 +34,43 @@ def _publish_worker_message(payload):
     if not WORKER_TOPIC_ARN:
         raise RuntimeError("Missing WORKER_TOPIC_ARN")
 
+    trace_attributes = _trace_message_attributes(payload.get("_trace", {}))
     response = _sns.publish(
         TopicArn=WORKER_TOPIC_ARN,
         Message=json.dumps(payload),
+        MessageAttributes=trace_attributes,
     )
     return response["MessageId"]
+
+
+def _trace_message_attributes(trace_payload):
+    attributes = {}
+    for key in ("traceparent", "tracestate", "x-amzn-trace-id", "correlation_id"):
+      value = trace_payload.get(key)
+      if value:
+        attributes[key] = {
+          "DataType": "String",
+          "StringValue": value,
+        }
+    return attributes
+
+
+def _trace_payload(event, context):
+    headers = {str(key).lower(): value for key, value in (event.get("headers") or {}).items()}
+    trace_payload = {
+        "correlation_id": context.aws_request_id,
+    }
+
+    for key in ("traceparent", "tracestate"):
+        value = headers.get(key)
+        if value:
+            trace_payload[key] = value
+
+    xray_trace_id = os.getenv("_X_AMZN_TRACE_ID", "").strip()
+    if xray_trace_id:
+        trace_payload["x-amzn-trace-id"] = xray_trace_id
+
+    return trace_payload
 
 
 def lambda_handler(event, context):
@@ -85,6 +117,7 @@ def lambda_handler(event, context):
     if path == "/messages" and event.get("requestContext", {}).get("http", {}).get("method") == "POST":
         try:
             payload = _json_body(event)
+            payload["_trace"] = _trace_payload(event, context)
             message_id = _publish_worker_message(payload)
         except (ValueError, json.JSONDecodeError) as exc:
             logger.error(
@@ -112,6 +145,7 @@ def lambda_handler(event, context):
                 "path": path,
                 "topic_name": WORKER_TOPIC_NAME,
                 "message_id": message_id,
+                "trace": payload.get("_trace", {}),
             },
         )
         return json_response(
@@ -121,6 +155,7 @@ def lambda_handler(event, context):
                 "message_id": message_id,
                 "topic_name": WORKER_TOPIC_NAME,
                 "published": True,
+                "correlation_id": payload["_trace"]["correlation_id"],
             },
         )
 
