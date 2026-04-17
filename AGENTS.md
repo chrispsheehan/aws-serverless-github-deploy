@@ -6,8 +6,9 @@ Update documentation in the same change:
 
 - update the repo root `README.md` for cross-cutting behavior changes
 - update affected module `README.md` files under `infra/modules/**` for module contract or responsibility changes
-- when changing `.github/workflows/**`, update `docs/ci/README.md` if job dependencies, reusable workflow contracts, lifecycle ordering, or workflow-call structure changed
-- prefer Mermaid diagrams in `docs/ci/README.md` that show jobs, `needs`, and reusable-workflow relationships rather than trying to reproduce the exact GitHub Actions UI
+- when changing `.github/workflows/**`, update `.github/README.md` if job dependencies, reusable workflow contracts, lifecycle ordering, workflow-call structure, or downstream feasibility checks changed
+- keep `.github/README.md` as the source of truth for workflow contracts and CI feasibility checks
+- prefer Mermaid diagrams in `.github/README.md` that show jobs, `needs`, and reusable-workflow relationships rather than trying to reproduce the exact GitHub Actions UI
 - when adding a new AWS infra type or service family, check whether the deploy role in `infra/live/global_vars.hcl` needs additional `allowed_role_actions` and update it in the same change if required
 
 ### Documentation Architecture
@@ -16,10 +17,12 @@ Update documentation in the same change:
 - keep cross-cutting summaries in the root `README.md`, with links to the canonical module docs for technical detail
 - treat `infra/modules/aws/_shared/**/README.md` files as the canonical source for shared runtime behavior, deployment strategies, connection types, drift ownership, and feasibility constraints
 - treat concrete module `README.md` files under `infra/modules/**` as specialization docs: describe what the module owns, what it depends on, and how it narrows or extends the shared-module contract
+- treat `lambdas/**/README.md` and `containers/**/README.md` as the canonical place for runtime-specific business logic, request/worker behavior, integration assumptions, and operational notes for that runtime
 - when a behavior is primarily shared-module logic, update the relevant `_shared` README first and only keep a short summary or link in the root `README.md`
 - prefer reading documentation before code for initial context; use code to verify implementation details or resolve doc/code drift
 - if docs and code conflict, call out the mismatch explicitly and fix the relevant docs in the same change when behavior is being changed
 - structure module READMEs so they help both humans and agents isolate reasoning; prefer sections such as `Owns`, `Does Not Own`, `Inputs That Change Behavior`, `Outputs Consumers Rely On`, `Decision Rules`, `Feasibility Constraints`, `Dependency Notes`, `CI / Deploy Expectations`, and `Drift / Ownership Rules` when they apply
+- when changing a Lambda or ECS runtime's actual application logic, add or update the nearest runtime README in the same change so the docs explain what that code does at a human-readable level
 
 ## CI OIDC Scope
 
