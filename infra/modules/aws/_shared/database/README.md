@@ -11,6 +11,11 @@ Shared Aurora PostgreSQL Serverless v2 module.
 - the Aurora-managed Secrets Manager master credentials object for the database username and password
 - a generated master username that always starts with a letter so Aurora accepts it reliably
 
+## Does Not Own
+
+- EventBridge automation around reader scale-out events
+- downstream tag-sync behavior for reader instances created after initial apply
+
 ## Depends on
 
 - subnet ids passed in by the caller
@@ -46,3 +51,4 @@ In this repo the concrete `database` wrapper resolves the VPC and public or priv
 By default the module tracks the latest matching Aurora PostgreSQL 16.x engine version rather than pinning a specific patch release.
 SSM parameter paths are rooted at `/<environment>/<project>/<database>/...` so they do not collide with AWS-reserved `/aws` prefixes.
 The runtime contract for database credentials is the Aurora-managed master secret exposed from the cluster. Terraform reads the managed secret ARN directly from the cluster resource rather than doing a separate Secrets Manager lookup during the same apply, because AWS may not populate that managed-secret reference early enough for an immediate data read.
+If you need new scale-out readers to inherit cluster tags, keep that automation in a separate stack such as `rds_reader_tagger` rather than pushing event-driven behavior into this shared database module.

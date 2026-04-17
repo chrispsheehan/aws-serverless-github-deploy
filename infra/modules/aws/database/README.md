@@ -39,3 +39,4 @@ Concrete Aurora PostgreSQL wrapper.
 
 This module keeps repo-specific network lookup logic out of `_shared/database`. It selects public or private subnets by `tag:Name` based on `publicly_accessible` and passes the resulting subnet ids into the shared Aurora module.
 The database credentials outputs point at the Aurora-managed master secret rather than a repo-created fixed-name secret.
+Aurora reader instances created later by scale-out can be paired with the separate `rds_reader_tagger` stack so new readers inherit the cluster's non-AWS tags.
