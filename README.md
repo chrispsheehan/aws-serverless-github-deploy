@@ -3,7 +3,7 @@
 **Terraform + GitHub Actions for AWS serverless deployments.**  
 Lambda + ECS with CodeDeploy rollouts, plus provisioned concurrency controls for Lambda — driven by clean module variables and `just` recipes.
 
-Workflow dependency diagrams and CI orchestration notes live in [docs/ci/README.md](/Users/chrissheehan/git/chrispsheehan/aws-serverless-github-deploy/docs/ci/README.md).
+Workflow dependency diagrams, CI contracts, and feasibility checks live in [.github/README.md](/Users/chrissheehan/git/chrispsheehan/aws-serverless-github-deploy/.github/README.md).
 The repo vendors its internal GitHub Actions under [.github/actions](</Users/chrissheehan/git/chrispsheehan/aws-serverless-github-deploy/.github/actions>), so workflow `uses:` references point at local paths rather than external action tags.
 Runtime entry points:
 
@@ -221,11 +221,11 @@ provisioned_config = {
 }
 ```
 - before scaling the lambda alias will match the minmum value
-![a](docs/lambda-config-before.png)
+![a](docs/diagrams/lambda-config-before.png)
 - when the trigger percent is exceeded the lambda moves into `In progress (1/2)` state as an additional provisioned lambda is added.
-![a](docs/lamba-scaling-up.png)
+![a](docs/diagrams/lambda-scaling-up.png)
 - after scaling the lambda alias will show an additional provisioned lambda
-![a](docs/lambda-config-after.png)
+![a](docs/diagrams/lambda-config-after.png)
 
 
 ## 🚦 deployment overview
