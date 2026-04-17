@@ -7,7 +7,7 @@ inputs = {
   backup_retention_period      = 1
   rds_min_capacity             = 0.5
   rds_max_capacity             = 1.0
-  rds_max_reader_count         = 1
+  rds_max_reader_count         = 0
   performance_insights_enabled = false
 }
 
