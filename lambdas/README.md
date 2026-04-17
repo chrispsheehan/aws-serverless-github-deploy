@@ -28,6 +28,7 @@ Lambda source directories for this boilerplate.
 - request-serving Lambdas can plug into the shared API surface through the Lambda module family
 - worker Lambdas can consume shared queue infrastructure
 - the `migrations` Lambda shape is intended for VPC-attached schema changes against the shared database
+- event-driven helper Lambdas can subscribe to EventBridge rules for shared infra automation, such as reacting to Aurora reader scale-out events
 
 ## Runtime Documentation
 

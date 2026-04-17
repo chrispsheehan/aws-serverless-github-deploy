@@ -6,6 +6,7 @@ Lambda + ECS with CodeDeploy rollouts, plus provisioned concurrency controls for
 ## What This Repo Gives You
 
 - shared Terraform/Terragrunt patterns for Lambda, ECS, frontend, database, auth, and messaging
+- event-driven automation hooks around shared infrastructure, such as EventBridge-triggered helper Lambdas
 - GitHub Actions workflows for infra apply, artifact build, code deploy, and destroy
 - shared deployment contracts for Lambda and ECS
 - boilerplate runtime layouts for Lambda functions and ECS services

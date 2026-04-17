@@ -67,6 +67,8 @@ stores state at:
   Owns the shared Aurora PostgreSQL Serverless v2 database stack and its SSM connection parameters.
 - `migrations`
   Owns the VPC-attached Lambda used to run schema migrations against the shared Aurora PostgreSQL stack.
+- `rds_reader_tagger`
+  Owns the EventBridge rule and Lambda that sync cluster tags onto new Aurora reader instances created later by scale-out.
 - `worker_messaging`
   Owns the shared worker SNS topic plus the Lambda-worker and ECS-worker SQS queues used for fanout.
 - `task_*`
@@ -78,6 +80,8 @@ Current examples include:
 
 - `database`
   Shared Aurora PostgreSQL Serverless v2 shape for repo-managed relational data stores.
+- `rds_reader_tagger`
+  Event-driven Aurora reader tag-sync shape: catch the RDS instance-created event, derive the parent cluster, and copy the cluster's non-AWS tags onto the new reader.
 - `worker_messaging`
   Shared worker fanout shape: one SNS topic publishes to two independent worker queues so Lambda and ECS consumers each receive the same event.
 - `task_worker` / `service_worker`
