@@ -3,13 +3,42 @@ import os
 import uuid
 import time
 
-from lambda_shared import get_logger
+import boto3
+
+from lambda_shared import get_logger, json_response
 
 ENV_ID = str(uuid.uuid4())[:8]
 BOOT_TIME_MS = int(time.time() * 1000)
 
 DEBUG_DELAY_MS = int(os.getenv("DEBUG_DELAY_MS", "0"))
+WORKER_TOPIC_ARN = os.getenv("WORKER_TOPIC_ARN", "").strip()
+WORKER_TOPIC_NAME = os.getenv("WORKER_TOPIC_NAME", "").strip()
 logger = get_logger(__name__)
+
+_sns = boto3.client("sns", region_name=os.getenv("AWS_REGION", "eu-west-2"))
+
+
+def _json_body(event):
+    body = event.get("body") or ""
+    if event.get("isBase64Encoded"):
+        raise ValueError("Base64-encoded request bodies are not supported for POST /messages")
+    if not body:
+        raise ValueError("Request body is required")
+    payload = json.loads(body)
+    if not isinstance(payload, dict):
+        raise ValueError("Request body must be a JSON object")
+    return payload
+
+
+def _publish_worker_message(payload):
+    if not WORKER_TOPIC_ARN:
+        raise RuntimeError("Missing WORKER_TOPIC_ARN")
+
+    response = _sns.publish(
+        TopicArn=WORKER_TOPIC_ARN,
+        Message=json.dumps(payload),
+    )
+    return response["MessageId"]
 
 
 def lambda_handler(event, context):
@@ -52,6 +81,48 @@ def lambda_handler(event, context):
             },
             "body": json.dumps(error_body),
         }
+
+    if path == "/messages" and event.get("requestContext", {}).get("http", {}).get("method") == "POST":
+        try:
+            payload = _json_body(event)
+            message_id = _publish_worker_message(payload)
+        except (ValueError, json.JSONDecodeError) as exc:
+            logger.error(
+                "lambda_api_publish_invalid_request",
+                extra={
+                    "event": "lambda_api_publish_invalid_request",
+                    "request_id": context.aws_request_id,
+                    "path": path,
+                    "error": str(exc),
+                },
+            )
+            return json_response(
+                400,
+                {
+                    "ok": False,
+                    "error": str(exc),
+                },
+            )
+
+        logger.info(
+            "lambda_api_message_published",
+            extra={
+                "event": "lambda_api_message_published",
+                "request_id": context.aws_request_id,
+                "path": path,
+                "topic_name": WORKER_TOPIC_NAME,
+                "message_id": message_id,
+            },
+        )
+        return json_response(
+            202,
+            {
+                "ok": True,
+                "message_id": message_id,
+                "topic_name": WORKER_TOPIC_NAME,
+                "published": True,
+            },
+        )
 
     # Normal success response
     body = {

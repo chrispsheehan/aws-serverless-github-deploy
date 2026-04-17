@@ -1,3 +1,8 @@
+resource "aws_iam_policy" "worker_topic_publish" {
+  name   = "${local.lambda_name}-worker-topic-publish"
+  policy = data.aws_iam_policy_document.worker_topic_publish.json
+}
+
 module "lambda_api" {
   source = "../_shared/lambda"
 
@@ -9,8 +14,14 @@ module "lambda_api" {
   lambda_name = local.lambda_name
 
   environment_variables = {
-    DEBUG_DELAY_MS = 500
+    DEBUG_DELAY_MS    = 500
+    WORKER_TOPIC_ARN  = data.terraform_remote_state.worker_messaging.outputs.sns_topic_arn
+    WORKER_TOPIC_NAME = data.terraform_remote_state.worker_messaging.outputs.sns_topic_name
   }
+
+  additional_policy_arns = [
+    aws_iam_policy.worker_topic_publish.arn,
+  ]
 
   deployment_config = var.deployment_config
 

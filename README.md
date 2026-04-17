@@ -121,6 +121,15 @@ MESSAGE='{"job_id":"demo-1","source":"local","payload":{"hello":"world"}}' \
 just sns-publish
 ```
 
+Or publish through the public Lambda API:
+
+```sh
+curl -X POST \
+  -H 'Content-Type: application/json' \
+  -d '{"job_id":"demo-1","source":"api","payload":{"hello":"world"}}' \
+  https://<your-domain>/api/messages
+```
+
 ### Run Database Migrations
 
 After the infra stack and Lambda code are deployed:
