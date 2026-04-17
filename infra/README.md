@@ -98,6 +98,7 @@ That `containers/shared` directory is helper code only and is not treated as a d
 - on destroy, `security` must wait for VPC-attached lambdas such as `migrations` as well as `network`, otherwise the shared runtime security group can still be attached during Lambda ENI cleanup
 - avoid making one runtime depend on another runtime's state ownership unnecessarily; for example, shared worker fanout state is owned by `worker_messaging` rather than by `lambda_worker` or `task_worker`
 - some shared infrastructure, such as the landing-zone VPC and tagged private subnets, is discovered with `data` lookups and must already exist
+- frontend custom-domain deploys also require the matching Route53 hosted zone to already exist
 
 ## Deployment Model
 

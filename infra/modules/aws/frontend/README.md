@@ -11,6 +11,12 @@ Static frontend hosting module.
 - deployment destination for built frontend assets
 - path-based forwarding of `/api/*` requests to the shared API origin
 
+## Dependencies
+
+- pre-existing Route53 hosted zone for the chosen frontend domain
+- `network` outputs for the shared API origin
+- `cognito` outputs for runtime auth configuration
+
 ## Routing behavior
 
 - `/auth-config.json`
@@ -27,6 +33,8 @@ Static frontend hosting module.
 The module expects `domain_name` and derives the deployed frontend URL as `<project_name>.<environment>.<domain_name>`.
 It requests an ACM certificate in `us-east-1`, validates it with Route53 DNS records, and creates `A` and `AAAA` alias records in the matching hosted zone.
 If `frontend_hosted_zone_name` is omitted, the module uses `domain_name` itself as the hosted zone, which fits names like `aws-serverless-github-deploy.dev.chrispsheehan.com`.
+
+If the hosted zone does not already exist, certificate validation and alias-record creation will fail.
 
 ## Key outputs
 

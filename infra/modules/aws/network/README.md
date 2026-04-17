@@ -19,6 +19,11 @@ Shared network and routing module.
 - shared security groups from `security`
 - `cognito` remote state for the shared JWT issuer and audience
 
+## Feasibility Constraints
+
+- this module expects the landing-zone or StackSet VPC and the required private subnets to already exist
+- if the VPC or subnet discovery data lookups fail, downstream runtime stacks cannot be applied
+
 ## Key outputs
 
 - `load_balancer_arn`

@@ -17,7 +17,12 @@ just tg prod aws/oidc apply
 ```
 
 The `ci` OIDC role is intentionally narrower than the `dev` and `prod` roles. In this repo it is limited to build-artifact management, including the shared code bucket, IAM interactions needed by the existing CI flow, and publishing container images to ECR. It is not the repo's broad deployment role.
-The deploy roles for `dev` and `prod` now also include the `rds`, `ssm`, `secretsmanager`, and `kms` permissions needed by the shared database stack, plus `acm`, `route53`, and `cognito-idp` for the frontend/Cognito custom-domain and auth resources.
+
+Role scope summary:
+
+- `ci`: shared code bucket access, current CI IAM interactions, and ECR image publishing
+- `dev` and `prod`: deploy scope plus the `rds`, `ssm`, `secretsmanager`, and `kms` permissions needed by the shared database stack
+- `dev` and `prod`: also include `acm`, `route53`, and `cognito-idp` for the frontend and Cognito custom-domain/auth resources
 
 ## 🧱 prerequisite network
 
@@ -26,8 +31,9 @@ The AWS account must already have the landing-zone or StackSet network in place 
 - the Terraform in this repo reads the VPC and subnets with `data` sources rather than creating them
 - the expected VPC and subnets must therefore already exist
 - the private subnets must be tagged so the module lookups can find them, for example with names matching `*private*`
+- if you plan to deploy the frontend custom domain, the matching Route53 hosted zone must also already exist
 
-If those shared network resources do not exist yet, the infra applies in this repo will fail during data lookup.
+If those shared network or DNS resources do not exist yet, the infra applies in this repo will fail during data lookup or certificate/DNS creation.
 
 The repo `network` module also owns the shared internal ALB and shared HTTP API Gateway surface used by ECS services:
 
@@ -51,6 +57,12 @@ This repo now includes a sample ECS API container service exposed separately fro
 The `lambda_api` module is Lambda-specific and plugs the Lambda integration and root routes into that shared API, while `network` owns the shared Cognito-backed JWT authorizer used by both Lambda and ECS API routes.
 
 The frontend infra module also uploads a bootstrap `index.html` during infra apply so CloudFront serves a placeholder page before the built frontend assets are deployed.
+
+Required shared prerequisites before a full environment deploy:
+
+- pre-existing VPC
+- tagged private subnets that the data lookups can resolve
+- Route53 hosted zone for the deployed frontend domain when using the frontend custom domain path
 
 Terragrunt also provides a shared default ECR repository name to ECS task modules:
 

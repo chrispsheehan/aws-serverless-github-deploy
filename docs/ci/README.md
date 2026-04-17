@@ -2,15 +2,25 @@
 
 This document gives a lightweight view of the main GitHub Actions flows in this repo.
 
-Each workflow is described in terms of:
+Use it in this order:
 
-- trigger
-- process
-- outcome
+- start with the grouped workflow sections below
+- use the Mermaid diagram in each section for the fast path
+- use the trigger/process/outcome bullets only when you need more detail
 
-The diagrams are intentionally simple. They are meant to help someone understand what starts a workflow, what broad stages it runs through, and what it produces.
+The diagrams are intentionally simple. They show what starts a workflow, the broad stages it runs through, and what it produces.
 
-## Release
+## Workflow Groups
+
+- Release and validation: `release.yml`, `pull_request.yml`
+- Shared artifact prep and build: `infra_releases.yml`, `build.yml`, `build_get.yml`
+- Infra and code rollout: `infra.yml`, `deploy.yml`
+- Entry-point wrappers: `deploy_dev_infra.yml`, `deploy_prod_infra.yml`, `deploy_dev_code.yml`, `deploy_prod_code.yml`
+- Cleanup and discovery: `destroy.yml`, `get_directories.yml`
+
+## Release And Validation
+
+### Release
 
 Trigger:
 
@@ -39,7 +49,7 @@ flowchart LR
   build --> publish["Publish GitHub Release"]
 ```
 
-## Pull Request Checks
+### Pull Request Checks
 
 Workflow:
 
@@ -66,7 +76,9 @@ flowchart LR
   checks --> builds["Build Changed Runtimes"]
 ```
 
-## Infra Artifact Prep
+## Shared Artifact Prep And Build
+
+### Infra Artifact Prep
 
 Workflow:
 
@@ -100,38 +112,7 @@ flowchart LR
   bucket --> outputs["Artifact Outputs"]
 ```
 
-## Infra Apply
-
-Workflow:
-
-- `infra.yml`
-
-Trigger:
-
-- called by `deploy_dev_infra.yml`
-- called by `deploy_prod_infra.yml`
-
-Process:
-
-- apply shared prerequisites such as OIDC, Cognito, security, network, cluster, database, and worker messaging
-- apply Lambda infrastructure against the shared network/API surface
-- apply ECS service infrastructure in bootstrap mode without waiting on unrelated Lambda stacks
-- apply frontend infrastructure from network and Cognito outputs
-
-Outcome:
-
-- environment infrastructure updated
-- bootstrap-ready ECS services
-
-```mermaid
-flowchart LR
-  call["Workflow Call"] --> shared["Shared Infra"]
-  shared --> auth["Cognito + API Auth"]
-  auth --> runtimes["Lambda + ECS Infra"]
-  runtimes --> frontend["Frontend Infra"]
-```
-
-## Build
+### Build
 
 Workflow:
 
@@ -162,7 +143,7 @@ flowchart LR
   build --> publish["Upload / Push Artifacts"]
 ```
 
-## Build Resolve
+### Build Resolve
 
 Workflow:
 
@@ -198,7 +179,40 @@ flowchart LR
   derive --> outputs["Resolved Versions + Matrices"]
 ```
 
-## Code Deploy
+## Infra And Code Rollout
+
+### Infra Apply
+
+Workflow:
+
+- `infra.yml`
+
+Trigger:
+
+- called by `deploy_dev_infra.yml`
+- called by `deploy_prod_infra.yml`
+
+Process:
+
+- apply shared prerequisites such as OIDC, Cognito, security, network, cluster, database, and worker messaging
+- apply Lambda infrastructure against the shared network/API surface
+- apply ECS service infrastructure in bootstrap mode without waiting on unrelated Lambda stacks
+- apply frontend infrastructure from network and Cognito outputs
+
+Outcome:
+
+- environment infrastructure updated
+- bootstrap-ready ECS services
+
+```mermaid
+flowchart LR
+  call["Workflow Call"] --> shared["Shared Infra"]
+  shared --> auth["Cognito + API Auth"]
+  auth --> runtimes["Lambda + ECS Infra"]
+  runtimes --> frontend["Frontend Infra"]
+```
+
+### Code Deploy
 
 Workflow:
 
@@ -227,34 +241,6 @@ flowchart LR
   lambda --> migrate["Optional Migrations"]
   migrate --> ecs["ECS Rollout"]
   ecs --> frontend["Optional Frontend Deploy"]
-```
-
-## Destroy
-
-Workflow:
-
-- `destroy.yml`
-
-Trigger:
-
-- manual dispatch
-
-Process:
-
-- discover active stacks
-- destroy app/runtime layers first
-- destroy auth and shared infrastructure after downstream consumers are gone
-
-Outcome:
-
-- selected environment torn down
-
-```mermaid
-flowchart LR
-  trigger["Trigger"] --> discover["Discover Stacks"]
-  discover --> app["Destroy App Layers"]
-  app --> auth["Destroy Cognito / API Auth Dependencies"]
-  auth --> shared["Destroy Shared Infra"]
 ```
 
 ## Wrapper Workflows
@@ -324,7 +310,37 @@ Outcome:
 
 - prod Lambda, ECS, and frontend code updated
 
-## Discovery Helper
+## Cleanup And Discovery
+
+### Destroy
+
+Workflow:
+
+- `destroy.yml`
+
+Trigger:
+
+- manual dispatch
+
+Process:
+
+- discover active stacks
+- destroy app/runtime layers first
+- destroy auth and shared infrastructure after downstream consumers are gone
+
+Outcome:
+
+- selected environment torn down
+
+```mermaid
+flowchart LR
+  trigger["Trigger"] --> discover["Discover Stacks"]
+  discover --> app["Destroy App Layers"]
+  app --> auth["Destroy Cognito / API Auth Dependencies"]
+  auth --> shared["Destroy Shared Infra"]
+```
+
+### Discovery Helper
 
 Workflow:
 

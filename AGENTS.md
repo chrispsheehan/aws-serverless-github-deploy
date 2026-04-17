@@ -51,6 +51,7 @@ Before implementing deployment-related changes, check that the requested combina
 - If a requested combination is not feasible in the current repo shape, explicitly state that it fails the feasibility check and say what would need to change to make it feasible.
 - Prefer the smallest viable change that matches the requested behavior.
 - keep detailed deployment-strategy and connection-type rules in the relevant `_shared` module README, and update those docs when the feasibility contract changes
+- check feasibility downstream on every change, not just in the module being edited; verify that consumers, workflows, remote-state readers, deploy wrappers, and destroy paths still match the updated contract
 
 ## CI Dependency Safety
 

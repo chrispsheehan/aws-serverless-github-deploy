@@ -6,13 +6,19 @@ Concrete ECS worker service wrapper.
 
 - worker ECS service via `_shared/service`
 
-## Dependencies
+## Does Not Own
 
-- `task_worker` remote state
-- `worker_messaging` remote state
-- `cluster`, `network`, and `security` remote state
+- ECS task-definition content
+- shared worker queue ownership
+- shared deployment-strategy rules from `_shared/service`
 
-## Key outputs
+## Inputs That Change Behavior
+
+- uses the worker task revision exported by `task_worker`
+- uses autoscaling inputs derived from the shared ECS worker queue owned by `worker_messaging`
+- uses placeholder values during bootstrap applies so the first service apply does not require pre-existing task state
+
+## Outputs Consumers Rely On
 
 - `service_name`
 - `cluster_name`
@@ -20,7 +26,23 @@ Concrete ECS worker service wrapper.
 - `codedeploy_deployment_group_name`
 - `container_port`
 
-This module wires the worker-specific service onto the shared ECS service behavior.
+## Runtime Shape
+
+- ECS worker service
+- internal service shape
+- no API Gateway route ownership in this wrapper
+- expected to prefer the shared module's `rolling` path for non-load-balanced worker deployments
+
+## Dependency Notes
+
+- reads `task_worker` remote state
+- reads `worker_messaging` remote state
+- reads `cluster`, `network`, and `security` remote state
+- relies on `worker_messaging` owning the queue contract rather than duplicating queue state locally
 
 It uses the shared ECS worker queue name exported by `worker_messaging` for service autoscaling.
 During bootstrap applies, it uses placeholder values instead of reading task outputs directly so the bootstrap path does not need a pre-existing task state file.
+
+## Inherits Behavior From
+
+- [infra/modules/aws/_shared/service/README.md](/Users/chrissheehan/git/chrispsheehan/aws-serverless-github-deploy/infra/modules/aws/_shared/service/README.md) for deployment strategies, connection-type rules, feasibility constraints, and drift ownership
