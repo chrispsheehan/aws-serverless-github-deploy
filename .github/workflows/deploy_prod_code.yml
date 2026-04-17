@@ -42,5 +42,5 @@ jobs:
       task_matrix: ${{ needs.get_build.outputs.ecs_task_matrix }}
       ecs_image_uris: ${{ needs.get_build.outputs.ecs_image_uris }}
       # we can also scope the deployment here if needed, as below
-      # lambda_matrix: '["api"]'
+      # lambda_matrix: '["lambda_api"]'
       # task_matrix: '["worker"]'

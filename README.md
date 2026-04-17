@@ -48,7 +48,7 @@ This repo now includes a sample ECS API container service exposed separately fro
 - stacks: `task_api` and `service_api`
 - the sample frontend calls both backends and renders both responses so the path split is visible in the UI
 
-The `api` module is Lambda-specific and plugs the Lambda integration and root routes into that shared API.
+The `lambda_api` module is Lambda-specific and plugs the Lambda integration and root routes into that shared API, while `network` owns the shared Cognito-backed JWT authorizer used by both Lambda and ECS API routes.
 
 The frontend infra module also uploads a bootstrap `index.html` during infra apply so CloudFront serves a placeholder page before the built frontend assets are deployed.
 
@@ -61,7 +61,7 @@ Terragrunt also provides a shared default ECR repository name to ECS task module
 - in `dev`, `otel_sampling_percentage` is set to `100` so ECS traces are easy to verify while iterating
 
 The reusable deploy workflows follow the same split: `prod` `*_code` and `*_infra` wrappers read shared artifact resources from `ci`, but `*_infra` only applies `prod` infrastructure stacks using the repo's directory-derived service and lambda matrices.
-The infra workflow now applies `cognito` before `api`, and the destroy workflow tears Cognito down only after frontend and API consumers are gone so JWT-authenticated routes do not race their auth upstream on destroy.
+The infra workflow now applies `cognito` before `network` so the shared HTTP API authorizer can be created centrally, and the destroy workflow tears Cognito down only after `network` and frontend consumers are gone so JWT-authenticated routes do not race their auth upstream on destroy.
 For frontend DNS, the infra and destroy workflows now read a GitHub environment variable named `DOMAIN_NAME` and pass it into the `frontend` and `cognito` stacks.
 
 For `*_code` release deploys, pass explicit release versions for each runtime you want to roll out. In particular, ECS code deploys should provide an `ecs_version` rather than relying on a Lambda-version fallback.
@@ -72,7 +72,7 @@ The repo also includes a shared `database` stack in `dev` and `prod` for Aurora 
 The repo also includes a `cognito` stack for Cognito Hosted UI login, a read-only user group, and JWT protection on the shared API routes.
 Aurora now manages the master credentials secret internally, and Lambda, ECS, and debug tooling read that Aurora-managed secret through the database stack outputs.
 The ECS worker now persists consumed messages into Aurora PostgreSQL, and a separate `migrations` Lambda exists for running schema changes against that shared database from inside the VPC.
-The migrations Lambda now packages the `pgroll` CLI from `xataio/pgroll` and runs the checked-in migration definition from the Lambda artifact instead of executing raw SQL directly.
+The migrations Lambda now packages a small SQLAlchemy model package and materializes its declared tables from Lambda runtime code instead of downloading and executing an external migration CLI during build or invoke.
 The shared Lambda module now exposes `timeout_seconds`, and `migrations` sets it explicitly to `120` so database work and VPC/database startup do not hit the AWS default 3-second timeout.
 When `migrations` is present in the Lambda deployment matrix, the reusable code deploy workflow invokes it automatically after Lambda rollout. ECS task rollout is not serialized behind Lambda or migration jobs unless a workflow adds that explicitly.
 CI and deploy workflow Lambda discovery now treats top-level directories under `lambdas/` as deployable functions but explicitly ignores the generated `lambdas/build` directory, so `migrations` is included in the normal Lambda build and deploy flow without polluting the matrix with build artifacts.
@@ -92,10 +92,10 @@ Use prompts like these when asking for a new service in this repo:
 
 ## 🛠️ local plan some infra
 
-Given a terragrunt file is found at `infra/live/dev/aws/api/terragrunt.hcl`
+Given a terragrunt file is found at `infra/live/dev/aws/lambda_api/terragrunt.hcl`
 
 ```sh
-just tg dev aws/api plan
+just tg dev aws/lambda_api plan
 ```
 
 ## 📨 publish a worker message
@@ -139,6 +139,7 @@ The sample frontend now uses Cognito Hosted UI with the authorization-code-plus-
 
 - unauthenticated users are redirected to Cognito before the app calls `/api/*`
 - after sign-in, the frontend exchanges the callback code for tokens and sends `Authorization: Bearer ...` to `/api/*`
+- if Cognito returns `invalid_grant` during callback exchange or refresh, the frontend clears the stale browser auth state and starts a fresh login instead of staying stuck on an auth error
 - CloudFront still owns the `/api/*` prefix strip, and now explicitly forwards the `Authorization` header to API Gateway
 
 The Cognito stack creates the user pool, app client, Hosted UI domain, and `readonly` group. It does not create actual users automatically. To seed the initial read-only user after `cognito` is applied:

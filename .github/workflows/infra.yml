@@ -85,19 +85,21 @@ jobs:
           tg_directory: infra/live/${{ inputs.environment }}/aws/cognito
 
   frontend:
-    needs: lambdas
+    needs:
+      - network
+      - cognito
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.infra_version }}
 
-      - name: Get api infra
+      - name: Get network infra
         uses: ./.github/actions/terragrunt
-        id: get-api
+        id: get-network
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          tg_directory: infra/live/${{ inputs.environment }}/aws/api
+          tg_directory: infra/live/${{ inputs.environment }}/aws/network
           tg_action: init
 
       - name: Get cognito infra
@@ -113,9 +115,9 @@ jobs:
       - name: Get api invoke url
         id: get_api_vars
         env:
-          TG_OUTPUTS: ${{ steps.get-api.outputs.tg_outputs }}
+          TG_OUTPUTS: ${{ steps.get-network.outputs.tg_outputs }}
         run: |
-          echo "invoke_url=$(echo $TG_OUTPUTS | jq -r '.invoke_url.value')" >> $GITHUB_OUTPUT
+          echo "invoke_url=$(echo $TG_OUTPUTS | jq -r '.api_invoke_url.value')" >> $GITHUB_OUTPUT
 
       - name: Get cognito values
         id: get_cognito_vars
@@ -197,7 +199,9 @@ jobs:
           tg_directory: infra/live/${{ inputs.environment }}/aws/database
 
   network:
-    needs: security
+    needs:
+      - security
+      - cognito
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -217,7 +221,6 @@ jobs:
       - network
       - database
       - worker_messaging
-      - cognito
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false # this is to prevent terraform lock issues
@@ -236,11 +239,12 @@ jobs:
 
   services:
     needs:
+      - oidc
+      - security
       - cluster
       - network
       - database
       - worker_messaging
-      - lambdas
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

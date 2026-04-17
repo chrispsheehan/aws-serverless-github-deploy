@@ -19,7 +19,7 @@ Shared security-group module.
 - `api_vpc_link_sg`
 - `postgres_sg`
 
-Used by `network`, `api`, and ECS service modules.
+Used by `network`, `lambda_api`, and ECS service modules.
 
 Rules are defined with standalone `aws_vpc_security_group_ingress_rule` and `aws_vpc_security_group_egress_rule` resources rather than inline security-group blocks.
 

@@ -114,9 +114,9 @@ Trigger:
 Process:
 
 - apply shared prerequisites such as OIDC, Cognito, security, network, cluster, database, and worker messaging
-- apply Lambda infrastructure
-- apply ECS service infrastructure in bootstrap mode
-- apply frontend infrastructure
+- apply Lambda infrastructure against the shared network/API surface
+- apply ECS service infrastructure in bootstrap mode without waiting on unrelated Lambda stacks
+- apply frontend infrastructure from network and Cognito outputs
 
 Outcome:
 

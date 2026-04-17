@@ -52,6 +52,11 @@ function clearTokens() {
   window.localStorage.removeItem(TOKEN_STORAGE_KEY)
 }
 
+function clearAuthFlowState() {
+  clearTokens()
+  window.sessionStorage.removeItem(CODE_VERIFIER_STORAGE_KEY)
+}
+
 function parseJwtClaims(token) {
   if (!token) return null
 
@@ -88,6 +93,14 @@ async function exchangeCodeForTokens(authConfig, code) {
 
   window.sessionStorage.removeItem(CODE_VERIFIER_STORAGE_KEY)
   return tokens
+}
+
+function isInvalidGrant(error) {
+  return String(error).includes('invalid_grant')
+}
+
+function resetAuthUrl() {
+  window.history.replaceState({}, document.title, window.location.pathname)
 }
 
 async function refreshTokens(authConfig, refreshToken) {
@@ -168,15 +181,25 @@ export default function App() {
         const storedTokens = getStoredTokens()
 
         if (code) {
-          const exchanged = await exchangeCodeForTokens(config, code)
-          if (ignore) return
-          storeTokens(exchanged)
-          window.history.replaceState({}, document.title, window.location.pathname)
-          setSession({
-            tokens: exchanged,
-            claims: parseJwtClaims(exchanged.id_token),
-          })
-          return
+          try {
+            const exchanged = await exchangeCodeForTokens(config, code)
+            if (ignore) return
+            storeTokens(exchanged)
+            resetAuthUrl()
+            setSession({
+              tokens: exchanged,
+              claims: parseJwtClaims(exchanged.id_token),
+            })
+            return
+          } catch (error) {
+            if (!isInvalidGrant(error)) {
+              throw error
+            }
+            clearAuthFlowState()
+            resetAuthUrl()
+            await redirectToLogin(config)
+            return
+          }
         }
 
         if (storedTokens?.access_token) {
@@ -192,14 +215,21 @@ export default function App() {
           }
 
           if (storedTokens.refresh_token) {
-            const refreshed = await refreshTokens(config, storedTokens.refresh_token)
-            if (ignore) return
-            storeTokens(refreshed)
-            setSession({
-              tokens: refreshed,
-              claims: parseJwtClaims(refreshed.id_token),
-            })
-            return
+            try {
+              const refreshed = await refreshTokens(config, storedTokens.refresh_token)
+              if (ignore) return
+              storeTokens(refreshed)
+              setSession({
+                tokens: refreshed,
+                claims: parseJwtClaims(refreshed.id_token),
+              })
+              return
+            } catch (error) {
+              if (!isInvalidGrant(error)) {
+                throw error
+              }
+              clearAuthFlowState()
+            }
           }
         }
 
