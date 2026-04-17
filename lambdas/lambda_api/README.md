@@ -7,6 +7,7 @@ Public Lambda-backed HTTP API.
 - serves the basic public API responses for the boilerplate
 - exposes health and forced-failure routes for rollout and alarm testing
 - publishes JSON payloads to the shared worker SNS topic through `POST /messages`
+- supports authenticated frontend browser-telemetry publishing through the same `POST /messages` path
 
 ## Routes
 

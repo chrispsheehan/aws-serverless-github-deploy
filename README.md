@@ -130,6 +130,8 @@ curl -X POST \
   https://<your-domain>/api/messages
 ```
 
+The example frontend also includes an authenticated button that gathers browser metadata, page context, timestamp, and geolocation, then publishes that payload through the same SNS fanout path so both worker runtimes receive it and the ECS worker persists it to Aurora PostgreSQL.
+
 ### Run Database Migrations
 
 After the infra stack and Lambda code are deployed:
