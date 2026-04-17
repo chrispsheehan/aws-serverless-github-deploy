@@ -30,6 +30,12 @@ Lambda source directories for this boilerplate.
 - the `migrations` Lambda shape is intended for VPC-attached schema changes against the shared database
 - event-driven helper Lambdas can subscribe to EventBridge rules for shared infra automation, such as reacting to Aurora reader scale-out events
 
+## Logging
+
+- Lambda runtimes should use the shared JSON logger from `lambda_shared.py`
+- logs are written to stdout so they appear in the function's CloudWatch log group
+- prefer structured fields via logger `extra={...}` rather than ad-hoc string interpolation
+
 ## Runtime Documentation
 
 - add a `README.md` inside a concrete Lambda directory when the function has non-trivial business logic

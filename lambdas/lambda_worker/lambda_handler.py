@@ -2,8 +2,11 @@ import os
 import time
 from typing import List, Dict
 
+from lambda_shared import get_logger
+
 CHUNK_SIZE = 5
 DEBUG_DELAY_MS = int(os.getenv("DEBUG_DELAY_MS", "0"))
+logger = get_logger(__name__)
 
 def chunk(items: List[Dict], size: int):
     """Yield successive chunks from a list."""
@@ -22,10 +25,14 @@ def process_message(record: Dict):
     # payload = json.loads(body)
 
     # TODO: your business logic here
-    print({
-        "message_id": record["messageId"],
-        "body_preview": body[:200]
-    })
+    logger.info(
+        "lambda_worker_process_message",
+        extra={
+            "event": "lambda_worker_process_message",
+            "message_id": record["messageId"],
+            "body_preview": body[:200],
+        },
+    )
 
 
 def process_chunk(records: List[Dict]) -> List[str]:
@@ -41,8 +48,14 @@ def process_chunk(records: List[Dict]) -> List[str]:
             # Optional delay to force concurrency during testing
             if DEBUG_DELAY_MS > 0:
                 time.sleep(DEBUG_DELAY_MS / 1000.0)
-        except Exception as exc:
-            print(f"Failed processing message {record['messageId']}: {exc}")
+        except Exception:
+            logger.exception(
+                "lambda_worker_process_message_failed",
+                extra={
+                    "event": "lambda_worker_process_message_failed",
+                    "message_id": record["messageId"],
+                },
+            )
             failed_message_ids.append(record["messageId"])
 
     return failed_message_ids
@@ -56,6 +69,16 @@ def lambda_handler(event, context):
     records = event.get("Records", [])
     batch_item_failures = []
 
+    logger.info(
+        "lambda_worker_batch_start",
+        extra={
+            "event": "lambda_worker_batch_start",
+            "request_id": context.aws_request_id,
+            "record_count": len(records),
+            "chunk_size": CHUNK_SIZE,
+        },
+    )
+
     for records_chunk in chunk(records, CHUNK_SIZE):
         failed_ids = process_chunk(records_chunk)
 
@@ -64,6 +87,19 @@ def lambda_handler(event, context):
                 "itemIdentifier": message_id
             })
 
-    return {
+    response = {
         "batchItemFailures": batch_item_failures
     }
+
+    logger.info(
+        "lambda_worker_batch_complete",
+        extra={
+            "event": "lambda_worker_batch_complete",
+            "request_id": context.aws_request_id,
+            "record_count": len(records),
+            "failure_count": len(batch_item_failures),
+            "failed_message_ids": [item["itemIdentifier"] for item in batch_item_failures],
+        },
+    )
+
+    return response

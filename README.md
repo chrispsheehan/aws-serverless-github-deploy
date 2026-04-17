@@ -10,6 +10,7 @@ Lambda + ECS with CodeDeploy rollouts, plus provisioned concurrency controls for
 - GitHub Actions workflows for infra apply, artifact build, code deploy, and destroy
 - shared deployment contracts for Lambda and ECS
 - boilerplate runtime layouts for Lambda functions and ECS services
+- shared JSON logging for Lambda runtimes through CloudWatch
 
 ## Read This Next
 

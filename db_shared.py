@@ -7,6 +7,11 @@ import boto3
 import psycopg
 import time
 
+from lambda_shared import get_logger
+
+
+logger = get_logger(__name__)
+
 
 def _required_env(name: str) -> str:
     value = os.getenv(name, "").strip()
@@ -30,12 +35,13 @@ def _load_db_credentials() -> dict[str, str]:
     if "username" not in values or "password" not in values:
         raise RuntimeError(f"Secret {secret_arn} must contain username and password keys")
 
-    print(
-        {
+    logger.info(
+        "db_credentials_loaded",
+        extra={
             "event": "db_credentials_loaded",
             "duration_ms": round((time.monotonic() - start) * 1000, 1),
             "region": region,
-        }
+        },
     )
 
     return {
@@ -55,14 +61,15 @@ def connect():
         password=credentials["password"],
         connect_timeout=5,
     )
-    print(
-        {
+    logger.info(
+        "db_connected",
+        extra={
             "event": "db_connected",
             "duration_ms": round((time.monotonic() - start) * 1000, 1),
             "host": _required_env("DB_HOST"),
             "database": _required_env("DB_NAME"),
             "port": int(_required_env("DB_PORT")),
-        }
+        },
     )
     return connection
 
