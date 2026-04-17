@@ -43,7 +43,7 @@ The repo `network` module also owns the shared internal ALB and shared HTTP API 
 - internal ALB and target groups
 - interface VPC endpoints required by private runtimes, including SQS for the worker poller, SSM for Parameter Store reads where still used, and Secrets Manager for the shared database credentials object consumed by ECS and Lambda runtimes
 
-This repo now includes a sample ECS API container service exposed separately from the Lambda API:
+This boilerplate supports Lambda APIs and ECS services side by side on the shared routing surface. A typical ECS API shape in this repo looks like:
 
 - public Lambda path via CloudFront: `/api/*`
 - public ECS path via CloudFront: `/api/ecs/*`
@@ -51,10 +51,10 @@ This repo now includes a sample ECS API container service exposed separately fro
 - API Gateway ECS route namespace: `/ecs/*`
 - deployment model: ECS CodeDeploy `blue_green`
 - ALB shape: shared private ALB with a dedicated ECS API listener on port `8080`
-- stacks: `task_api` and `service_api`
-- the sample frontend calls both backends and renders both responses so the path split is visible in the UI
+- stacks: `task_<name>` and `service_<name>`
+- frontend and routing layers can expose Lambda-backed and ECS-backed paths independently
 
-The `lambda_api` module is Lambda-specific and plugs the Lambda integration and root routes into that shared API, while `network` owns the shared Cognito-backed JWT authorizer used by both Lambda and ECS API routes.
+The `lambda_api` family plugs Lambda integrations and routes into that shared API, while `network` owns the shared Cognito-backed JWT authorizer used by both Lambda and ECS API routes.
 
 The frontend infra module also uploads a bootstrap `index.html` during infra apply so CloudFront serves a placeholder page before the built frontend assets are deployed.
 
@@ -78,29 +78,37 @@ For frontend DNS, the infra and destroy workflows now read a GitHub environment 
 
 For `*_code` release deploys, pass explicit release versions for each runtime you want to roll out. In particular, ECS code deploys should provide an `ecs_version` rather than relying on a Lambda-version fallback.
 
-The worker runtimes now share a dedicated `worker_messaging` stack that owns one SNS topic plus two SQS queues, with one queue consumed by `lambda_worker` and the other by the ECS worker stack. Publishing once to the shared topic fans the same message out to both runtimes independently.
-`lambda_worker`, `task_worker`, and `service_worker` now read queue details from `worker_messaging` remote state instead of owning worker queues inside the runtime stacks.
-The repo also includes a shared `database` stack in `dev` and `prod` for Aurora PostgreSQL Serverless v2, intended to be available before Lambda or ECS services start taking dependencies on it.
-The repo also includes a `cognito` stack for Cognito Hosted UI login, a read-only user group, and JWT protection on the shared API routes.
-Aurora now manages the master credentials secret internally, and Lambda, ECS, and debug tooling read that Aurora-managed secret through the database stack outputs.
-The ECS worker now persists consumed messages into Aurora PostgreSQL, and a separate `migrations` Lambda exists for running schema changes against that shared database from inside the VPC.
-The migrations Lambda now packages a small SQLAlchemy model package and materializes its declared tables from Lambda runtime code instead of downloading and executing an external migration CLI during build or invoke.
-The shared Lambda module now exposes `timeout_seconds`, and `migrations` sets it explicitly to `120` so database work and VPC/database startup do not hit the AWS default 3-second timeout.
-When `migrations` is present in the Lambda deployment matrix, the reusable code deploy workflow invokes it automatically after Lambda rollout. ECS task rollout is not serialized behind Lambda or migration jobs unless a workflow adds that explicitly.
-CI and deploy workflow Lambda discovery now treats top-level directories under `lambdas/` as deployable functions but explicitly ignores the generated `lambdas/build` directory, so `migrations` is included in the normal Lambda build and deploy flow without polluting the matrix with build artifacts.
-For bootstrap service applies, `service_worker` now uses placeholder task and queue values locally rather than spreading `count`-indexed remote-state access through the module.
-The ECS worker task uses a local heartbeat-file health check, which is a better fit for a non-HTTP worker than probing a service endpoint or tying task health directly to transient AWS API calls.
-All ECS app containers now use a shared tracing helper under `containers/shared` so API requests and worker SQS operations emit X-Ray traces when `xray_enabled = true`.
-`containers/shared` is helper code only and is intentionally excluded from the CI ECS image/service discovery matrix.
+Shared stack patterns:
+
+- `worker_messaging` is the shared SNS-plus-SQS fanout pattern for Lambda and ECS worker runtimes.
+- `database` is the shared Aurora PostgreSQL pattern for runtimes that need relational storage.
+- `cognito` is the shared Hosted UI and JWT-auth pattern for frontend and API protection.
+
+Migration flow:
+
+- `migrations` is the boilerplate Lambda shape for schema changes against the shared database.
+- it uses packaged SQLAlchemy models, not an external migration CLI.
+- it sets `timeout_seconds = 120` to avoid the default 3-second Lambda timeout during database and VPC startup.
+- when `migrations` is in the Lambda deploy matrix, the reusable code deploy workflow invokes it after Lambda rollout.
+- ECS rollout is not implicitly blocked on Lambda or migration jobs unless a workflow adds that ordering.
+- Lambda discovery includes top-level directories under `lambdas/` but ignores the generated `lambdas/build` directory, so `migrations` participates in normal Lambda build and deploy flow without polluting the matrix.
+
+ECS runtime notes:
+
+- bootstrap-friendly ECS service applies can use placeholder task and dependency values instead of forcing early remote-state coupling.
+- non-HTTP worker tasks can use a local heartbeat-file health check rather than probing a service endpoint.
+- shared tracing helpers live under `containers/shared`, so ECS APIs and workers can emit X-Ray traces when `xray_enabled = true`.
+- `containers/shared` is helper code only and is intentionally excluded from the CI ECS image and service discovery matrix.
 
 ## 🧪 example prompts
 
 Use prompts like these when asking for a new service in this repo:
 
-- `Add a new ECS service called billing_api exposed on /billing via API Gateway VPC link, with task_billing_api/service_billing_api, canary deploys, and update the docs.`
-- `Create a new internal ECS worker called report_worker using task_report_worker/service_report_worker, rolling deploys, and hook it into the existing container build flow.`
-- `Add a new Lambda called invoice_sync with its live stacks in dev and prod, wire it into the existing lambda build/deploy workflows, and document the new module contract.`
-- `Create a new public Lambda API endpoint for /reports, keep it Lambda-backed rather than ECS, and update the repo docs and workflow expectations.`
+- `Add a new env called qa.`
+- `Add an API call that puts a message on a queue so a worker can pick it up and write it to the database.`
+- `Add a new public API endpoint for reports.`
+- `Add a new internal worker for report processing.`
+- `Add a new ECS service for billing under /billing.`
 
 ## 🛠️ local plan some infra
 
@@ -298,8 +306,7 @@ Error: Process completed with exit code 1.
 
 ## 🚢 deployment strategies
 
-- Infrastructure and feature code deployments (via codedeploy) are completely decoupled.
-- Initial infrastructure deployments deploys `infra/modules/aws/_shared/lambda/bootstrap/index.py` which serves as a place-holder.
-- Initial ECS infrastructure deployments can use a bootstrap task, while the deploy workflow later registers a real `task_*` revision and promotes it via CodeDeploy.
+- Infrastructure applies and feature-code rollouts are intentionally decoupled in this boilerplate.
+- Shared module READMEs document the bootstrap and rollout details for each runtime shape.
 - The code deploy app and group are also deployed, which is the mechanism used to deploy the real builds.
 - Subsequent re-runs of the infrastructure deployments will not update the code.
