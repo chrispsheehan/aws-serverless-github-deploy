@@ -59,7 +59,7 @@ flowchart LR
 ### Infra And Code Rollout
 
 - `infra.yml`
-  Applies shared stacks first, then runtime stacks, then frontend infrastructure.
+  Applies shared stacks first, then runtime stacks, then frontend infrastructure. Shared stacks now include the CloudWatch observability dashboard.
 - `deploy.yml`
   Rolls out Lambda code, optional migrations, optional reconciliation Lambdas, ECS task and service updates, and optional frontend deploys.
 
@@ -88,7 +88,7 @@ flowchart LR
 ### Cleanup And Discovery
 
 - `destroy.yml`
-  Tears down app layers before shared dependencies.
+  Tears down app layers before shared dependencies, including the shared observability dashboard.
 - `get_directories.yml`
   Derives the directory-based matrices used by wrapper workflows.
 

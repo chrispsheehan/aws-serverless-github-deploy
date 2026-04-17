@@ -63,6 +63,8 @@ stores state at:
   Owns the Cognito user pool, frontend app client, Hosted UI domain, and read-only user group.
 - `frontend`
   Owns the derived CloudFront custom domain, ACM certificate in `us-east-1`, and Route53 alias records using the required `DOMAIN_NAME` workflow env input.
+- `observability`
+  Owns the shared CloudWatch dashboard used to inspect Lambda and ECS logs in one console place.
 - `database`
   Owns the shared Aurora PostgreSQL Serverless v2 database stack and its SSM connection parameters.
 - `migrations`
@@ -80,6 +82,8 @@ Current examples include:
 
 - `database`
   Shared Aurora PostgreSQL Serverless v2 shape for repo-managed relational data stores.
+- `observability`
+  Shared CloudWatch dashboard shape for recent Lambda logs, ECS app logs, and ECS OTEL logs.
 - `rds_reader_tagger`
   Event-driven Aurora reader tag-sync shape: catch the RDS instance-created event, derive the parent cluster, and copy the cluster's non-AWS tags onto the new reader.
 - `worker_messaging`
