@@ -18,6 +18,7 @@ FROM service-base AS worker
 ARG SERVICE
 
 COPY containers/shared/ecs_tracing.py /usr/app/ecs_tracing.py
+COPY runtime_logging.py /usr/app/runtime_logging.py
 COPY db_shared.py /usr/app/db_shared.py
 COPY containers/${SERVICE}/app.py /usr/app/app.py
 
@@ -29,6 +30,7 @@ FROM service-base AS api
 ARG SERVICE
 
 COPY containers/shared/ecs_tracing.py /usr/app/ecs_tracing.py
+COPY runtime_logging.py /usr/app/runtime_logging.py
 COPY containers/${SERVICE}/app.py /usr/app/app.py
 
 CMD ["python", "-u", "app.py"]

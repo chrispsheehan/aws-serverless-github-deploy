@@ -440,6 +440,7 @@ lambda-build:
     cp "{{PROJECT_DIR}}/{{LAMBDA_DIR}}/$LAMBDA_NAME"/*.py "$LAMBDA_BUILD_DIR/$LAMBDA_NAME/"
     cp "{{PROJECT_DIR}}/lambda_shared.py" "$LAMBDA_BUILD_DIR/$LAMBDA_NAME/"
     cp "{{PROJECT_DIR}}/db_shared.py" "$LAMBDA_BUILD_DIR/$LAMBDA_NAME/"
+    cp "{{PROJECT_DIR}}/runtime_logging.py" "$LAMBDA_BUILD_DIR/$LAMBDA_NAME/"
     if [[ -d "{{PROJECT_DIR}}/{{LAMBDA_DIR}}/$LAMBDA_NAME/database_models" ]]; then
         cp -R "{{PROJECT_DIR}}/{{LAMBDA_DIR}}/$LAMBDA_NAME/database_models" "$LAMBDA_BUILD_DIR/$LAMBDA_NAME/"
     fi

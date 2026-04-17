@@ -7,7 +7,7 @@ import boto3
 import psycopg
 import time
 
-from lambda_shared import get_logger
+from runtime_logging import get_logger
 
 
 logger = get_logger(__name__)

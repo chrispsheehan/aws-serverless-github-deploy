@@ -29,6 +29,12 @@ Container source directories for this boilerplate.
 - internal workers can use queue-driven processing and non-HTTP health checks
 - shared tracing helpers live under `containers/shared/` and can be reused across ECS runtimes
 
+## Logging
+
+- ECS runtimes should use the shared JSON logger from `runtime_logging.py`
+- logs are written to stdout so the ECS log driver forwards them to CloudWatch
+- prefer structured fields via logger `extra={...}` rather than ad-hoc string interpolation
+
 ## Runtime Documentation
 
 - add a `README.md` inside a concrete service directory when the container has non-trivial request handling, worker behavior, or integration logic

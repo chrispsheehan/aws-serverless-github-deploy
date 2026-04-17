@@ -32,7 +32,7 @@ Lambda source directories for this boilerplate.
 
 ## Logging
 
-- Lambda runtimes should use the shared JSON logger from `lambda_shared.py`
+- Lambda runtimes should use the shared JSON logger backed by `runtime_logging.py`
 - logs are written to stdout so they appear in the function's CloudWatch log group
 - prefer structured fields via logger `extra={...}` rather than ad-hoc string interpolation
 

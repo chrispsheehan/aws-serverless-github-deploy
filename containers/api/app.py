@@ -6,6 +6,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from opentelemetry.trace import SpanKind
 
 from ecs_tracing import extract_context, start_span
+from runtime_logging import get_logger
 
 
 HOST = "0.0.0.0"
@@ -13,6 +14,7 @@ PORT = int(os.getenv("PORT", "80"))
 ROOT_PATH = os.getenv("ROOT_PATH", "")
 SERVICE_NAME = os.getenv("AWS_SERVICE_NAME", "ecs-service-api")
 IMAGE = os.getenv("IMAGE", "unknown")
+logger = get_logger(__name__)
 
 
 def _normalize_root_path(root_path: str) -> str:
@@ -46,6 +48,21 @@ class Handler(BaseHTTPRequestHandler):
         path = self.path.split("?", 1)[0]
         route = route_for(path)
         ctx = extract_context(lambda key: self.headers.get(key))
+        request_id = self.headers.get("X-Request-Id", "")
+
+        logger.info(
+            "ecs_api_request",
+            extra={
+                "event": "ecs_api_request",
+                "http_method": self.command,
+                "path": path,
+                "route": route,
+                "host": self.headers.get("Host", ""),
+                "user_agent": self.headers.get("User-Agent", ""),
+                "request_id": request_id,
+                "service": SERVICE_NAME,
+            },
+        )
 
         with start_span(
             name=f"{self.command} {route}",
@@ -61,11 +78,35 @@ class Handler(BaseHTTPRequestHandler):
         ) as span:
             if route == "/health":
                 span.set_attribute("http.status_code", 200)
+                logger.info(
+                    "ecs_api_response",
+                    extra={
+                        "event": "ecs_api_response",
+                        "http_method": self.command,
+                        "path": path,
+                        "route": route,
+                        "status_code": 200,
+                        "request_id": request_id,
+                        "service": SERVICE_NAME,
+                    },
+                )
                 self._write_json(200, {"status": "ok", "service": SERVICE_NAME})
                 return
 
             if route in ("/fail", "/error"):
                 span.set_attribute("http.status_code", 500)
+                logger.error(
+                    "ecs_api_forced_failure",
+                    extra={
+                        "event": "ecs_api_forced_failure",
+                        "http_method": self.command,
+                        "path": path,
+                        "route": route,
+                        "status_code": 500,
+                        "request_id": request_id,
+                        "service": SERVICE_NAME,
+                    },
+                )
                 self._write_json(
                     500,
                     {
@@ -77,6 +118,18 @@ class Handler(BaseHTTPRequestHandler):
                 return
 
             span.set_attribute("http.status_code", 200)
+            logger.info(
+                "ecs_api_response",
+                extra={
+                    "event": "ecs_api_response",
+                    "http_method": self.command,
+                    "path": path,
+                    "route": route,
+                    "status_code": 200,
+                    "request_id": request_id,
+                    "service": SERVICE_NAME,
+                },
+            )
             self._write_json(
                 200,
                 {
@@ -95,5 +148,14 @@ class Handler(BaseHTTPRequestHandler):
 
 if __name__ == "__main__":
     httpd = HTTPServer((HOST, PORT), Handler)
-    print(f"Starting {SERVICE_NAME} on {HOST}:{PORT} with root path {ROOT_PATH_PREFIX or '/'}")
+    logger.info(
+        "ecs_api_startup",
+        extra={
+            "event": "ecs_api_startup",
+            "service": SERVICE_NAME,
+            "host": HOST,
+            "port": PORT,
+            "root_path": ROOT_PATH_PREFIX or "/",
+        },
+    )
     httpd.serve_forever()

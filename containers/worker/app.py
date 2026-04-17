@@ -7,6 +7,7 @@ from opentelemetry.trace import SpanKind
 
 from db_shared import connect
 from ecs_tracing import start_span
+from runtime_logging import get_logger
 
 QUEUE_URL    = os.environ['AWS_SQS_QUEUE_URL']
 AWS_REGION   = os.environ['AWS_REGION']
@@ -14,6 +15,7 @@ POLL_TIMEOUT = int(os.getenv("POLL_TIMEOUT", "60"))
 HEARTBEAT_FILE = os.getenv("HEARTBEAT_FILE", "/tmp/worker-heartbeat")
 
 sqs = boto3.client('sqs', region_name=AWS_REGION)
+logger = get_logger(__name__)
 
 
 def write_heartbeat():
@@ -34,12 +36,17 @@ def process_message(msg):
     ):
         job_id = extract_job_id(msg["Body"])
         persist_message(msg["MessageId"], msg["Body"], job_id)
-        print({
-            "message_id": msg['MessageId'],
-            "job_id": job_id,
-            "persisted_to_postgres": True,
-            "body": msg['Body'][:200],
-        })
+        logger.info(
+            "ecs_worker_message_processed",
+            extra={
+                "event": "ecs_worker_message_processed",
+                "message_id": msg["MessageId"],
+                "job_id": job_id,
+                "persisted_to_postgres": True,
+                "body_preview": msg["Body"][:200],
+                "queue_url": QUEUE_URL,
+            },
+        )
 
 
 def extract_job_id(body):
@@ -82,8 +89,22 @@ def poll():
         messages = response.get('Messages', [])
         span.set_attribute("messaging.batch.message_count", len(messages))
     if not messages:
-        print("No messages")
+        logger.info(
+            "ecs_worker_no_messages",
+            extra={
+                "event": "ecs_worker_no_messages",
+                "queue_url": QUEUE_URL,
+            },
+        )
         return
+    logger.info(
+        "ecs_worker_batch_received",
+        extra={
+            "event": "ecs_worker_batch_received",
+            "queue_url": QUEUE_URL,
+            "message_count": len(messages),
+        },
+    )
     for msg in messages:
         try:
             process_message(msg)
@@ -98,12 +119,27 @@ def poll():
                 },
             ):
                 sqs.delete_message(QueueUrl=QUEUE_URL, ReceiptHandle=msg['ReceiptHandle'])
-        except Exception as e:
-            print(f"Failed {msg['MessageId']}: {e}")
+        except Exception:
+            logger.exception(
+                "ecs_worker_message_failed",
+                extra={
+                    "event": "ecs_worker_message_failed",
+                    "message_id": msg["MessageId"],
+                    "queue_url": QUEUE_URL,
+                },
+            )
 
 
 if __name__ == "__main__":
-    print(f"Starting SQS poller for {QUEUE_URL}")
+    logger.info(
+        "ecs_worker_startup",
+        extra={
+            "event": "ecs_worker_startup",
+            "queue_url": QUEUE_URL,
+            "poll_timeout_seconds": POLL_TIMEOUT,
+            "heartbeat_file": HEARTBEAT_FILE,
+        },
+    )
     write_heartbeat()
     while True:
         poll()
