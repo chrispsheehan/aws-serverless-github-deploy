@@ -139,6 +139,7 @@ The sample frontend now uses Cognito Hosted UI with the authorization-code-plus-
 
 - unauthenticated users are redirected to Cognito before the app calls `/api/*`
 - after sign-in, the frontend exchanges the callback code for tokens and sends `Authorization: Bearer ...` to `/api/*`
+- if Cognito returns `invalid_grant` during callback exchange or refresh, the frontend clears the stale browser auth state and starts a fresh login instead of staying stuck on an auth error
 - CloudFront still owns the `/api/*` prefix strip, and now explicitly forwards the `Authorization` header to API Gateway
 
 The Cognito stack creates the user pool, app client, Hosted UI domain, and `readonly` group. It does not create actual users automatically. To seed the initial read-only user after `cognito` is applied:
