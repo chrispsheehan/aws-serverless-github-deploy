@@ -3,16 +3,42 @@
 **Terraform + GitHub Actions for AWS serverless deployments.**  
 Lambda + ECS with CodeDeploy rollouts, plus provisioned concurrency controls for Lambda — driven by clean module variables and `just` recipes.
 
-Workflow dependency diagrams, CI contracts, and feasibility checks live in [.github/README.md](.github/README.md).
-The repo vendors its internal GitHub Actions under [.github/actions](.github/actions), so workflow `uses:` references point at local paths rather than external action tags.
-Runtime entry points:
+## What This Repo Gives You
 
+- shared Terraform/Terragrunt patterns for Lambda, ECS, frontend, database, auth, and messaging
+- GitHub Actions workflows for infra apply, artifact build, code deploy, and destroy
+- shared deployment contracts for Lambda and ECS
+- boilerplate runtime layouts for Lambda functions and ECS services
+
+## Read This Next
+
+- CI contracts and feasibility checks: [.github/README.md](.github/README.md)
 - Lambda source layout: [lambdas/README.md](lambdas/README.md)
 - Container source layout: [containers/README.md](containers/README.md)
+- Infra layout and stack glossary: [infra/README.md](infra/README.md)
 
----
+The repo vendors its internal GitHub Actions under [.github/actions](.github/actions), so workflow `uses:` references point at local paths rather than external action tags.
 
-## 🚀 setup roles for ci
+## Prerequisites
+
+The AWS account must already have the landing-zone or StackSet network in place before deploying this repo.
+
+- the Terraform in this repo reads the VPC and subnets with `data` sources rather than creating them
+- the expected VPC and subnets must therefore already exist
+- the private subnets must be tagged so the module lookups can find them, for example with names matching `*private*`
+- if you plan to deploy the frontend custom domain, the matching Route53 hosted zone must also already exist
+
+If those shared network or DNS resources do not exist yet, the infra applies in this repo will fail during data lookup or certificate/DNS creation.
+
+Required shared prerequisites before a full environment deploy:
+
+- pre-existing VPC
+- tagged private subnets that the data lookups can resolve
+- Route53 hosted zone for the deployed frontend domain when using the frontend custom domain path
+
+## Setup
+
+### Setup Roles For CI
 
 ```sh
 just tg ci aws/oidc apply
@@ -28,16 +54,7 @@ Role scope summary:
 - `dev` and `prod`: deploy scope plus the `rds`, `ssm`, `secretsmanager`, and `kms` permissions needed by the shared database stack
 - `dev` and `prod`: also include `acm`, `route53`, and `cognito-idp` for the frontend and Cognito custom-domain/auth resources
 
-## 🧱 prerequisite network
-
-The AWS account must already have the landing-zone or StackSet network in place before deploying this repo.
-
-- the Terraform in this repo reads the VPC and subnets with `data` sources rather than creating them
-- the expected VPC and subnets must therefore already exist
-- the private subnets must be tagged so the module lookups can find them, for example with names matching `*private*`
-- if you plan to deploy the frontend custom domain, the matching Route53 hosted zone must also already exist
-
-If those shared network or DNS resources do not exist yet, the infra applies in this repo will fail during data lookup or certificate/DNS creation.
+### Shared Platform Shape
 
 The repo `network` module also owns the shared internal ALB and shared HTTP API Gateway surface used by ECS services:
 
@@ -60,14 +77,6 @@ This boilerplate supports Lambda APIs and ECS services side by side on the share
 
 The `lambda_api` family plugs Lambda integrations and routes into that shared API, while `network` owns the shared Cognito-backed JWT authorizer used by both Lambda and ECS API routes.
 
-The frontend infra module also uploads a bootstrap `index.html` during infra apply so CloudFront serves a placeholder page before the built frontend assets are deployed.
-
-Required shared prerequisites before a full environment deploy:
-
-- pre-existing VPC
-- tagged private subnets that the data lookups can resolve
-- Route53 hosted zone for the deployed frontend domain when using the frontend custom domain path
-
 Terragrunt also provides a shared default ECR repository name to ECS task modules:
 
 - shared artifact base: `dev -> <account>-<region>-<project>-dev`, otherwise `<account>-<region>-<project>-ci`
@@ -75,6 +84,8 @@ Terragrunt also provides a shared default ECR repository name to ECS task module
 - override it in `infra/live/<environment>/environment_vars.hcl` only if the repository naming diverges from that convention
 - the concrete ECS worker task wrapper defaults `local_tunnel = false` and `xray_enabled = false` unless you explicitly set them
 - in `dev`, `otel_sampling_percentage` is set to `100` so ECS traces are easy to verify while iterating
+
+The frontend infra module also uploads a bootstrap `index.html` during infra apply so CloudFront serves a placeholder page before the built frontend assets are deployed.
 
 The reusable deploy workflows follow the same split: `prod` `*_code` and `*_infra` wrappers read shared artifact resources from `ci`, but `*_infra` only applies `prod` infrastructure stacks using the repo's directory-derived service and lambda matrices.
 The infra workflow now applies `cognito` before `network` so the shared HTTP API authorizer can be created centrally, and the destroy workflow tears Cognito down only after `network` and frontend consumers are gone so JWT-authenticated routes do not race their auth upstream on destroy.
@@ -84,25 +95,17 @@ For `*_code` release deploys, pass explicit release versions for each runtime yo
 
 See [lambdas/README.md](lambdas/README.md) and [containers/README.md](containers/README.md) for runtime source layout, build behavior, and boilerplate patterns.
 
-## 🧪 example prompts
+## Common Tasks
 
-Use prompts like these when asking for a new service in this repo:
+### Local Plan Some Infra
 
-- `Add a new env called qa.`
-- `Add an API call that puts a message on a queue so a worker can pick it up and write it to the database.`
-- `Add a new public API endpoint for reports.`
-- `Add a new internal worker for report processing.`
-- `Add a new ECS service for billing under /billing.`
-
-## 🛠️ local plan some infra
-
-Given a terragrunt file is found at `infra/live/dev/aws/lambda_api/terragrunt.hcl`
+Given a Terragrunt file is found at `infra/live/dev/aws/lambda_api/terragrunt.hcl`
 
 ```sh
 just tg dev aws/lambda_api plan
 ```
 
-## 📨 publish a worker message
+### Publish A Worker Message
 
 To publish directly to the shared worker SNS topic from your shell:
 
@@ -112,9 +115,9 @@ MESSAGE='{"job_id":"demo-1","source":"local","payload":{"hello":"world"}}' \
 just sns-publish
 ```
 
-## 🗃️ run database migrations
+### Run Database Migrations
 
-The `migrations` Lambda is VPC-attached so it can reach the private Aurora cluster. After the infra stack and Lambda code are deployed, you can run it with the existing invoke recipe:
+After the infra stack and Lambda code are deployed:
 
 ```sh
 AWS_REGION=eu-west-2 \
@@ -122,48 +125,33 @@ LAMBDA_NAME=dev-aws-serverless-github-deploy-migrations \
 just lambda-invoke
 ```
 
-To inspect the ECS worker runtime from inside the VPC-connected debug sidecar in `dev`, use:
+### Open An ECS Worker Debug Shell
 
 ```sh
 just worker-debug-shell dev
 ```
 
-The shared debug image includes `psql`, and `worker-debug-shell` now injects `PGPASSWORD`, `PGUSER`, and `DB_USER` into the shell from the shared database credentials secret on your local machine before opening ECS Exec.
-`worker-debug-shell` resolves the live database credentials secret ARN from the Aurora cluster metadata, so it continues to work even though Aurora now owns the underlying secret name.
+The shared debug image includes `psql`, and `worker-debug-shell` injects `PGPASSWORD`, `PGUSER`, and `DB_USER` into the shell from the shared database credentials secret before opening ECS Exec.
 
-From inside that shell, a one-line check for persisted worker rows is:
+## Frontend Auth
 
-```sh
-psql -h "$DB_HOST" -p "$DB_PORT" -U "$PGUSER" -d "$DB_NAME" -c "select count(*) from worker_messages;"
-```
-
-## 🔐 frontend auth
-
-The sample frontend now uses Cognito Hosted UI with the authorization-code-plus-PKCE flow.
+The boilerplate frontend uses Cognito Hosted UI with the authorization-code-plus-PKCE flow.
 
 - unauthenticated users are redirected to Cognito before the app calls `/api/*`
 - after sign-in, the frontend exchanges the callback code for tokens and sends `Authorization: Bearer ...` to `/api/*`
 - if Cognito returns `invalid_grant` during callback exchange or refresh, the frontend clears the stale browser auth state and starts a fresh login instead of staying stuck on an auth error
-- CloudFront still owns the `/api/*` prefix strip, and now explicitly forwards the `Authorization` header to API Gateway
+- CloudFront owns the `/api/*` prefix strip and forwards the `Authorization` header to API Gateway
 
-The Cognito stack creates the user pool, app client, Hosted UI domain, and `readonly` group. It does not create actual users automatically. To seed the initial read-only user after `cognito` is applied:
+The Cognito stack creates the user pool, app client, Hosted UI domain, and `readonly` group. It does not create users automatically. To seed the initial read-only user after `cognito` is applied:
 
 ```sh
 just cognito-create-readonly-user dev readonly@example.com 'ChangeMe123!'
 ```
 
-The recipe is safe to re-run for an existing user. The password you pass still needs to satisfy the user-pool password policy, for example including an uppercase character.
-
 Set the GitHub environment variable `DOMAIN_NAME` to the hosted zone base domain, for example:
 
 ```text
 chrispsheehan.com
-```
-
-The deployed frontend URL is then derived automatically as:
-
-```text
-aws-serverless-github-deploy.dev.chrispsheehan.com
 ```
 
 When that value is present:
@@ -174,7 +162,19 @@ When that value is present:
 The repo still keeps `http://localhost:5173` in Cognito for local Vite development, so local and deployed login can coexist.
 For local `vite` dev, the repo includes [`frontend/public/auth-config.json`](frontend/public/auth-config.json) as a disabled placeholder; update that file locally if you want the localhost frontend to use the same Cognito flow.
 
-## ⚙️ types of lambda provisioned concurrency
+## Example Prompts
+
+Use prompts like these when asking for a new service in this repo:
+
+- `Add a new env called qa.`
+- `Add an API call that puts a message on a queue so a worker can pick it up and write it to the database.`
+- `Add a new public API endpoint for reports.`
+- `Add a new internal worker for report processing.`
+- `Add a new ECS service for billing under /billing.`
+
+## Reference
+
+### Types Of Lambda Provisioned Concurrency
 
 ```hcl
 module "lambda_example" {
@@ -221,7 +221,7 @@ provisioned_config = {
 }
 ```
 
-## ⚙️ types of ecs service scaling
+### Types Of ECS Service Scaling
 
 ```hcl
 module "service_example" {
@@ -295,7 +295,7 @@ scaling_strategy = {
 
 - detailed ECS scaling and deployment rules live in [infra/modules/aws/_shared/service/README.md](infra/modules/aws/_shared/service/README.md)
 
-## 🚦 deployment overview
+### Deployment Overview
 
 ```mermaid
 flowchart TD
@@ -317,7 +317,7 @@ flowchart TD
 - ECS deployment strategy and connection-type rules live in [infra/modules/aws/_shared/service/README.md](infra/modules/aws/_shared/service/README.md)
 - use the shared module READMEs as the canonical technical source for deployment decisions and feasibility checks
 
-## 🔥↩️ deployment roll-back
+### Deployment Rollback
 
 - use cloudwatch metrics and alarms to automatically roll-back a deployment
 - create a [cloudwatch_metric_alarm](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudwatch_metric_alarm) resource and pass in as per below
@@ -334,7 +334,7 @@ module "lambda_example" {
 - the ECS shared service module accepts the same `codedeploy_alarm_names` input
 - alarm-driven rollback behavior is part of the shared Lambda and ECS deploy contracts
 
-## 🚢 deployment strategies
+### Deployment Model
 
 - Infrastructure applies and feature-code rollouts are intentionally decoupled in this boilerplate.
 - Shared module READMEs document the bootstrap and rollout details for each runtime shape.
