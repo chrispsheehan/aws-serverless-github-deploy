@@ -10,7 +10,14 @@ Shared Lambda module with versioned deploys through CodeDeploy.
 - Lambda CodeDeploy app and deployment group
 - bootstrap zip used for initial infra applies
 
-## Key inputs
+## Does Not Own
+
+- API Gateway routes
+- frontend routing or auth behavior
+- caller-specific alarms beyond the names passed in
+- concrete Lambda business logic
+
+## Inputs That Change Behavior
 
 - `deployment_config`
 - `provisioned_config`
@@ -21,10 +28,68 @@ Shared Lambda module with versioned deploys through CodeDeploy.
 
 When VPC attachment is enabled, the module creates and attaches its own Lambda VPC access policy covering the EC2 network-interface permissions needed for private-subnet execution.
 
-## Key outputs
+## Outputs Consumers Rely On
 
 - function name and ARN
 - alias name and ARN
 - log group
+
+## Decision Rules
+
+Choose deployment modes that match the Lambda runtime shape.
+
+### `all_at_once`
+
+- use for background jobs and lower-risk changes where fastest rollout is preferred
+- best fit when a temporary full-traffic switch is acceptable
+
+```hcl
+deployment_config = {
+  strategy = "all_at_once"
+}
+```
+
+### `canary`
+
+- use for request-serving Lambdas such as APIs where partial rollout and automatic rollback are valuable
+- shifts a percentage of traffic first, then promotes to full traffic after the interval
+
+```hcl
+deployment_config = {
+  strategy         = "canary"
+  percentage       = 10
+  interval_minutes = 1
+}
+```
+
+### `linear`
+
+- use for user-facing or higher-risk Lambdas when you want a steadier rollout than canary
+- shifts traffic repeatedly by the configured percentage and interval until complete
+
+```hcl
+deployment_config = {
+  strategy         = "linear"
+  percentage       = 10
+  interval_minutes = 1
+}
+```
+
+## Feasibility Constraints
+
+- valid strategies are `all_at_once`, `canary`, and `linear`
+- `canary` and `linear` require both `percentage` and `interval_minutes`
+- use this module when you want Lambda infrastructure and Lambda rollout behavior managed together through versions and aliases
+
+## CI / Deploy Expectations
+
+- infrastructure applies create the placeholder zip, function, alias, and CodeDeploy resources
+- code deploy workflows publish real Lambda versions and move the alias through CodeDeploy
+- automatic rollback can be wired through `codedeploy_alarm_names`
+
+## Drift / Ownership Rules
+
+- infra owns the stable Lambda shape, alias, and CodeDeploy wiring
+- deploy workflows own the live published version progression
 
 Use this when you want Lambda infra and Lambda rollout behavior managed together.

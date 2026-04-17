@@ -224,103 +224,27 @@ provisioned_config = {
 ![a](docs/lambda-config-after.png)
 
 
-## 🚦 types of lambda deploy
+## 🚦 deployment overview
 
-```hcl
-module "lambda_example" {
-  source = "../_shared/lambda"
-  ...
-  deployment_config = var.your_deployment_config
-}
+```mermaid
+flowchart TD
+  start["Choose Runtime Shape"] --> lambda["Lambda"]
+  start --> ecs["ECS"]
+
+  lambda --> lambda_bg["Background / low-risk"]
+  lambda --> lambda_api["User-facing / request-serving"]
+  lambda_bg --> lambda_all["all_at_once"]
+  lambda_api --> lambda_canary["canary or linear"]
+
+  ecs --> ecs_internal["internal"]
+  ecs --> ecs_lb["internal_dns or vpc_link"]
+  ecs_internal --> ecs_roll["rolling"]
+  ecs_lb --> ecs_cd["all_at_once / canary / linear / blue_green"]
 ```
 
-#### ⚡ [default] All at once (fastest):
-
-- use case: background processes
-```hcl
-deployment_config = {
-    strategy = "all_at_once"
-}
-```
-
-#### 🐤 canary deployment:
-
-- use case: api or service serving traffic
-- incrementally rolls out new version to 10% of lambdas and rolls back if errors detected. If not goes to 100%.
-- waits to make a decision on health after 1 minute
-```hcl
-deployment_config = {
-    strategy         = "canary"
-    percentage       = 10
-    interval_minutes = 1
-}
-```
-
-#### 📶 linear deployment:
-
-- use case: api or service serving traffic
-- checks for lambda health on 10% of lambdas and rolls back if errors detected
-- rolls out changes on increments of 1 minute
-```hcl
-deployment_config = {
-    strategy         = "linear"
-    percentage       = 10
-    interval_minutes = 1
-}
-```
-
-## 🚦 types of ecs deploy
-
-```hcl
-module "service_example" {
-  source = "../_shared/service"
-  ...
-  deployment_strategy = var.your_deployment_strategy
-}
-```
-
-#### ⚡ [default] All at once:
-
-- use case: internal services, queue workers, low-risk changes
-- for load-balanced ECS services this uses CodeDeploy and shifts traffic in one step
-```hcl
-deployment_strategy = "all_at_once"
-```
-
-#### 🐤 canary deployment:
-
-- use case: HTTP services behind the load balancer
-- shifts 10% of traffic for 5 minutes before moving to 100%
-```hcl
-deployment_strategy = "canary"
-```
-
-#### 📶 linear deployment:
-
-- use case: steady rollout with smaller blast radius
-- shifts traffic 10% every minute until complete
-```hcl
-deployment_strategy = "linear"
-```
-
-#### 🟦🟩 blue/green deployment:
-
-- use case: explicit blue/green semantics while still using the default ECS all-at-once traffic switch
-- currently maps to the ECS CodeDeploy all-at-once config
-```hcl
-deployment_strategy = "blue_green"
-```
-
-- ECS CodeDeploy is only created for load-balanced ECS services in `_shared/service`
-- subpath ECS services need a dedicated ALB listener if they are meant to use CodeDeploy blue/green in this repo
-- internal ECS services without load balancer integration should use native ECS rolling updates instead
-- infra ignores ECS `task_definition` drift
-- for CodeDeploy ECS services, infra also ignores `load_balancer` drift
-- for dedicated blue/green listeners, infra also ignores listener `default_action` drift
-- the deployment workflow:
-  - applies the new `task_*` revision
-  - uses CodeDeploy for load-balanced services
-  - uses native rolling deploys for internal services
+- Lambda deployment rules live in [infra/modules/aws/_shared/lambda/README.md](/Users/chrissheehan/git/chrispsheehan/aws-serverless-github-deploy/infra/modules/aws/_shared/lambda/README.md)
+- ECS deployment strategy and connection-type rules live in [infra/modules/aws/_shared/service/README.md](/Users/chrissheehan/git/chrispsheehan/aws-serverless-github-deploy/infra/modules/aws/_shared/service/README.md)
+- use the shared module READMEs as the canonical technical source for deployment decisions and feasibility checks
 
 ## 🔥↩️ deployment roll-back
 
