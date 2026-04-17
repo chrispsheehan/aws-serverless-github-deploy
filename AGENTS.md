@@ -6,9 +6,9 @@ Update documentation in the same change:
 
 - update the repo root `README.md` for cross-cutting behavior changes
 - update affected module `README.md` files under `infra/modules/**` for module contract or responsibility changes
-- when changing `.github/workflows/**`, update `.github/WORKFLOWS.md` if job dependencies, reusable workflow contracts, lifecycle ordering, workflow-call structure, or downstream feasibility checks changed
-- keep `.github/WORKFLOWS.md` as the source of truth for workflow contracts and CI feasibility checks
-- prefer Mermaid diagrams in `.github/WORKFLOWS.md` that show jobs, `needs`, and reusable-workflow relationships rather than trying to reproduce the exact GitHub Actions UI
+- when changing `.github/workflows/**`, update `.github/README.md` if job dependencies, reusable workflow contracts, lifecycle ordering, workflow-call structure, or downstream feasibility checks changed
+- keep `.github/README.md` as the source of truth for workflow contracts and CI feasibility checks
+- prefer Mermaid diagrams in `.github/README.md` that show jobs, `needs`, and reusable-workflow relationships rather than trying to reproduce the exact GitHub Actions UI
 - when adding a new AWS infra type or service family, check whether the deploy role in `infra/live/global_vars.hcl` needs additional `allowed_role_actions` and update it in the same change if required
 
 ### Documentation Architecture

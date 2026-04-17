@@ -12,7 +12,7 @@ Lambda + ECS with CodeDeploy rollouts, plus provisioned concurrency controls for
 
 ## Read This Next
 
-- CI contracts and feasibility checks: [.github/WORKFLOWS.md](.github/WORKFLOWS.md)
+- CI contracts and feasibility checks: [.github/README.md](.github/README.md)
 - Lambda source layout: [lambdas/README.md](lambdas/README.md)
 - Container source layout: [containers/README.md](containers/README.md)
 - Infra layout and stack glossary: [infra/README.md](infra/README.md)
@@ -93,7 +93,7 @@ The frontend infra module also uploads a bootstrap `index.html` during infra app
 - `*_code` workflows deploy feature code only
 - infra re-runs do not roll out new code
 - code deploys should pass explicit runtime versions, including `ecs_version` for ECS rollouts
-- detailed workflow contracts live in [.github/WORKFLOWS.md](.github/WORKFLOWS.md)
+- detailed workflow contracts live in [.github/README.md](.github/README.md)
 
 See [lambdas/README.md](lambdas/README.md) and [containers/README.md](containers/README.md) for runtime source layout, build behavior, and boilerplate patterns.
 
