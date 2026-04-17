@@ -36,5 +36,5 @@ Lambda source directories for this boilerplate.
 
 ## Related Docs
 
-- deployment and rollout rules: [infra/modules/aws/_shared/lambda/README.md](/Users/chrissheehan/git/chrispsheehan/aws-serverless-github-deploy/infra/modules/aws/_shared/lambda/README.md)
-- shared infra context: [infra/README.md](/Users/chrissheehan/git/chrispsheehan/aws-serverless-github-deploy/infra/README.md)
+- deployment and rollout rules: [infra/modules/aws/_shared/lambda/README.md](../infra/modules/aws/_shared/lambda/README.md)
+- shared infra context: [infra/README.md](../infra/README.md)

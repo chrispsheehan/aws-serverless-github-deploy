@@ -36,5 +36,5 @@ Container source directories for this boilerplate.
 
 ## Related Docs
 
-- ECS service rules: [infra/modules/aws/_shared/service/README.md](/Users/chrissheehan/git/chrispsheehan/aws-serverless-github-deploy/infra/modules/aws/_shared/service/README.md)
-- shared infra context: [infra/README.md](/Users/chrissheehan/git/chrispsheehan/aws-serverless-github-deploy/infra/README.md)
+- ECS service rules: [infra/modules/aws/_shared/service/README.md](../infra/modules/aws/_shared/service/README.md)
+- shared infra context: [infra/README.md](../infra/README.md)

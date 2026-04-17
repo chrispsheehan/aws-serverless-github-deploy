@@ -27,6 +27,8 @@ Shared ECS service module.
 - `bootstrap`
 - `bootstrap_image_uri`
 - `codedeploy_alarm_names`
+- `desired_task_count`
+- `scaling_strategy`
 - optional `dedicated_listener_port`
 
 Subpath services match both `/<root_path>` and `/<root_path>/*`.
@@ -107,6 +109,30 @@ deployment_strategy = "blue_green"
 - in this repo, subpath ECS services need a dedicated ALB listener if they are meant to use CodeDeploy blue/green
 - if `connection_type = "internal"`, prefer `rolling`
 - for internal non-load-balanced services, the deploy workflow falls back to native ECS rolling updates
+
+## Scaling Patterns
+
+Use `desired_task_count` as the steady-state baseline and `scaling_strategy` when you want autoscaling above that baseline.
+
+### Fixed task count
+
+- use for predictable or low-volume services where a fixed number of tasks is enough
+- leave `scaling_strategy = {}`
+
+### CPU scaling
+
+- use when task CPU is the best leading signal for scale pressure
+- best fit for internal workers or APIs whose load correlates with compute saturation
+
+### SQS scaling
+
+- use for queue-driven workers
+- scale decisions are based on the named queue's visible-message count
+
+### ALB request scaling
+
+- use for load-balanced HTTP services
+- scale decisions are based on target requests per task behind the ALB
 
 ## CI / Deploy Expectations
 

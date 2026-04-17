@@ -3,12 +3,12 @@
 **Terraform + GitHub Actions for AWS serverless deployments.**  
 Lambda + ECS with CodeDeploy rollouts, plus provisioned concurrency controls for Lambda — driven by clean module variables and `just` recipes.
 
-Workflow dependency diagrams, CI contracts, and feasibility checks live in [.github/README.md](/Users/chrissheehan/git/chrispsheehan/aws-serverless-github-deploy/.github/README.md).
-The repo vendors its internal GitHub Actions under [.github/actions](</Users/chrissheehan/git/chrispsheehan/aws-serverless-github-deploy/.github/actions>), so workflow `uses:` references point at local paths rather than external action tags.
+Workflow dependency diagrams, CI contracts, and feasibility checks live in [.github/README.md](.github/README.md).
+The repo vendors its internal GitHub Actions under [.github/actions](.github/actions), so workflow `uses:` references point at local paths rather than external action tags.
 Runtime entry points:
 
-- Lambda source layout: [lambdas/README.md](/Users/chrissheehan/git/chrispsheehan/aws-serverless-github-deploy/lambdas/README.md)
-- Container source layout: [containers/README.md](/Users/chrissheehan/git/chrispsheehan/aws-serverless-github-deploy/containers/README.md)
+- Lambda source layout: [lambdas/README.md](lambdas/README.md)
+- Container source layout: [containers/README.md](containers/README.md)
 
 ---
 
@@ -82,7 +82,7 @@ For frontend DNS, the infra and destroy workflows now read a GitHub environment 
 
 For `*_code` release deploys, pass explicit release versions for each runtime you want to roll out. In particular, ECS code deploys should provide an `ecs_version` rather than relying on a Lambda-version fallback.
 
-See [lambdas/README.md](/Users/chrissheehan/git/chrispsheehan/aws-serverless-github-deploy/lambdas/README.md) and [containers/README.md](/Users/chrissheehan/git/chrispsheehan/aws-serverless-github-deploy/containers/README.md) for runtime source layout, build behavior, and boilerplate patterns.
+See [lambdas/README.md](lambdas/README.md) and [containers/README.md](containers/README.md) for runtime source layout, build behavior, and boilerplate patterns.
 
 ## 🧪 example prompts
 
@@ -172,7 +172,7 @@ When that value is present:
 - the `cognito` stack automatically adds `https://<project_name>.<environment>.<domain_name>` to its Hosted UI callback and logout URLs
 
 The repo still keeps `http://localhost:5173` in Cognito for local Vite development, so local and deployed login can coexist.
-For local `vite` dev, the repo includes [`frontend/public/auth-config.json`](</Users/chrissheehan/git/chrispsheehan/aws-serverless-github-deploy/frontend/public/auth-config.json>) as a disabled placeholder; update that file locally if you want the localhost frontend to use the same Cognito flow.
+For local `vite` dev, the repo includes [`frontend/public/auth-config.json`](frontend/public/auth-config.json) as a disabled placeholder; update that file locally if you want the localhost frontend to use the same Cognito flow.
 
 ## ⚙️ types of lambda provisioned concurrency
 
@@ -220,13 +220,80 @@ provisioned_config = {
     }
 }
 ```
-- before scaling the lambda alias will match the minmum value
-![a](docs/diagrams/lambda-config-before.png)
-- when the trigger percent is exceeded the lambda moves into `In progress (1/2)` state as an additional provisioned lambda is added.
-![a](docs/diagrams/lambda-scaling-up.png)
-- after scaling the lambda alias will show an additional provisioned lambda
-![a](docs/diagrams/lambda-config-after.png)
 
+## ⚙️ types of ecs service scaling
+
+```hcl
+module "service_example" {
+  source = "../_shared/service"
+  ...
+  desired_task_count = 1
+  scaling_strategy   = var.your_scaling_strategy
+}
+```
+
+#### ✅ [default] Fixed task count
+- use case: predictable workloads or low-volume services
+- keep a fixed baseline task count and disable autoscaling
+```hcl
+desired_task_count = 1
+
+scaling_strategy = {}
+```
+
+#### 🧠 Scale on CPU
+- use case: services where CPU saturation is the clearest scale signal
+```hcl
+desired_task_count = 1
+
+scaling_strategy = {
+  max_scaled_task_count = 4
+  cpu = {
+    scale_out_threshold  = 70
+    scale_in_threshold   = 30
+    scale_out_adjustment = 1
+    scale_in_adjustment  = -1
+    cooldown_out         = 120
+    cooldown_in          = 300
+  }
+}
+```
+
+#### 📨 Scale on SQS depth
+- use case: queue-driven workers
+```hcl
+desired_task_count = 1
+
+scaling_strategy = {
+  max_scaled_task_count = 6
+  sqs = {
+    queue_name           = "my-worker-queue"
+    scale_out_threshold  = 10
+    scale_in_threshold   = 0
+    scale_out_adjustment = 1
+    scale_in_adjustment  = -1
+    cooldown_out         = 60
+    cooldown_in          = 300
+  }
+}
+```
+
+#### 🌐 Scale on ALB requests per task
+- use case: load-balanced HTTP services
+```hcl
+desired_task_count = 2
+
+scaling_strategy = {
+  max_scaled_task_count = 6
+  alb = {
+    target_requests_per_task = 100
+    cooldown_out             = 60
+    cooldown_in              = 300
+  }
+}
+```
+
+- detailed ECS scaling and deployment rules live in [infra/modules/aws/_shared/service/README.md](infra/modules/aws/_shared/service/README.md)
 
 ## 🚦 deployment overview
 
@@ -246,8 +313,8 @@ flowchart TD
   ecs_lb --> ecs_cd["all_at_once / canary / linear / blue_green"]
 ```
 
-- Lambda deployment rules live in [infra/modules/aws/_shared/lambda/README.md](/Users/chrissheehan/git/chrispsheehan/aws-serverless-github-deploy/infra/modules/aws/_shared/lambda/README.md)
-- ECS deployment strategy and connection-type rules live in [infra/modules/aws/_shared/service/README.md](/Users/chrissheehan/git/chrispsheehan/aws-serverless-github-deploy/infra/modules/aws/_shared/service/README.md)
+- Lambda deployment rules live in [infra/modules/aws/_shared/lambda/README.md](infra/modules/aws/_shared/lambda/README.md)
+- ECS deployment strategy and connection-type rules live in [infra/modules/aws/_shared/service/README.md](infra/modules/aws/_shared/service/README.md)
 - use the shared module READMEs as the canonical technical source for deployment decisions and feasibility checks
 
 ## 🔥↩️ deployment roll-back
@@ -265,28 +332,7 @@ module "lambda_example" {
 }
 ```
 - the ECS shared service module accepts the same `codedeploy_alarm_names` input
-- if the alarm triggers during a deployment you will see the below in the CI
-
-```
-📦 Running: lambda-deploy
-🚀 Deployment started: d-40UUQH3DF
-Attempt 1: Deployment status is InProgress
-Attempt 2: Deployment status is InProgress
-Attempt 3: Deployment status is InProgress
-Attempt 4: Deployment status is InProgress
-Attempt 5: Deployment status is Stopped
-❌ Deployment d-40UUQH3DF failed or was stopped.
--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-|                                                                                                                    GetDeployment                                                                                                                    |
-+--------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-|  ErrorCode   |  ALARM_ACTIVE                                                                                                                                                                                                                        |
-|  ErrorMessage|  One or more alarms have been activated according to the Amazon CloudWatch metrics you selected, and the affected deployments have been stopped. Activated alarms: <dev-aws-serverless-github-deploy-api-api-v2-5xx-rate-critical>   |
-|  Status      |  Stopped                                                                                                                                                                                                                             |
-+--------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-error: Recipe `lambda-deploy` failed with exit code 1
-Error: Process completed with exit code 1.
-
-```
+- alarm-driven rollback behavior is part of the shared Lambda and ECS deploy contracts
 
 ## 🚢 deployment strategies
 
