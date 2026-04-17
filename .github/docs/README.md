@@ -61,7 +61,7 @@ flowchart LR
 - `infra.yml`
   Applies shared stacks first, then runtime stacks, then frontend infrastructure.
 - `deploy.yml`
-  Rolls out Lambda code, optional migrations, ECS task and service updates, and optional frontend deploys.
+  Rolls out Lambda code, optional migrations, optional reconciliation Lambdas, ECS task and service updates, and optional frontend deploys.
 
 ```mermaid
 flowchart LR
@@ -69,7 +69,9 @@ flowchart LR
   runtimes --> frontend["Frontend Infra"]
   frontend --> deploy["Code Deploy"]
   deploy --> migrate["Optional Migrations"]
+  deploy --> reconcile["Optional Reconciliation"]
   migrate --> ecs["ECS Rollout"]
+  reconcile --> ecs
 ```
 
 ### Wrapper Workflows

@@ -1,6 +1,6 @@
 # `rds_reader_tagger`
 
-EventBridge-triggered Lambda that syncs cluster tags onto newly created Aurora reader instances.
+EventBridge-triggered and directly invokable Lambda that syncs cluster tags onto Aurora reader instances.
 
 ## Owns
 
@@ -32,10 +32,13 @@ EventBridge-triggered Lambda that syncs cluster tags onto newly created Aurora r
 
 - reads the shared `database` remote state to get the expected Aurora cluster identifier
 - relies on the shared Lambda build and deploy flow for shipping the tagging code
+- when `rds_reader_tagger` is present in the Lambda deploy matrix, the reusable `deploy.yml` workflow invokes it once after Lambda rollout so existing readers are reconciled too
 
 ## Runtime Behavior
 
 - listens for `RDS-EVENT-0005` through EventBridge
-- derives the parent Aurora cluster from the new DB instance
-- copies the cluster's non-AWS tags onto the new reader instance
+- when directly invoked with an empty payload, scans all current readers in the expected cluster
+- derives the parent Aurora cluster from the new DB instance for event-driven reconciles
+- copies the cluster's non-AWS tags onto reader instances
 - skips events that do not belong to the expected cluster for the current environment
+- is idempotent, so repeated direct invokes are safe for CI-triggered reconciliation

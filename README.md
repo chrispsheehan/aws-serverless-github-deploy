@@ -6,7 +6,7 @@ Lambda + ECS with CodeDeploy rollouts, plus provisioned concurrency controls for
 ## What This Repo Gives You
 
 - shared Terraform/Terragrunt patterns for Lambda, ECS, frontend, database, auth, and messaging
-- event-driven automation hooks around shared infrastructure, such as EventBridge-triggered helper Lambdas
+- event-driven and directly invokable automation hooks around shared infrastructure, such as helper Lambdas for reconciliation tasks
 - GitHub Actions workflows for infra apply, artifact build, code deploy, and destroy
 - shared deployment contracts for Lambda and ECS
 - boilerplate runtime layouts for Lambda functions and ECS services
@@ -93,6 +93,7 @@ The frontend infra module also uploads a bootstrap `index.html` during infra app
 - `*_infra` workflows apply infrastructure only
 - `*_code` workflows deploy feature code only
 - infra re-runs do not roll out new code
+- the reusable code deploy workflow can also invoke post-deploy helper Lambdas, such as migrations or reconciliation helpers, when they are present in the Lambda matrix
 - code deploys should pass explicit runtime versions, including `ecs_version` for ECS rollouts
 - detailed workflow contracts live in [.github/docs/README.md](.github/docs/README.md)
 
