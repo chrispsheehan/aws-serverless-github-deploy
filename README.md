@@ -5,6 +5,10 @@ Lambda + ECS with CodeDeploy rollouts, plus provisioned concurrency controls for
 
 Workflow dependency diagrams and CI orchestration notes live in [docs/ci/README.md](/Users/chrissheehan/git/chrispsheehan/aws-serverless-github-deploy/docs/ci/README.md).
 The repo vendors its internal GitHub Actions under [.github/actions](</Users/chrissheehan/git/chrispsheehan/aws-serverless-github-deploy/.github/actions>), so workflow `uses:` references point at local paths rather than external action tags.
+Runtime entry points:
+
+- Lambda source layout: [lambdas/README.md](/Users/chrissheehan/git/chrispsheehan/aws-serverless-github-deploy/lambdas/README.md)
+- Container source layout: [containers/README.md](/Users/chrissheehan/git/chrispsheehan/aws-serverless-github-deploy/containers/README.md)
 
 ---
 
@@ -78,27 +82,7 @@ For frontend DNS, the infra and destroy workflows now read a GitHub environment 
 
 For `*_code` release deploys, pass explicit release versions for each runtime you want to roll out. In particular, ECS code deploys should provide an `ecs_version` rather than relying on a Lambda-version fallback.
 
-Shared stack patterns:
-
-- `worker_messaging` is the shared SNS-plus-SQS fanout pattern for Lambda and ECS worker runtimes.
-- `database` is the shared Aurora PostgreSQL pattern for runtimes that need relational storage.
-- `cognito` is the shared Hosted UI and JWT-auth pattern for frontend and API protection.
-
-Migration flow:
-
-- `migrations` is the boilerplate Lambda shape for schema changes against the shared database.
-- it uses packaged SQLAlchemy models, not an external migration CLI.
-- it sets `timeout_seconds = 120` to avoid the default 3-second Lambda timeout during database and VPC startup.
-- when `migrations` is in the Lambda deploy matrix, the reusable code deploy workflow invokes it after Lambda rollout.
-- ECS rollout is not implicitly blocked on Lambda or migration jobs unless a workflow adds that ordering.
-- Lambda discovery includes top-level directories under `lambdas/` but ignores the generated `lambdas/build` directory, so `migrations` participates in normal Lambda build and deploy flow without polluting the matrix.
-
-ECS runtime notes:
-
-- bootstrap-friendly ECS service applies can use placeholder task and dependency values instead of forcing early remote-state coupling.
-- non-HTTP worker tasks can use a local heartbeat-file health check rather than probing a service endpoint.
-- shared tracing helpers live under `containers/shared`, so ECS APIs and workers can emit X-Ray traces when `xray_enabled = true`.
-- `containers/shared` is helper code only and is intentionally excluded from the CI ECS image and service discovery matrix.
+See [lambdas/README.md](/Users/chrissheehan/git/chrispsheehan/aws-serverless-github-deploy/lambdas/README.md) and [containers/README.md](/Users/chrissheehan/git/chrispsheehan/aws-serverless-github-deploy/containers/README.md) for runtime source layout, build behavior, and boilerplate patterns.
 
 ## 🧪 example prompts
 

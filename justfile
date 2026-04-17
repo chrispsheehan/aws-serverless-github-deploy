@@ -443,6 +443,7 @@ lambda-build:
     if [[ -d "{{PROJECT_DIR}}/{{LAMBDA_DIR}}/$LAMBDA_NAME/database_models" ]]; then
         cp -R "{{PROJECT_DIR}}/{{LAMBDA_DIR}}/$LAMBDA_NAME/database_models" "$LAMBDA_BUILD_DIR/$LAMBDA_NAME/"
     fi
+    find "$LAMBDA_BUILD_DIR/$LAMBDA_NAME" -type f -name '*.md' -delete
     (
         cd "$LAMBDA_BUILD_DIR/$LAMBDA_NAME"
         zip -r "../../$LAMBDA_NAME.zip" . > /dev/null
