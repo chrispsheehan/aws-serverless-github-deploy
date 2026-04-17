@@ -87,11 +87,13 @@ Terragrunt also provides a shared default ECR repository name to ECS task module
 
 The frontend infra module also uploads a bootstrap `index.html` during infra apply so CloudFront serves a placeholder page before the built frontend assets are deployed.
 
-The reusable deploy workflows follow the same split: `prod` `*_code` and `*_infra` wrappers read shared artifact resources from `ci`, but `*_infra` only applies `prod` infrastructure stacks using the repo's directory-derived service and lambda matrices.
-The infra workflow now applies `cognito` before `network` so the shared HTTP API authorizer can be created centrally, and the destroy workflow tears Cognito down only after `network` and frontend consumers are gone so JWT-authenticated routes do not race their auth upstream on destroy.
-For frontend DNS, the infra and destroy workflows now read a GitHub environment variable named `DOMAIN_NAME` and pass it into the `frontend` and `cognito` stacks.
+### Workflow Split
 
-For `*_code` release deploys, pass explicit release versions for each runtime you want to roll out. In particular, ECS code deploys should provide an `ecs_version` rather than relying on a Lambda-version fallback.
+- `*_infra` workflows apply infrastructure only
+- `*_code` workflows deploy feature code only
+- infra re-runs do not roll out new code
+- code deploys should pass explicit runtime versions, including `ecs_version` for ECS rollouts
+- detailed workflow contracts live in [.github/README.md](.github/README.md)
 
 See [lambdas/README.md](lambdas/README.md) and [containers/README.md](containers/README.md) for runtime source layout, build behavior, and boilerplate patterns.
 
