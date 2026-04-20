@@ -4,6 +4,7 @@ Repo-local GitHub Action and CLI for detecting changed-file categories from git 
 
 The GitHub Action runs through this directory's Docker image, so the containerized local path matches the workflow execution path.
 The action directory also contains its own `justfile`, but it is only a local test harness.
+Inside GitHub Actions, the script resolves the checkout from `GITHUB_WORKSPACE` rather than assuming a fixed Docker working directory.
 
 ## Local Usage
 

@@ -127,6 +127,7 @@ class PathsFilterCliTests(unittest.TestCase):
             )
             payload = json.loads(result.stdout)
 
+            self.assertEqual(Path(payload["workspace"]).resolve(), repo.resolve())
             self.assertEqual(payload["diffRange"], "main..HEAD")
             self.assertEqual(payload["outputs"]["terraform"], "true")
             self.assertEqual(payload["outputs"]["terragrunt"], "true")
@@ -134,6 +135,38 @@ class PathsFilterCliTests(unittest.TestCase):
             self.assertEqual(payload["outputs"]["frontend"], "true")
             self.assertEqual(payload["outputs"]["lambdas"], "false")
             self.assertEqual(payload["outputs"]["containers"], "false")
+
+    def test_cli_honors_github_workspace(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / "repo"
+            repo.mkdir()
+            git(repo, "init", "-b", "main")
+            git(repo, "config", "user.name", "Test User")
+            git(repo, "config", "user.email", "test@example.com")
+
+            (repo / ".github").mkdir(parents=True)
+            (repo / ".github" / "test.txt").write_text("x\n", encoding="utf-8")
+            git(repo, "add", ".")
+            git(repo, "commit", "-m", "chore: init")
+            git(repo, "checkout", "-b", "feature")
+
+            (repo / "frontend").mkdir()
+            (repo / "frontend" / "x.txt").write_text("x\n", encoding="utf-8")
+            git(repo, "add", ".")
+            git(repo, "commit", "-m", "feat: update frontend")
+
+            result = subprocess.run(
+                ["python3", str(ACTION_DIR / "paths_filter.py"), "--ref", "main"],
+                cwd=repo.parent,
+                check=True,
+                text=True,
+                capture_output=True,
+                env=os.environ | {"GITHUB_WORKSPACE": str(repo)},
+            )
+            payload = json.loads(result.stdout)
+
+            self.assertEqual(Path(payload["workspace"]).resolve(), repo.resolve())
+            self.assertEqual(payload["outputs"]["frontend"], "true")
 
 
 if __name__ == "__main__":

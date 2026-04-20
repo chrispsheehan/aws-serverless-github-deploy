@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+from pathlib import Path
 import subprocess
 import sys
 from typing import Iterable
@@ -20,9 +21,21 @@ CATEGORY_PREFIXES = {
 }
 
 
+def resolve_workspace() -> Path:
+    workspace = os.environ.get("GITHUB_WORKSPACE")
+    if workspace:
+        return Path(workspace)
+    current = Path.cwd().resolve()
+    for candidate in (current, *current.parents):
+        if (candidate / ".git").exists():
+            return candidate
+    return current
+
+
 def run_git(*args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         ["git", *args],
+        cwd=resolve_workspace(),
         check=check,
         text=True,
         capture_output=True,
@@ -81,6 +94,9 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
+    workspace = resolve_workspace()
+    if not (workspace / ".git").exists():
+        raise RuntimeError(f"Not a git repository: {workspace}")
     diff_range, warning = resolve_diff_range(args.ref)
     paths = changed_files(diff_range)
     outputs = classify_paths(paths)
@@ -88,6 +104,7 @@ def main() -> int:
 
     payload = {
         "ref": args.ref,
+        "workspace": str(workspace),
         "diffRange": diff_range,
         "changedFiles": paths,
         "outputs": outputs,
@@ -98,6 +115,7 @@ def main() -> int:
 
     if args.format == "pretty":
         print(f"ref: {payload['ref']}")
+        print(f"workspace: {payload['workspace']}")
         print(f"diff_range: {payload['diffRange']}")
         print("changed_files:")
         for path in payload["changedFiles"]:
