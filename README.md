@@ -10,6 +10,10 @@ Lambda + ECS with CodeDeploy rollouts, plus provisioned concurrency controls for
 - GitHub Actions workflows for infra apply, artifact build, code deploy, and destroy
 - shared deployment contracts for Lambda and ECS
 - boilerplate runtime layouts for Lambda functions and ECS services
+- shared JSON logging for Lambda and ECS runtimes through CloudWatch
+- async worker paths can propagate trace headers from `lambda_api` through SNS/SQS into the ECS worker and its database span
+
+That async trace propagation uses the AWS X-Ray OpenTelemetry propagator so ECS consumers can continue the AWS-native trace context emitted from the Lambda side, rather than only understanding W3C `traceparent` headers.
 
 ## Read This Next
 
@@ -17,6 +21,7 @@ Lambda + ECS with CodeDeploy rollouts, plus provisioned concurrency controls for
 - Lambda source layout: [lambdas/README.md](lambdas/README.md)
 - Container source layout: [containers/README.md](containers/README.md)
 - Infra layout and stack glossary: [infra/README.md](infra/README.md)
+- Shared runtime log dashboard for the primary Lambda and ECS request/worker runtimes, with default views biased toward structured app events instead of Lambda platform noise: [infra/modules/aws/observability/README.md](infra/modules/aws/observability/README.md)
 
 The repo vendors its internal GitHub Actions under [.github/actions](.github/actions), so workflow `uses:` references point at local paths rather than external action tags.
 
@@ -86,7 +91,7 @@ Terragrunt also provides a shared default ECR repository name to ECS task module
 - the concrete ECS worker task wrapper defaults `local_tunnel = false` and `xray_enabled = false` unless you explicitly set them
 - in `dev`, `otel_sampling_percentage` is set to `100` so ECS traces are easy to verify while iterating
 
-The frontend infra module also uploads a bootstrap `index.html` during infra apply so CloudFront serves a placeholder page before the built frontend assets are deployed.
+The frontend infra module also uploads a bootstrap `index.html` during infra apply so CloudFront serves a placeholder page before the built frontend assets are deployed. The deployed frontend runtime config also includes a direct link to the environment's CloudWatch observability dashboard.
 
 ### Workflow Split
 
@@ -118,6 +123,17 @@ TOPIC_ARN=arn:aws:sns:eu-west-2:123456789012:aws-serverless-github-deploy-dev-wo
 MESSAGE='{"job_id":"demo-1","source":"local","payload":{"hello":"world"}}' \
 just sns-publish
 ```
+
+Or publish through the public Lambda API:
+
+```sh
+curl -X POST \
+  -H 'Content-Type: application/json' \
+  -d '{"job_id":"demo-1","source":"api","payload":{"hello":"world"}}' \
+  https://<your-domain>/api/messages
+```
+
+The example frontend also includes an authenticated button that gathers browser metadata, page context, timestamp, and geolocation, then publishes that payload through the same SNS fanout path so both worker runtimes receive it and the ECS worker persists it to Aurora PostgreSQL.
 
 ### Run Database Migrations
 

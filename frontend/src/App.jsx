@@ -5,8 +5,17 @@ const TOKEN_STORAGE_KEY = 'auth_tokens'
 const CODE_VERIFIER_STORAGE_KEY = 'pkce_code_verifier'
 
 async function fetchJson(url, accessToken) {
+  return sendJson(url, { accessToken })
+}
+
+async function sendJson(url, { accessToken, method = 'GET', body } = {}) {
   const response = await fetch(url, {
-    headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+    method,
+    headers: {
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+    },
+    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
   })
   const text = await response.text()
 
@@ -154,6 +163,89 @@ function signOut(authConfig) {
   window.location.assign(logoutUrl.toString())
 }
 
+function browserInfoPayload(session) {
+  return {
+    job_id: `browser-telemetry-${crypto.randomUUID()}`,
+    type: 'browser_telemetry',
+    source: 'frontend',
+    captured_at: new Date().toISOString(),
+    auth: {
+      username: session?.claims?.['cognito:username'] || null,
+      email: session?.claims?.email || null,
+      groups: session?.claims?.['cognito:groups'] || [],
+    },
+    page: {
+      href: window.location.href,
+      origin: window.location.origin,
+      path: window.location.pathname,
+      search: window.location.search,
+      referrer: document.referrer || null,
+      title: document.title,
+    },
+    browser: {
+      user_agent: navigator.userAgent,
+      language: navigator.language,
+      languages: navigator.languages,
+      platform: navigator.platform || null,
+      cookie_enabled: navigator.cookieEnabled,
+      online: navigator.onLine,
+      hardware_concurrency: navigator.hardwareConcurrency ?? null,
+      device_memory_gb: navigator.deviceMemory ?? null,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      screen: {
+        width: window.screen.width,
+        height: window.screen.height,
+        color_depth: window.screen.colorDepth,
+        pixel_ratio: window.devicePixelRatio,
+      },
+      viewport: {
+        width: window.innerWidth,
+        height: window.innerHeight,
+      },
+    },
+  }
+}
+
+function getCurrentPosition() {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error('Geolocation is not supported by this browser.'))
+      return
+    }
+
+    navigator.geolocation.getCurrentPosition(resolve, reject, {
+      enableHighAccuracy: true,
+      timeout: 10_000,
+      maximumAge: 60_000,
+    })
+  })
+}
+
+async function buildBrowserTelemetryPayload(session) {
+  const payload = browserInfoPayload(session)
+
+  try {
+    const position = await getCurrentPosition()
+    payload.location = {
+      status: 'available',
+      latitude: position.coords.latitude,
+      longitude: position.coords.longitude,
+      accuracy_meters: position.coords.accuracy,
+      altitude_meters: position.coords.altitude,
+      altitude_accuracy_meters: position.coords.altitudeAccuracy,
+      heading_degrees: position.coords.heading,
+      speed_mps: position.coords.speed,
+    }
+  } catch (error) {
+    payload.location = {
+      status: 'unavailable',
+      error: String(error.message || error),
+    }
+  }
+
+  return payload
+}
+
 export default function App() {
   const [authConfig, setAuthConfig] = useState(null)
   const [session, setSession] = useState(null)
@@ -162,6 +254,10 @@ export default function App() {
   const [lambdaError, setLambdaError] = useState(null)
   const [ecsData, setEcsData] = useState(null)
   const [ecsError, setEcsError] = useState(null)
+  const [publishData, setPublishData] = useState(null)
+  const [publishError, setPublishError] = useState(null)
+  const [publishPending, setPublishPending] = useState(false)
+  const [publishedPayload, setPublishedPayload] = useState(null)
 
   useEffect(() => {
     let ignore = false
@@ -275,6 +371,31 @@ export default function App() {
     </table>
   )
 
+  async function publishMessage() {
+    if (!session?.tokens?.access_token) {
+      return
+    }
+
+    setPublishPending(true)
+    setPublishError(null)
+    setPublishData(null)
+
+    try {
+      const payload = await buildBrowserTelemetryPayload(session)
+      setPublishedPayload(payload)
+      const data = await sendJson('/api/messages', {
+        accessToken: session.tokens.access_token,
+        method: 'POST',
+        body: payload,
+      })
+      setPublishData(data)
+    } catch (error) {
+      setPublishError(error)
+    } finally {
+      setPublishPending(false)
+    }
+  }
+
   return (
     <div style={{ fontFamily: 'monospace', padding: '2rem' }}>
       <h1>Serverless App</h1>
@@ -283,6 +404,13 @@ export default function App() {
         <div style={{ marginBottom: '2rem' }}>
           <p>Signed in as {session.claims.email || session.claims['cognito:username']}</p>
           <p>Groups: {String(session.claims['cognito:groups'] || authConfig.readonlyGroup)}</p>
+          {authConfig.observabilityDashboardUrl && (
+            <p>
+              <a href={authConfig.observabilityDashboardUrl} target="_blank" rel="noreferrer">
+                Open logging dashboard
+              </a>
+            </p>
+          )}
           <button type="button" onClick={() => signOut(authConfig)}>Sign out</button>
         </div>
       )}
@@ -290,6 +418,24 @@ export default function App() {
       {lambdaError && <p style={{ color: 'red' }}>Error: {String(lambdaError)}</p>}
       {lambdaData && renderTable(lambdaData)}
       {!lambdaData && !lambdaError && <p>Loading Lambda response...</p>}
+
+      <h2 style={{ marginTop: '2rem' }}>Publish Worker Message</h2>
+      <p>Send your current browser metadata, page context, timestamp, and geolocation to the shared worker SNS topic through the authenticated Lambda API.</p>
+      <div style={{ marginTop: '1rem' }}>
+        <button type="button" onClick={publishMessage} disabled={publishPending || !session?.tokens?.access_token}>
+          {publishPending ? 'Collecting + publishing...' : 'Send browser telemetry'}
+        </button>
+      </div>
+      {publishError && <p style={{ color: 'red' }}>Publish error: {String(publishError)}</p>}
+      {publishData && renderTable(publishData)}
+      {publishedPayload && (
+        <>
+          <h3 style={{ marginTop: '1rem' }}>Last Published Payload</h3>
+          <pre style={{ maxWidth: '48rem', overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
+            {JSON.stringify(publishedPayload, null, 2)}
+          </pre>
+        </>
+      )}
 
       <h2 style={{ marginTop: '2rem' }}>ECS Response</h2>
       {ecsError && <p style={{ color: 'red' }}>Error: {String(ecsError)}</p>}

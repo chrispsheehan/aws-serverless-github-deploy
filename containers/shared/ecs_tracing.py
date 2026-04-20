@@ -2,17 +2,23 @@ import os
 from contextlib import contextmanager
 from typing import Callable, Mapping
 
-from opentelemetry import propagate, trace
+from opentelemetry import trace
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.propagators.aws import AwsXRayPropagator
+from opentelemetry.propagators.composite import CompositePropagator
 from opentelemetry.sdk.extension.aws.trace import AwsXRayIdGenerator
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.trace import SpanKind, Status, StatusCode
+from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
 
 
 _CONFIGURED = False
-_PROPAGATOR = propagate.get_global_textmap()
+_PROPAGATOR = CompositePropagator([
+    TraceContextTextMapPropagator(),
+    AwsXRayPropagator(),
+])
 
 
 def tracing_enabled() -> bool:

@@ -10,6 +10,7 @@ Update documentation in the same change:
 - keep `.github/docs/README.md` as the source of truth for workflow contracts and CI feasibility checks
 - prefer Mermaid diagrams in `.github/docs/README.md` that show jobs, `needs`, and reusable-workflow relationships rather than trying to reproduce the exact GitHub Actions UI
 - when adding a new AWS infra type or service family, check whether the deploy role in `infra/live/global_vars.hcl` needs additional `allowed_role_actions` and update it in the same change if required
+- when changing the set of deployable Lambda or ECS runtimes, check whether the shared `observability` dashboard still reflects the current runtime surface and update it in the same change if needed
 
 ### Documentation Architecture
 
@@ -75,6 +76,7 @@ When changing CI workflows or Terraform module dependencies, check dependency be
 - avoid cross-runtime ownership when a resource is really part of one app shape; for example, keep the ECS worker queue with `task_worker` rather than making ECS consume `lambda_worker` state
 - when a bootstrap path needs placeholder values, prefer hiding that conditional logic in locals instead of repeating `count`-indexed remote-state references through the module body
 - if you do add a genuinely new stack type, update the discovery and lifecycle workflows too: `get_directories.yml`, `infra.yml`, and `destroy.yml`
+- if you add, rename, or remove a runtime whose logs should appear in the shared CloudWatch dashboard, update the `observability` stack so the dashboard queries stay aligned with the current infra and feature-code shape
 - check required Terraform input variables on destroy paths as well as apply paths; destroy can still fail before resource deletion if required vars are unset
 - make sure every referenced `needs.<job>.outputs.*` value is actually in scope for that job
 - make sure matrix values match the expected naming contract for the workflow, module, or path being used

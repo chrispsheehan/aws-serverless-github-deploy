@@ -2,10 +2,11 @@ import os
 
 import boto3
 
-from lambda_shared import json_response
+from lambda_shared import get_logger, json_response
 
 
 EVENT_ID = "RDS-EVENT-0005"
+logger = get_logger(__name__)
 
 
 def _non_aws_tags(tags):
@@ -91,7 +92,16 @@ def lambda_handler(event, context):
     rds = boto3.client("rds", region_name=os.environ["AWS_REGION"])
 
     if not detail:
-        return json_response(200, _sync_cluster_readers(rds, expected_cluster_id))
+        result = _sync_cluster_readers(rds, expected_cluster_id)
+        logger.info(
+            "rds_reader_tagger_scan_complete",
+            extra={
+                "event": "rds_reader_tagger_scan_complete",
+                "request_id": context.aws_request_id,
+                **result,
+            },
+        )
+        return json_response(200, result)
 
     if event_id != EVENT_ID:
         raise ValueError(f"Unexpected EventID: {event_id}")
@@ -102,6 +112,16 @@ def lambda_handler(event, context):
     reader = rds.describe_db_instances(DBInstanceIdentifier=reader_id)["DBInstances"][0]
     cluster_id = reader.get("DBClusterIdentifier", "")
     if cluster_id != expected_cluster_id:
+        logger.info(
+            "rds_reader_tagger_cluster_mismatch",
+            extra={
+                "event": "rds_reader_tagger_cluster_mismatch",
+                "request_id": context.aws_request_id,
+                "reader_id": reader_id,
+                "cluster_id": cluster_id,
+                "expected_cluster_id": expected_cluster_id,
+            },
+        )
         return json_response(
             200,
             {
@@ -114,4 +134,15 @@ def lambda_handler(event, context):
             },
         )
 
-    return json_response(200, _sync_cluster_readers(rds, cluster_id, reader_ids=[reader_id]))
+    result = _sync_cluster_readers(rds, cluster_id, reader_ids=[reader_id])
+    logger.info(
+        "rds_reader_tagger_event_complete",
+        extra={
+            "event": "rds_reader_tagger_event_complete",
+            "request_id": context.aws_request_id,
+            "source_event_id": event_id,
+            "source_reader_id": reader_id,
+            **result,
+        },
+    )
+    return json_response(200, result)

@@ -29,6 +29,19 @@ jobs:
     name: Discover
     uses: ./.github/workflows/get_directories.yml
 
+  observability:
+    name: Observability
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Destroy observability infra
+        uses: ./.github/actions/terragrunt
+        with:
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          tg_directory: infra/live/${{ inputs.environment }}/aws/observability
+          tg_action: destroy
+
   lambdas:
     name: Lambdas
     runs-on: ubuntu-latest
