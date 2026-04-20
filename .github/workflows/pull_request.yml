@@ -43,6 +43,30 @@ jobs:
       ref: ${{ github.sha }}
     secrets: inherit
 
+  test-next-version-action:
+    name: Next Version Action
+    needs: check-pr-title
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Execute repo-local get-next-version action
+        id: get_next_version
+        uses: ./.github/actions/get-next-version
+        with:
+          major_prefixes: breaking,major
+          minor_prefixes: feat,minor
+          patch_prefixes: fix,chore
+
+      - name: Show action outputs
+        run: |
+          echo "currentVersion=${{ steps.get_next_version.outputs.currentVersion }}"
+          echo "version=${{ steps.get_next_version.outputs.version }}"
+          echo "hasNextVersion=${{ steps.get_next_version.outputs.hasNextVersion }}"
+          echo "bump=${{ steps.get_next_version.outputs.bump }}"
+
   format-github:
     needs: check
     runs-on: ubuntu-latest

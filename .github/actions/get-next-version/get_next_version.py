@@ -42,7 +42,18 @@ class SemVer:
 
 
 def git(*args: str) -> str:
-    return subprocess.check_output(["git", *args], text=True).strip()
+    return subprocess.check_output(["git", *args], text=True, cwd=resolve_workspace()).strip()
+
+
+def resolve_workspace() -> Path:
+    workspace = os.environ.get("GITHUB_WORKSPACE")
+    if workspace:
+        return Path(workspace)
+    current = Path.cwd().resolve()
+    for candidate in (current, *current.parents):
+        if (candidate / ".git").exists():
+            return candidate
+    return current
 
 
 def parse_prefixes(raw: str) -> list[str]:
@@ -67,7 +78,11 @@ def commit_subjects_since(tag: str) -> list[str]:
 
 def has_real_tag(tag: str) -> bool:
     try:
-        subprocess.check_output(["git", "rev-parse", "-q", "--verify", f"refs/tags/{tag}"], text=True)
+        subprocess.check_output(
+            ["git", "rev-parse", "-q", "--verify", f"refs/tags/{tag}"],
+            text=True,
+            cwd=resolve_workspace(),
+        )
     except subprocess.CalledProcessError:
         return False
     return True
@@ -129,6 +144,9 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
+    workspace = resolve_workspace()
+    if not (workspace / ".git").exists():
+        raise RuntimeError(f"Not a git repository: {workspace}")
     current_tag = latest_semver_tag()
     current_version = SemVer.parse(current_tag) or SemVer(0, 0, 0)
     subjects = commit_subjects_since(current_tag)

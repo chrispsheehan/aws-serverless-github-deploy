@@ -4,6 +4,7 @@ Repo-local GitHub Action and CLI for computing the next plain semver tag from co
 
 The GitHub Action itself runs through the same Docker image defined in this directory's `Dockerfile`, so the containerized local test path matches the CI execution path.
 The action directory also contains its own `justfile`, but it is only a local test harness; the Docker action itself runs the Python entrypoint directly.
+Inside GitHub Actions, the script resolves the checkout from `GITHUB_WORKSPACE` rather than assuming a fixed Docker working directory.
 
 ## Local Usage
 
@@ -43,6 +44,12 @@ That preflight covers:
 - case-insensitive prefix matching
 - mixed commit lists where the highest bump level should win
 
+Workspace resolution unit test:
+
+```sh
+just --justfile .github/actions/get-next-version/justfile unit-test
+```
+
 Docker feasibility preflight:
 
 ```sh
@@ -51,6 +58,7 @@ just --justfile .github/actions/get-next-version/justfile docker-feasibility-tes
   --major-prefixes breaking,major \
   --minor-prefixes feat,minor \
   --patch-prefixes fix,chore
+just --justfile .github/actions/get-next-version/justfile docker-unit-test
 ```
 
 Default JSON output:

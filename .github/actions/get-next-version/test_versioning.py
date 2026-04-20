@@ -4,8 +4,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import subprocess
+import tempfile
+import unittest
+from pathlib import Path
 
-from get_next_version import classify_bump, parse_prefixes
+from get_next_version import classify_bump, parse_prefixes, resolve_workspace
 
 
 def parse_args() -> argparse.Namespace:
@@ -163,5 +168,39 @@ def main() -> int:
     return 0 if payload["all_passed"] else 1
 
 
+class WorkspaceResolutionTests(unittest.TestCase):
+    def test_resolve_workspace_walks_up_to_git_root(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / "repo"
+            nested = repo / ".github" / "actions" / "get-next-version"
+            nested.mkdir(parents=True)
+            (repo / ".git").mkdir()
+
+            old_cwd = Path.cwd()
+            try:
+                os.chdir(nested)
+                self.assertEqual(resolve_workspace().resolve(), repo.resolve())
+            finally:
+                os.chdir(old_cwd)
+
+    def test_resolve_workspace_prefers_github_workspace(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / "repo"
+            repo.mkdir()
+            old_value = os.environ.get("GITHUB_WORKSPACE")
+            try:
+                os.environ["GITHUB_WORKSPACE"] = str(repo)
+                self.assertEqual(resolve_workspace().resolve(), repo.resolve())
+            finally:
+                if old_value is None:
+                    os.environ.pop("GITHUB_WORKSPACE", None)
+                else:
+                    os.environ["GITHUB_WORKSPACE"] = old_value
+
+
 if __name__ == "__main__":
-    raise SystemExit(main())
+    if "--run-unittest" in os.sys.argv:
+        os.sys.argv.remove("--run-unittest")
+        unittest.main()
+    else:
+        raise SystemExit(main())

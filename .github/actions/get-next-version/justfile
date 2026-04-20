@@ -14,6 +14,13 @@ feasibility-test *args:
     python3 "{{ACTION_DIR}}/test_versioning.py" "$@"
 
 
+unit-test:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    python3 "{{ACTION_DIR}}/test_versioning.py" --run-unittest
+
+
 docker-build:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -50,3 +57,14 @@ docker-feasibility-test *args:
       aws-serverless-github-deploy/get-next-version \
       /app/test_versioning.py \
       "$@"
+
+
+docker-unit-test:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    docker run --rm \
+      --entrypoint python3 \
+      aws-serverless-github-deploy/get-next-version \
+      /app/test_versioning.py \
+      --run-unittest
