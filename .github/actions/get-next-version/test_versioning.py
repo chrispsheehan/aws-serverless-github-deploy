@@ -29,7 +29,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--patch-prefixes",
-        default="fix,chore",
+        default="fix,chore,docs",
         help="Comma-separated commit prefixes that trigger a patch bump.",
     )
     parser.add_argument(
@@ -114,7 +114,8 @@ def main() -> int:
         {
             "name": "unmatched_subject",
             "subject": "docs: update readme",
-            "expected_feasible": False,
+            "expected_feasible": True,
+            "expected_bump": "patch",
             "actual_bump": bump_for("docs: update readme", major=major, minor=minor, patch=patch),
         },
         {

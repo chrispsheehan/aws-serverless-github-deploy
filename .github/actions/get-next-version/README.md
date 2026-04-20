@@ -14,7 +14,7 @@ Directly on your machine:
 just --justfile .github/actions/get-next-version/justfile local-test \
   --major-prefixes breaking,major \
   --minor-prefixes feat,minor \
-  --patch-prefixes fix,chore
+  --patch-prefixes fix,chore,docs
 ```
 
 In Docker:
@@ -24,7 +24,7 @@ just --justfile .github/actions/get-next-version/justfile docker-build
 just --justfile .github/actions/get-next-version/justfile docker-run \
   --major-prefixes breaking,major \
   --minor-prefixes feat,minor \
-  --patch-prefixes fix,chore
+  --patch-prefixes fix,chore,docs
 ```
 
 Feasibility preflight:
@@ -33,7 +33,7 @@ Feasibility preflight:
 just --justfile .github/actions/get-next-version/justfile feasibility-test \
   --major-prefixes breaking,major \
   --minor-prefixes feat,minor \
-  --patch-prefixes fix,chore
+  --patch-prefixes fix,chore,docs
 ```
 
 That preflight covers:
@@ -57,7 +57,7 @@ just --justfile .github/actions/get-next-version/justfile docker-build
 just --justfile .github/actions/get-next-version/justfile docker-feasibility-test \
   --major-prefixes breaking,major \
   --minor-prefixes feat,minor \
-  --patch-prefixes fix,chore
+  --patch-prefixes fix,chore,docs
 just --justfile .github/actions/get-next-version/justfile docker-unit-test
 ```
 

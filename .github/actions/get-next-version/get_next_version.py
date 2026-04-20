@@ -140,7 +140,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--patch-prefixes",
-        default=os.environ.get("PATCH_PREFIXES", "fix,chore"),
+        default=os.environ.get("PATCH_PREFIXES", "fix,chore,docs"),
         help="Comma-separated commit prefixes that trigger a patch bump.",
     )
     parser.add_argument(

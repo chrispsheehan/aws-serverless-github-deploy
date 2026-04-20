@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       PR_TITLE: ${{ github.event.pull_request.title }}
-      ALLOWED_PREFIXES: "breaking: major: feat: minor: fix: chore:"
+      ALLOWED_PREFIXES: "breaking: major: feat: minor: fix: chore: docs:"
     steps:
       - name: Fail if PR title does not start with an allowed prefix
         run: |
@@ -58,7 +58,7 @@ jobs:
         with:
           major_prefixes: breaking,major
           minor_prefixes: feat,minor
-          patch_prefixes: fix,chore
+          patch_prefixes: fix,chore,docs
 
       - name: Show action outputs
         run: |

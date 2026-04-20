@@ -107,6 +107,7 @@ Run these checks on every CI, workflow, or deploy-contract change.
 ### Release Tagging Checks
 
 - if `release.yml` uses the local version action, keep its configured commit prefixes aligned with the team's commit convention
+- if the allowed PR title prefixes change, update `pull_request.yml` in the same change so the PR gate matches the release bump inputs
 - ensure the release job still reads plain semver tags from repo history in the same format it creates
 
 ### Repo-Local Docker Action Checks

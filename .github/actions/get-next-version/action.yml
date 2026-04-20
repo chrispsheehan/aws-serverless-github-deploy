@@ -13,7 +13,7 @@ inputs:
   patch_prefixes:
     description: "Comma-separated commit subject prefixes that trigger a patch bump"
     required: false
-    default: "fix,chore"
+    default: "fix,chore,docs"
 
 outputs:
   version:
