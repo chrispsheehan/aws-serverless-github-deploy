@@ -93,6 +93,20 @@ def main() -> int:
             "actual_bump": bump_for("major: remove legacy api", major=major, minor=minor, patch=patch),
         },
         {
+            "name": "breaking_bang_minor_prefix",
+            "subject": "feat!: remove legacy auth flow",
+            "expected_feasible": True,
+            "expected_bump": "major",
+            "actual_bump": bump_for("feat!: remove legacy auth flow", major=major, minor=minor, patch=patch),
+        },
+        {
+            "name": "breaking_bang_patch_prefix",
+            "subject": "fix!: remove deprecated response field",
+            "expected_feasible": True,
+            "expected_bump": "major",
+            "actual_bump": bump_for("fix!: remove deprecated response field", major=major, minor=minor, patch=patch),
+        },
+        {
             "name": "unmatched_subject",
             "subject": "docs: update readme",
             "expected_feasible": False,

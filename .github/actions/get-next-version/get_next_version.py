@@ -77,6 +77,9 @@ def classify_bump(subjects: list[str], *, major: list[str], minor: list[str], pa
     bump = None
     for subject in subjects:
         lowered = subject.lower()
+        prefix_segment = lowered.split(":", 1)[0]
+        if prefix_segment.endswith("!"):
+            return "major"
         if any(lowered.startswith(f"{prefix}:") for prefix in major):
             return "major"
         if any(lowered.startswith(f"{prefix}:") for prefix in minor):
