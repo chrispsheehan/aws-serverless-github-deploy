@@ -24,6 +24,7 @@ That async trace propagation uses the AWS X-Ray OpenTelemetry propagator so ECS 
 - Shared runtime log dashboard for the primary Lambda and ECS request/worker runtimes, with default views biased toward structured app events instead of Lambda platform noise: [infra/modules/aws/observability/README.md](infra/modules/aws/observability/README.md)
 
 The repo vendors its internal GitHub Actions under [.github/actions](.github/actions), so workflow `uses:` references point at local paths rather than external action tags.
+The release workflow also uses a repo-local version action that bumps plain semver tags from configurable commit-subject prefixes such as `fix:`, `chore:`, `feat:`, and `minor:`.
 
 ## Prerequisites
 

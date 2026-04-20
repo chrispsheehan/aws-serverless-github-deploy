@@ -28,9 +28,11 @@ Use it when you need to understand:
 ### Release And Validation
 
 - `release.yml`
-  Creates release tags, prepares shared CI artifacts, builds release outputs, and publishes the GitHub release.
+  Creates release tags, prepares shared CI artifacts, builds release outputs, and publishes the GitHub release. Version bumps come from a repo-local action that scans commit subjects since the latest semver tag and matches configurable major/minor/patch prefixes.
 - `pull_request.yml`
   Provides fast validation for workflow syntax, Terraform formatting/linting, and changed runtime builds.
+
+The local version action can also be tested outside GitHub Actions, either by running the Python entrypoint directly or through its dedicated Docker image.
 
 ```mermaid
 flowchart LR
@@ -101,6 +103,11 @@ Run these checks on every CI, workflow, or deploy-contract change.
 - compare every caller `with:` block against the callee `workflow_call.inputs`
 - compare expected outputs against actual `jobs.<job>.outputs.*`
 - verify optional inputs are intentionally omitted, not accidentally missing
+
+### Release Tagging Checks
+
+- if `release.yml` uses the local version action, keep its configured commit prefixes aligned with the team's commit convention
+- ensure the release job still reads plain semver tags from repo history in the same format it creates
 
 ### Runtime Coverage
 
