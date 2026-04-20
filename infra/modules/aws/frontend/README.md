@@ -6,7 +6,7 @@ Static frontend hosting module.
 
 - website bucket and distribution resources
 - bootstrap `index.html` object for first-time infra deploys
-- `auth-config.json` for runtime Cognito/frontend configuration
+- `auth-config.json` for runtime Cognito/frontend configuration, including the environment observability dashboard URL
 - ACM certificate and Route53 alias records for the derived CloudFront custom domain
 - deployment destination for built frontend assets
 - path-based forwarding of `/api/*` requests to the shared API origin
@@ -20,7 +20,7 @@ Static frontend hosting module.
 ## Routing behavior
 
 - `/auth-config.json`
-  served from the frontend bucket with caching disabled so auth configuration changes are visible immediately
+  served from the frontend bucket with caching disabled so auth configuration changes are visible immediately; the file includes Cognito settings and the CloudWatch observability dashboard link for the current environment
 - `/api/*`
   forwarded to API Gateway, stripped to `/*`, and uses CloudFront's managed `AllViewerExceptHostHeader` origin-request policy so `Authorization` and the other viewer headers reach API Gateway for Cognito-backed JWT auth
 - `/api/ecs/*`

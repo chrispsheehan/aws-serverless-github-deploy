@@ -91,7 +91,7 @@ Terragrunt also provides a shared default ECR repository name to ECS task module
 - the concrete ECS worker task wrapper defaults `local_tunnel = false` and `xray_enabled = false` unless you explicitly set them
 - in `dev`, `otel_sampling_percentage` is set to `100` so ECS traces are easy to verify while iterating
 
-The frontend infra module also uploads a bootstrap `index.html` during infra apply so CloudFront serves a placeholder page before the built frontend assets are deployed.
+The frontend infra module also uploads a bootstrap `index.html` during infra apply so CloudFront serves a placeholder page before the built frontend assets are deployed. The deployed frontend runtime config also includes a direct link to the environment's CloudWatch observability dashboard.
 
 ### Workflow Split
 

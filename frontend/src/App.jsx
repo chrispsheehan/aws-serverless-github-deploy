@@ -404,6 +404,13 @@ export default function App() {
         <div style={{ marginBottom: '2rem' }}>
           <p>Signed in as {session.claims.email || session.claims['cognito:username']}</p>
           <p>Groups: {String(session.claims['cognito:groups'] || authConfig.readonlyGroup)}</p>
+          {authConfig.observabilityDashboardUrl && (
+            <p>
+              <a href={authConfig.observabilityDashboardUrl} target="_blank" rel="noreferrer">
+                Open logging dashboard
+              </a>
+            </p>
+          )}
           <button type="button" onClick={() => signOut(authConfig)}>Sign out</button>
         </div>
       )}
