@@ -56,6 +56,16 @@ def resolve_workspace() -> Path:
     return current
 
 
+def ensure_safe_directory() -> None:
+    workspace = resolve_workspace()
+    subprocess.run(
+        ["git", "config", "--global", "--add", "safe.directory", str(workspace)],
+        check=True,
+        text=True,
+        capture_output=True,
+    )
+
+
 def parse_prefixes(raw: str) -> list[str]:
     return [item.strip().lower() for item in raw.split(",") if item.strip()]
 
@@ -147,6 +157,7 @@ def main() -> int:
     workspace = resolve_workspace()
     if not (workspace / ".git").exists():
         raise RuntimeError(f"Not a git repository: {workspace}")
+    ensure_safe_directory()
     current_tag = latest_semver_tag()
     current_version = SemVer.parse(current_tag) or SemVer(0, 0, 0)
     subjects = commit_subjects_since(current_tag)
