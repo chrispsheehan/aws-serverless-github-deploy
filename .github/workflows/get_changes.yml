@@ -47,24 +47,9 @@ jobs:
 
       - name: Detect changed files
         id: filter
-        uses: dorny/paths-filter@v3
+        uses: ./.github/actions/paths-filter
         with:
-          filters: |
-            terraform:
-              - 'infra/modules/**'
-            terragrunt:
-              - 'infra/**'
-            github:
-              - '.github/**'
-            lambdas:
-              - 'lambdas/**'
-            containers:
-              - 'containers/**'
-            frontend:
-              - 'frontend/**'
-          token: ${{ secrets.GITHUB_TOKEN }}
-          list-files: none
-          initial-fetch-depth: 100
+          ref: ${{ inputs.ref }}
 
       - shell: bash
         run: echo "terraform changes - ${{ steps.filter.outputs.terraform }}"

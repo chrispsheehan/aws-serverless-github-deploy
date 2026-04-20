@@ -31,6 +31,8 @@ Use it when you need to understand:
   Creates release tags, prepares shared CI artifacts, builds release outputs, and publishes the GitHub release. Version bumps come from a repo-local action that scans commit subjects since the latest semver tag and matches configurable major/minor/patch prefixes.
 - `pull_request.yml`
   Provides fast validation for workflow syntax, Terraform formatting/linting, and changed runtime builds.
+- `get_changes.yml`
+  Uses a repo-local Docker action to detect path-category changes from git diff, and that action can be exercised locally through its own `justfile` and Docker image before workflow changes land.
 
 The local version action can also be tested outside GitHub Actions, either by running the Python entrypoint directly or through its dedicated Docker image.
 

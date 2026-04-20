@@ -1,0 +1,29 @@
+name: "Paths Filter"
+description: "Detect repo-specific changed-file categories from git diff"
+
+inputs:
+  ref:
+    description: "Git reference to compare from"
+    required: false
+    default: "main"
+
+outputs:
+  terraform:
+    description: "Whether terraform files changed"
+  terragrunt:
+    description: "Whether terragrunt files changed"
+  github:
+    description: "Whether GitHub workflow files changed"
+  lambdas:
+    description: "Whether lambda files changed"
+  containers:
+    description: "Whether container files changed"
+  frontend:
+    description: "Whether frontend files changed"
+
+runs:
+  using: "docker"
+  image: "Dockerfile"
+  args:
+    - --ref
+    - ${{ inputs.ref }}

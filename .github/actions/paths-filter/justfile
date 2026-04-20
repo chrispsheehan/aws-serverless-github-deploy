@@ -1,0 +1,47 @@
+ACTION_DIR := justfile_directory()
+
+local-test *args:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    python3 "{{ACTION_DIR}}/paths_filter.py" "$@"
+
+
+test:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    python3 "{{ACTION_DIR}}/test_paths_filter.py"
+
+
+docker-build:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    docker build \
+      --file "{{ACTION_DIR}}/Dockerfile" \
+      -t aws-serverless-github-deploy/paths-filter \
+      "{{ACTION_DIR}}"
+
+
+docker-run *args:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    repo_root="$(cd "{{ACTION_DIR}}/../../.." && pwd)"
+
+    docker run --rm \
+      -v "$repo_root:/repo" \
+      -w /repo \
+      aws-serverless-github-deploy/paths-filter \
+      "$@"
+
+
+docker-test:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    docker run --rm \
+      --entrypoint python3 \
+      aws-serverless-github-deploy/paths-filter \
+      /app/test_paths_filter.py
