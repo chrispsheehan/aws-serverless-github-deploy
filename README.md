@@ -21,7 +21,7 @@ That async trace propagation uses the AWS X-Ray OpenTelemetry propagator so ECS 
 - Lambda source layout: [lambdas/README.md](lambdas/README.md)
 - Container source layout: [containers/README.md](containers/README.md)
 - Infra layout and stack glossary: [infra/README.md](infra/README.md)
-- Shared runtime log dashboard: [infra/modules/aws/observability/README.md](infra/modules/aws/observability/README.md)
+- Shared runtime log dashboard for the primary Lambda and ECS request/worker runtimes: [infra/modules/aws/observability/README.md](infra/modules/aws/observability/README.md)
 
 The repo vendors its internal GitHub Actions under [.github/actions](.github/actions), so workflow `uses:` references point at local paths rather than external action tags.
 
