@@ -129,6 +129,11 @@ def parse_args() -> argparse.Namespace:
         description="Compute the next semver version from commit subject prefixes since the latest semver tag."
     )
     parser.add_argument(
+        "--subjects",
+        default=os.environ.get("SUBJECTS", ""),
+        help="Optional newline-delimited commit subjects to classify instead of reading git history.",
+    )
+    parser.add_argument(
         "--major-prefixes",
         default=os.environ.get("MAJOR_PREFIXES", "breaking,feat,!feat"),
         help="Comma-separated commit prefixes that trigger a major bump.",
@@ -160,7 +165,9 @@ def main() -> int:
     ensure_safe_directory()
     current_tag = latest_semver_tag()
     current_version = SemVer.parse(current_tag) or SemVer(0, 0, 0)
-    subjects = commit_subjects_since(current_tag)
+    subjects = [line.strip() for line in args.subjects.splitlines() if line.strip()]
+    if not subjects:
+        subjects = commit_subjects_since(current_tag)
 
     bump = classify_bump(
         subjects,

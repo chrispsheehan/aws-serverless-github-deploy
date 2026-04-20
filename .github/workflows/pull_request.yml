@@ -55,6 +55,8 @@ jobs:
       - name: Execute repo-local get-next-version action
         id: get_next_version
         uses: ./.github/actions/get-next-version
+        with:
+          subjects: ${{ github.event.pull_request.title }}
 
       - name: Show action outputs
         run: |

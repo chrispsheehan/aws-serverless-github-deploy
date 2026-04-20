@@ -2,6 +2,10 @@ name: "Get Next Version"
 description: "Compute the next semver tag from commit subject prefixes since the latest semver tag"
 
 inputs:
+  subjects:
+    description: "Optional newline-delimited commit subjects to classify instead of reading git history"
+    required: false
+    default: ""
   major_prefixes:
     description: "Comma-separated commit subject prefixes that trigger a major bump"
     required: false
@@ -29,6 +33,8 @@ runs:
   using: "docker"
   image: "Dockerfile"
   args:
+    - --subjects
+    - ${{ inputs.subjects }}
     - --major-prefixes
     - ${{ inputs.major_prefixes }}
     - --minor-prefixes

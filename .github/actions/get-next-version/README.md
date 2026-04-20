@@ -12,6 +12,11 @@ Default prefix contract:
 - `minor_prefixes`: `minor,fix,patch`
 - `patch_prefixes`: `chore,docs`
 
+Optional override:
+
+- `subjects`: newline-delimited subjects to classify instead of reading git history
+- this is useful in PR validation when you want to preview the version implied by the PR title rather than the branch commit list
+
 ## Local Usage
 
 Directly on your machine:
