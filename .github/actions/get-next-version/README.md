@@ -35,6 +35,14 @@ just --justfile .github/actions/get-next-version/justfile feasibility-test \
   --patch-prefixes fix,chore
 ```
 
+That preflight covers:
+
+- direct pushes with patch, minor, and major prefixes
+- squash/rebase PR subjects
+- default merge-commit subjects that should not match
+- case-insensitive prefix matching
+- mixed commit lists where the highest bump level should win
+
 Docker feasibility preflight:
 
 ```sh

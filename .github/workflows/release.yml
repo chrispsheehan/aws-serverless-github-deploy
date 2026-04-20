@@ -43,7 +43,11 @@ jobs:
       # Only commits with types like fix:, feat:, or breaking changes (feat!: or commits including a BREAKING CHANGE note) will cause the version to increment.
       - name: Get next version
         id: get_next_version
-        uses: thenativeweb/get-next-version@2.7.1
+        uses: ./.github/actions/get-next-version
+        with:
+          major_prefixes: breaking,feat,!feat
+          minor_prefixes: fix
+          patch_prefixes: minor,chore
 
       - name: Show the next version
         run: |

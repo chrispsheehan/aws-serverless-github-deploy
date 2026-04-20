@@ -49,6 +49,10 @@ def bump_for(subject: str, *, major: list[str], minor: list[str], patch: list[st
     return classify_bump([subject], major=major, minor=minor, patch=patch) or ""
 
 
+def bump_for_subjects(subjects: list[str], *, major: list[str], minor: list[str], patch: list[str]) -> str:
+    return classify_bump(subjects, major=major, minor=minor, patch=patch) or ""
+
+
 def main() -> int:
     args = parse_args()
     major = parse_prefixes(args.major_prefixes)
@@ -74,11 +78,64 @@ def main() -> int:
             "expected_feasible": False,
             "actual_bump": bump_for(args.merge_commit_subject, major=major, minor=minor, patch=patch),
         },
+        {
+            "name": "minor_direct_push",
+            "subject": "feat: add reports endpoint",
+            "expected_feasible": True,
+            "expected_bump": "minor",
+            "actual_bump": bump_for("feat: add reports endpoint", major=major, minor=minor, patch=patch),
+        },
+        {
+            "name": "major_direct_push",
+            "subject": "major: remove legacy api",
+            "expected_feasible": True,
+            "expected_bump": "major",
+            "actual_bump": bump_for("major: remove legacy api", major=major, minor=minor, patch=patch),
+        },
+        {
+            "name": "unmatched_subject",
+            "subject": "docs: update readme",
+            "expected_feasible": False,
+            "actual_bump": bump_for("docs: update readme", major=major, minor=minor, patch=patch),
+        },
+        {
+            "name": "case_insensitive_prefix",
+            "subject": "Fix: preserve compatibility",
+            "expected_feasible": True,
+            "expected_bump": "patch",
+            "actual_bump": bump_for("Fix: preserve compatibility", major=major, minor=minor, patch=patch),
+        },
+        {
+            "name": "multi_commit_highest_bump_wins",
+            "subjects": ["chore: tidy", "feat: add billing", "fix: patch worker"],
+            "expected_feasible": True,
+            "expected_bump": "minor",
+            "actual_bump": bump_for_subjects(
+                ["chore: tidy", "feat: add billing", "fix: patch worker"],
+                major=major,
+                minor=minor,
+                patch=patch,
+            ),
+        },
+        {
+            "name": "multi_commit_major_overrides_minor_patch",
+            "subjects": ["fix: patch worker", "feat: add billing", "major: remove legacy api"],
+            "expected_feasible": True,
+            "expected_bump": "major",
+            "actual_bump": bump_for_subjects(
+                ["fix: patch worker", "feat: add billing", "major: remove legacy api"],
+                major=major,
+                minor=minor,
+                patch=patch,
+            ),
+        },
     ]
 
     for check in checks:
         check["actual_feasible"] = bool(check["actual_bump"])
-        check["passes"] = check["actual_feasible"] == check["expected_feasible"]
+        expected_bump = check.get("expected_bump")
+        bump_matches = expected_bump is None or check["actual_bump"] == expected_bump
+        check["passes"] = check["actual_feasible"] == check["expected_feasible"] and bump_matches
 
     payload = {
         "major_prefixes": major,
