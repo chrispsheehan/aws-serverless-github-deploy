@@ -109,6 +109,13 @@ Run these checks on every CI, workflow, or deploy-contract change.
 - if `release.yml` uses the local version action, keep its configured commit prefixes aligned with the team's commit convention
 - ensure the release job still reads plain semver tags from repo history in the same format it creates
 
+### Repo-Local Docker Action Checks
+
+- if a repo-local action uses `runs.using: docker` and needs to read git state, do not assume a fixed working directory inside the image
+- resolve the checkout from `GITHUB_WORKSPACE` first, and otherwise walk up to the nearest `.git` root for local test harnesses
+- before running `git` commands against the mounted checkout in GitHub Actions, add that path to git `safe.directory`
+- when changing a repo-local Docker action, prefer adding a PR validation job that executes the action itself so the real GitHub container path is exercised
+
 ### Runtime Coverage
 
 - if Lambda directories are auto-detected, confirm matching live Terragrunt stacks still exist
