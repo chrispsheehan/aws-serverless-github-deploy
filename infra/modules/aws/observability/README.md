@@ -35,4 +35,6 @@ CloudWatch dashboard for repo runtime logs.
 - filters out Lambda platform `START`, `END`, and `REPORT` lines so the default view focuses on structured app events
 - provides one console place to inspect recent ECS app logs
 - prefers structured ECS app events in the default view rather than raw metadata-heavy log lines
+- exposes one normalized `log_message` column in the default Lambda and ECS app views that prefers the parsed application `message` field and falls back to CloudWatch's raw `@message`
 - provides one console place to inspect recent ECS OTEL sidecar logs
+- keeps the OTEL widget focused on timestamp plus a normalized `log_message` column instead of showing raw CloudWatch source columns by default
