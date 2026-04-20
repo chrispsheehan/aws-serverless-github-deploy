@@ -1,9 +1,9 @@
 locals {
-  name                 = "${var.environment}-${var.project_name}"
-  bucket_name          = "${data.aws_caller_identity.current.account_id}-${local.name}"
-  api_domain           = replace(var.api_invoke_url, "https://", "")
-  frontend_domain_name = "${var.project_name}.${var.environment}.${var.domain_name}"
-  hosted_zone_name     = var.frontend_hosted_zone_name != "" ? trimsuffix(var.frontend_hosted_zone_name, ".") : var.domain_name
+  name                        = "${var.environment}-${var.project_name}"
+  bucket_name                 = "${data.aws_caller_identity.current.account_id}-${local.name}"
+  api_domain                  = replace(var.api_invoke_url, "https://", "")
+  frontend_domain_name        = "${var.project_name}.${var.environment}.${var.domain_name}"
+  hosted_zone_name            = var.frontend_hosted_zone_name != "" ? trimsuffix(var.frontend_hosted_zone_name, ".") : var.domain_name
   observability_dashboard_url = "https://${var.aws_region}.console.aws.amazon.com/cloudwatch/home?region=${var.aws_region}#dashboards:name=${var.environment}-${var.project_name}-observability"
   auth_config = jsonencode({
     enabled                   = true
