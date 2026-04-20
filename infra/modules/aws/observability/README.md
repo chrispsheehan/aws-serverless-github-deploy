@@ -32,5 +32,7 @@ CloudWatch dashboard for repo runtime logs.
 ## Runtime Behavior
 
 - provides one console place to inspect recent primary Lambda logs for the current environment
+- filters out Lambda platform `START`, `END`, and `REPORT` lines so the default view focuses on structured app events
 - provides one console place to inspect recent ECS app logs
+- prefers structured ECS app events in the default view rather than raw metadata-heavy log lines
 - provides one console place to inspect recent ECS OTEL sidecar logs

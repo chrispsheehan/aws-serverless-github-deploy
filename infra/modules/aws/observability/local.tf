@@ -19,7 +19,9 @@ locals {
 
   lambda_logs_query = join("\n", [
     join(" | ", [for group in local.lambda_log_groups : "SOURCE '${group}'"]),
+    "| filter @type not in ['START', 'END', 'REPORT']",
     "| fields @timestamp, level, event, request_id, message, @log",
+    "| filter ispresent(event) or ispresent(level) or ispresent(request_id) or ispresent(message)",
     "| sort @timestamp desc",
     "| limit 100",
   ])
@@ -27,6 +29,7 @@ locals {
   ecs_app_logs_query = join("\n", [
     join(" | ", [for group in local.ecs_app_log_groups : "SOURCE '${group}'"]),
     "| fields @timestamp, level, event, request_id, message_id, service, path, route, message, @log",
+    "| filter ispresent(event) or ispresent(level) or ispresent(request_id) or ispresent(message_id) or ispresent(service) or ispresent(message)",
     "| sort @timestamp desc",
     "| limit 100",
   ])
