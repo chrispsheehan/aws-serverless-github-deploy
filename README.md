@@ -25,7 +25,6 @@ That async trace propagation uses the AWS X-Ray OpenTelemetry propagator so ECS 
 
 The repo vendors its internal GitHub Actions under [.github/actions](.github/actions), so workflow `uses:` references point at local paths rather than external action tags.
 The release workflow also uses a repo-local version action that bumps plain semver tags from configurable commit-subject prefixes such as `fix:`, `chore:`, `feat:`, and `minor:`.
-The shared change-detection workflow also uses a repo-local Docker action, so path-filter behavior can be tested locally and in Docker before changing PR/build gating.
 
 ## Prerequisites
 
