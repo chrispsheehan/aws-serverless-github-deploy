@@ -44,10 +44,6 @@ jobs:
       - name: Get next version
         id: get_next_version
         uses: ./.github/actions/get-next-version
-        with:
-          major_prefixes: breaking,feat,!feat
-          minor_prefixes: fix
-          patch_prefixes: minor,chore,docs
 
       - name: Show the next version
         run: |

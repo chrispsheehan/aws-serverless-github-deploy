@@ -19,17 +19,17 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--major-prefixes",
-        default="breaking,major",
+        default="breaking,feat,!feat",
         help="Comma-separated commit prefixes that trigger a major bump.",
     )
     parser.add_argument(
         "--minor-prefixes",
-        default="feat,minor",
+        default="minor,fix,patch",
         help="Comma-separated commit prefixes that trigger a minor bump.",
     )
     parser.add_argument(
         "--patch-prefixes",
-        default="fix,chore,docs",
+        default="chore,docs",
         help="Comma-separated commit prefixes that trigger a patch bump.",
     )
     parser.add_argument(
@@ -69,12 +69,14 @@ def main() -> int:
             "name": "direct_push_main",
             "subject": args.direct_subject,
             "expected_feasible": True,
+            "expected_bump": "patch",
             "actual_bump": bump_for(args.direct_subject, major=major, minor=minor, patch=patch),
         },
         {
             "name": "pr_merge_squash_or_rebase",
             "subject": args.pr_subject,
             "expected_feasible": True,
+            "expected_bump": "minor",
             "actual_bump": bump_for(args.pr_subject, major=major, minor=minor, patch=patch),
         },
         {
@@ -87,14 +89,13 @@ def main() -> int:
             "name": "minor_direct_push",
             "subject": "feat: add reports endpoint",
             "expected_feasible": True,
-            "expected_bump": "minor",
+            "expected_bump": "major",
             "actual_bump": bump_for("feat: add reports endpoint", major=major, minor=minor, patch=patch),
         },
         {
             "name": "major_direct_push",
             "subject": "major: remove legacy api",
-            "expected_feasible": True,
-            "expected_bump": "major",
+            "expected_feasible": False,
             "actual_bump": bump_for("major: remove legacy api", major=major, minor=minor, patch=patch),
         },
         {
@@ -122,14 +123,14 @@ def main() -> int:
             "name": "case_insensitive_prefix",
             "subject": "Fix: preserve compatibility",
             "expected_feasible": True,
-            "expected_bump": "patch",
+            "expected_bump": "minor",
             "actual_bump": bump_for("Fix: preserve compatibility", major=major, minor=minor, patch=patch),
         },
         {
             "name": "multi_commit_highest_bump_wins",
             "subjects": ["chore: tidy", "feat: add billing", "fix: patch worker"],
             "expected_feasible": True,
-            "expected_bump": "minor",
+            "expected_bump": "major",
             "actual_bump": bump_for_subjects(
                 ["chore: tidy", "feat: add billing", "fix: patch worker"],
                 major=major,

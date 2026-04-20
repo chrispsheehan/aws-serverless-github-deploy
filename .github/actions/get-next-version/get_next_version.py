@@ -130,17 +130,17 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--major-prefixes",
-        default=os.environ.get("MAJOR_PREFIXES", "breaking,major"),
+        default=os.environ.get("MAJOR_PREFIXES", "breaking,feat,!feat"),
         help="Comma-separated commit prefixes that trigger a major bump.",
     )
     parser.add_argument(
         "--minor-prefixes",
-        default=os.environ.get("MINOR_PREFIXES", "feat,minor"),
+        default=os.environ.get("MINOR_PREFIXES", "minor,fix,patch"),
         help="Comma-separated commit prefixes that trigger a minor bump.",
     )
     parser.add_argument(
         "--patch-prefixes",
-        default=os.environ.get("PATCH_PREFIXES", "fix,chore,docs"),
+        default=os.environ.get("PATCH_PREFIXES", "chore,docs"),
         help="Comma-separated commit prefixes that trigger a patch bump.",
     )
     parser.add_argument(

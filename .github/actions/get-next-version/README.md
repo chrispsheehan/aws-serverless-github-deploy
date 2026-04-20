@@ -6,15 +6,21 @@ The GitHub Action itself runs through the same Docker image defined in this dire
 The action directory also contains its own `justfile`, but it is only a local test harness; the Docker action itself runs the Python entrypoint directly.
 Inside GitHub Actions, the script resolves the checkout from `GITHUB_WORKSPACE` rather than assuming a fixed Docker working directory.
 
+Default prefix contract:
+
+- `major_prefixes`: `breaking,feat,!feat`
+- `minor_prefixes`: `minor,fix,patch`
+- `patch_prefixes`: `chore,docs`
+
 ## Local Usage
 
 Directly on your machine:
 
 ```sh
 just --justfile .github/actions/get-next-version/justfile local-test \
-  --major-prefixes breaking,major \
-  --minor-prefixes feat,minor \
-  --patch-prefixes fix,chore,docs
+  --major-prefixes breaking,feat,!feat \
+  --minor-prefixes minor,fix,patch \
+  --patch-prefixes chore,docs
 ```
 
 In Docker:
@@ -22,18 +28,18 @@ In Docker:
 ```sh
 just --justfile .github/actions/get-next-version/justfile docker-build
 just --justfile .github/actions/get-next-version/justfile docker-run \
-  --major-prefixes breaking,major \
-  --minor-prefixes feat,minor \
-  --patch-prefixes fix,chore,docs
+  --major-prefixes breaking,feat,!feat \
+  --minor-prefixes minor,fix,patch \
+  --patch-prefixes chore,docs
 ```
 
 Feasibility preflight:
 
 ```sh
 just --justfile .github/actions/get-next-version/justfile feasibility-test \
-  --major-prefixes breaking,major \
-  --minor-prefixes feat,minor \
-  --patch-prefixes fix,chore,docs
+  --major-prefixes breaking,feat,!feat \
+  --minor-prefixes minor,fix,patch \
+  --patch-prefixes chore,docs
 ```
 
 That preflight covers:
@@ -55,9 +61,9 @@ Docker feasibility preflight:
 ```sh
 just --justfile .github/actions/get-next-version/justfile docker-build
 just --justfile .github/actions/get-next-version/justfile docker-feasibility-test \
-  --major-prefixes breaking,major \
-  --minor-prefixes feat,minor \
-  --patch-prefixes fix,chore,docs
+  --major-prefixes breaking,feat,!feat \
+  --minor-prefixes minor,fix,patch \
+  --patch-prefixes chore,docs
 just --justfile .github/actions/get-next-version/justfile docker-unit-test
 ```
 
