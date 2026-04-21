@@ -1,4 +1,156 @@
 PROJECT_DIR := justfile_directory()
+LAMBDA_DIR := "lambdas"
+FRONTEND_DIR := "frontend"
+
+
+docker-build:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "$CONTAINER_NAME" ]]; then
+        echo "❌ CONTAINER_NAME environment variable is not set."
+        exit 1
+    fi
+
+    TAG="${IMAGE_URI:-$CONTAINER_NAME}"
+
+    docker build \
+      --file "{{PROJECT_DIR}}/Dockerfile" \
+      --build-arg "SERVICE=$CONTAINER_NAME" \
+      --target "$CONTAINER_NAME" \
+      -t "$TAG" \
+      "{{PROJECT_DIR}}"
+
+
+docker-mirror:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "${SOURCE_IMAGE:-}" ]]; then
+        echo "❌ SOURCE_IMAGE environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "${IMAGE_URI:-}" ]]; then
+        echo "❌ IMAGE_URI environment variable is not set."
+        exit 1
+    fi
+
+    docker pull "$SOURCE_IMAGE"
+    docker tag "$SOURCE_IMAGE" "$IMAGE_URI"
+
+
+docker-push:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "${IMAGE_URI:-}" ]]; then
+        echo "❌ IMAGE_URI environment variable is not set."
+        exit 1
+    fi
+
+    registry="${IMAGE_URI%%/*}"
+    aws_region="$(echo "$registry" | cut -d. -f4)"
+
+    if [[ -z "$aws_region" ]]; then
+        echo "❌ Could not determine AWS region from IMAGE_URI: $IMAGE_URI"
+        exit 1
+    fi
+
+    aws ecr get-login-password --region "$aws_region" \
+        | docker login --username AWS --password-stdin "$registry"
+
+    docker push "$IMAGE_URI"
+
+
+lambda-build:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "$LAMBDA_NAME" ]]; then
+        echo "❌ LAMBDA_NAME environment variable is not set."
+        exit 1
+    fi
+
+    python3 -m venv venv
+    source venv/bin/activate
+
+    LAMBDA_BUILD_DIR="{{PROJECT_DIR}}/{{LAMBDA_DIR}}/build"
+
+    echo "🔄 Cleaning previous builds..."
+    rm -rf $LAMBDA_BUILD_DIR
+
+    echo "📦 Building $LAMBDA_NAME Lambda..."
+    pip install --target "$LAMBDA_BUILD_DIR/$LAMBDA_NAME" -r "{{PROJECT_DIR}}/{{LAMBDA_DIR}}/$LAMBDA_NAME/requirements.txt"
+    cp "{{PROJECT_DIR}}/{{LAMBDA_DIR}}/$LAMBDA_NAME"/*.py "$LAMBDA_BUILD_DIR/$LAMBDA_NAME/"
+    cp "{{PROJECT_DIR}}/lambda_shared.py" "$LAMBDA_BUILD_DIR/$LAMBDA_NAME/"
+    cp "{{PROJECT_DIR}}/db_shared.py" "$LAMBDA_BUILD_DIR/$LAMBDA_NAME/"
+    cp "{{PROJECT_DIR}}/runtime_logging.py" "$LAMBDA_BUILD_DIR/$LAMBDA_NAME/"
+    if [[ -d "{{PROJECT_DIR}}/{{LAMBDA_DIR}}/$LAMBDA_NAME/database_models" ]]; then
+        cp -R "{{PROJECT_DIR}}/{{LAMBDA_DIR}}/$LAMBDA_NAME/database_models" "$LAMBDA_BUILD_DIR/$LAMBDA_NAME/"
+    fi
+    find "$LAMBDA_BUILD_DIR/$LAMBDA_NAME" -type f -name '*.md' -delete
+    (
+        cd "$LAMBDA_BUILD_DIR/$LAMBDA_NAME"
+        zip -r "../../$LAMBDA_NAME.zip" . > /dev/null
+    )
+    echo "✅ Done: lambdas/$LAMBDA_NAME.zip"
+
+
+lambda-upload:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "$LAMBDA_NAME" ]]; then
+        echo "❌ LAMBDA_NAME environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "$BUCKET_NAME" ]]; then
+        echo "❌ BUCKET_NAME environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "$VERSION" ]]; then
+        echo "❌ VERSION environment variable is not set."
+        exit 1
+    fi
+
+    LAMBDA_ZIP="{{PROJECT_DIR}}/{{LAMBDA_DIR}}/$LAMBDA_NAME.zip"
+    echo "📤 Uploading $LAMBDA_ZIP to s3://$BUCKET_NAME/lambdas/$VERSION/$LAMBDA_NAME.zip"
+
+    aws s3 cp "$LAMBDA_ZIP" "s3://$BUCKET_NAME/lambdas/$VERSION/$LAMBDA_NAME.zip" \
+        --storage-class STANDARD
+
+
+frontend-build:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "🔄 Cleaning previous builds..."
+    rm -rf {{PROJECT_DIR}}/{{FRONTEND_DIR}}/dist
+    echo "📦 Building frontend..."
+    npm install --prefix {{FRONTEND_DIR}}
+    npm run build --prefix {{FRONTEND_DIR}}
+
+
+frontend-upload:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "$BUCKET_NAME" ]]; then
+        echo "❌ BUCKET_NAME environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "$VERSION" ]]; then
+        echo "❌ VERSION environment variable is not set."
+        exit 1
+    fi
+
+    cd {{PROJECT_DIR}}/dist
+    zip -r {{PROJECT_DIR}}/frontend.zip .
+    aws s3 cp {{PROJECT_DIR}}/frontend.zip "s3://$BUCKET_NAME/frontend/$VERSION/frontend.zip"
+    echo "✅ Frontend uploaded to s3://$BUCKET_NAME/frontend/$VERSION/frontend.zip"
 
 
 lambda-get-version:

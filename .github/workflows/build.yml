@@ -92,6 +92,7 @@ jobs:
           VERSION: ${{ inputs.frontend_version }}
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          justfile_path: justfile.deploy
           just_action: frontend-build frontend-upload
 
   ecr:
@@ -135,6 +136,7 @@ jobs:
           IMAGE_URI: ${{ needs.ecr.outputs.repository_url }}:${{ matrix.value }}-${{ inputs.ecs_version }}
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          justfile_path: justfile.deploy
           just_action: docker-build docker-push
 
       - name: Build ECS image URI list
@@ -172,6 +174,7 @@ jobs:
           VERSION: ${{ inputs.lambda_version }}
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          justfile_path: justfile.deploy
           just_action: lambda-build lambda-upload
 
       - name: Build lambda S3 key list

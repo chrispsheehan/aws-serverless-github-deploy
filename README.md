@@ -109,7 +109,15 @@ See [lambdas/README.md](lambdas/README.md) and [containers/README.md](containers
 
 ## Common Tasks
 
-CI-only helper recipes such as directory discovery, artifact/version checks, and Terraform linting now live in [`justfile.ci`](justfile.ci). CI-only rollout helpers such as Lambda CodeDeploy orchestration and ECS AppSpec/deploy steps now live in [`justfile.deploy`](justfile.deploy). GitHub workflows call those files explicitly via the repo-local `just` action's `justfile_path` input, while local developer and build-oriented recipes remain in the root [`justfile`](justfile).
+CI-only helper recipes such as directory discovery, artifact/version checks, and Terraform linting now live in [`justfile.ci`](justfile.ci). CI-only rollout and build helpers such as Docker image builds, Lambda artifact packaging, Lambda CodeDeploy orchestration, and ECS AppSpec/deploy steps now live in [`justfile.deploy`](justfile.deploy). GitHub workflows call those files explicitly via the repo-local `just` action's `justfile_path` input, while local developer and runtime-oriented recipes remain in the root [`justfile`](justfile).
+
+To run one of those split justfiles locally, call `just` with `--justfile`:
+
+```sh
+just --justfile justfile.ci tf-lint-check
+just --justfile justfile.deploy lambda-get-version
+just --justfile justfile.deploy frontend-build
+```
 
 ### Local Plan Some Infra
 
