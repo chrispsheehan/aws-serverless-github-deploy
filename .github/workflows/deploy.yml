@@ -92,6 +92,7 @@ jobs:
           LAMBDA_ZIP_KEY: ${{ steps.appspec.outputs.lambda_zip_key }}
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          justfile_path: justfile.deploy
           just_action: lambda-create-version
 
       - name: Get current lambda version
@@ -102,6 +103,7 @@ jobs:
           ALIAS_NAME: ${{ steps.get_infra_detail.outputs.lambda_alias_name }}
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          justfile_path: justfile.deploy
           just_action: lambda-get-version
 
       - name: Run CodeDeploy
@@ -117,6 +119,7 @@ jobs:
           APP_SPEC_KEY: ${{ steps.appspec.outputs.lambda_appspec_key }}
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          justfile_path: justfile.deploy
           just_action: lambda-upload-bundle lambda-set-code-deploy-alarms lambda-deploy lambda-prune
 
   migrations:
@@ -335,6 +338,7 @@ jobs:
           CONTAINER_PORT: ${{ steps.get-service-outputs.outputs.container_port }}
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          justfile_path: justfile.deploy
           just_action: ecs-upload-bundle
 
       - name: Run ECS CodeDeploy
@@ -347,6 +351,7 @@ jobs:
           CODE_DEPLOY_GROUP_NAME: ${{ steps.get-service-outputs.outputs.codedeploy_group_name }}
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          justfile_path: justfile.deploy
           just_action: ecs-deploy
 
       - name: Run ECS rolling deploy
@@ -358,4 +363,5 @@ jobs:
           TASK_DEFINITION_ARN: ${{ steps.get-task-outputs.outputs.task_definition_arn }}
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          justfile_path: justfile.deploy
           just_action: ecs-rolling-deploy
