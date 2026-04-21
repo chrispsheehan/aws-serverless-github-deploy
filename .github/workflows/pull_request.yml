@@ -186,7 +186,7 @@ jobs:
     needs: check
     runs-on: ubuntu-latest
     if: ${{ needs.check.outputs.lambdas == 'true' }}
-    name: Lambda Names
+    name: Lambda Pairs
     steps:
       - uses: actions/checkout@v6
       - name: Fail if any lambda directory uses hyphens
