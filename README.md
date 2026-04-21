@@ -109,6 +109,8 @@ See [lambdas/README.md](lambdas/README.md) and [containers/README.md](containers
 
 ## Common Tasks
 
+CI-only helper recipes such as directory discovery, artifact/version checks, and Terraform linting now live in [`justfile.ci`](justfile.ci). GitHub workflows call that file explicitly via the repo-local `just` action's `justfile_path` input, while local developer and deploy recipes remain in the root [`justfile`](justfile).
+
 ### Local Plan Some Infra
 
 Given a Terragrunt file is found at `infra/live/dev/aws/lambda_api/terragrunt.hcl`

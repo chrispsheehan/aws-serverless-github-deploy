@@ -151,6 +151,7 @@ jobs:
           VERSION: ${{ inputs.ecs_version != '' && inputs.ecs_version || inputs.lambda_version }}
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          justfile_path: justfile.ci
           just_action: get-ecr-version-images
 
       - name: Build full image URIs
@@ -184,6 +185,7 @@ jobs:
           VERSION: ${{ inputs.ecs_version != '' && inputs.ecs_version || inputs.lambda_version }}
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          justfile_path: justfile.ci
           just_action: get-ecr-version-tasks
 
       - name: Build ECS service matrix
@@ -210,6 +212,7 @@ jobs:
           VERSION: ${{ inputs.frontend_version != '' && inputs.frontend_version || inputs.lambda_version }}
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          justfile_path: justfile.ci
           just_action: frontend-check-version
 
   lambdas:
@@ -231,6 +234,7 @@ jobs:
           VERSION: ${{ inputs.lambda_version }}
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          justfile_path: justfile.ci
           just_action: lambda-check-version
 
       - name: Get lambda names
@@ -241,6 +245,7 @@ jobs:
           VERSION: ${{ inputs.lambda_version }}
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          justfile_path: justfile.ci
           just_action: get-version-files
 
       - name: Get lambda S3 keys
@@ -251,4 +256,5 @@ jobs:
           VERSION: ${{ inputs.lambda_version }}
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          justfile_path: justfile.ci
           just_action: get-version-file-keys

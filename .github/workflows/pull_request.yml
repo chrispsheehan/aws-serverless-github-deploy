@@ -180,6 +180,7 @@ jobs:
       - name: "Run terraform lint checks"
         uses: ./.github/actions/just
         with:
+          justfile_path: justfile.ci
           just_action: tf-lint-check
 
   check-lambda-naming:

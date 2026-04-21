@@ -243,6 +243,7 @@ jobs:
           TASK_NAME: ${{ matrix.value }}
         uses: ./.github/actions/just
         with:
+          justfile_path: justfile.ci
           just_action: ecs-task-get-image-uris
 
       - name: Set image outputs
