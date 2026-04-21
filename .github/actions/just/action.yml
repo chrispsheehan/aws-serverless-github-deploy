@@ -15,6 +15,10 @@ inputs:
   just_action:
     description: "Just command (recipe) to execute"
     required: true
+  justfile_path:
+    description: "Optional path to a specific justfile"
+    required: false
+    default: ""
   mask_result:
     description: "Mask value in CI logs"
     required: true
@@ -52,8 +56,12 @@ runs:
         set -uo pipefail
 
         LOG_FILE="$RUNNER_TEMP/just_${{ inputs.just_action }}_$(date +%s).log"
+        JUSTFILE_ARGS=()
+        if [[ -n "${{ inputs.justfile_path }}" ]]; then
+          JUSTFILE_ARGS=(--justfile "${{ inputs.justfile_path }}")
+        fi
         echo "📦 Running: ${{ inputs.just_action }}"
-        just ${{ inputs.just_action }} 2>&1 | tee "$LOG_FILE"
+        just "${JUSTFILE_ARGS[@]}" ${{ inputs.just_action }} 2>&1 | tee "$LOG_FILE"
         status=${PIPESTATUS[0]}
 
         result="$(tail -n 1 "$LOG_FILE" | tr -d '\r')"
@@ -72,8 +80,13 @@ runs:
         set +e
         set -uo pipefail
 
+        JUSTFILE_ARGS=()
+        if [[ -n "${{ inputs.justfile_path }}" ]]; then
+          JUSTFILE_ARGS=(--justfile "${{ inputs.justfile_path }}")
+        fi
+
         # Capture stdout (not printed)
-        out="$(just ${{ inputs.just_action }} 2>/dev/null || true)"
+        out="$(just "${JUSTFILE_ARGS[@]}" ${{ inputs.just_action }} 2>/dev/null || true)"
         status=$?
 
         secret="$(printf '%s' "$out" | tr -d '\r' | tail -n 1)"

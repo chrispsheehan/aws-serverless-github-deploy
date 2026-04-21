@@ -103,6 +103,7 @@ Run these checks on every CI, workflow, or deploy-contract change.
 - compare every caller `with:` block against the callee `workflow_call.inputs`
 - compare expected outputs against actual `jobs.<job>.outputs.*`
 - verify optional inputs are intentionally omitted, not accidentally missing
+- when using `./.github/actions/just`, check whether the caller needs the repo-root `justfile` or an explicit `justfile_path`
 
 ### Release Tagging Checks
 

@@ -123,7 +123,7 @@ jobs:
     uses: ./.github/workflows/get_directories.yml
 
   action-docker-unit-tests:
-    name: Action Docker Unit Tests
+    name: GH Action Docker Unit Tests
     needs:
       - check
       - format-github
@@ -138,7 +138,10 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Run Docker unit test
-        run: just --justfile ".github/actions/${{ matrix.value }}/justfile" docker-unit-test
+        uses: ./.github/actions/just
+        with:
+          justfile_path: .github/actions/${{ matrix.value }}/justfile
+          just_action: docker-unit-test
 
   format-terragrunt:
     needs: check
