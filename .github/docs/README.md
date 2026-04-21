@@ -28,9 +28,11 @@ Use it when you need to understand:
 ### Release And Validation
 
 - `release.yml`
-  Creates release tags, prepares shared CI artifacts, builds release outputs, and publishes the GitHub release.
+  Creates release tags, prepares shared CI artifacts, builds release outputs, and publishes the GitHub release. Version bumps come from a repo-local action that scans commit subjects since the latest semver tag and matches configurable major/minor/patch prefixes.
 - `pull_request.yml`
-  Provides fast validation for workflow syntax, Terraform formatting/linting, and changed runtime builds.
+  Provides fast validation for workflow syntax, Terraform formatting/linting, changed runtime builds, and a direct execution check of the repo-local `get-next-version` Docker action. The version preview job classifies the PR title, so it reflects the version that would be implied if that PR title lands on `main`.
+
+The local version action can also be tested outside GitHub Actions, either by running the Python entrypoint directly or through its dedicated Docker image.
 
 ```mermaid
 flowchart LR
@@ -101,6 +103,19 @@ Run these checks on every CI, workflow, or deploy-contract change.
 - compare every caller `with:` block against the callee `workflow_call.inputs`
 - compare expected outputs against actual `jobs.<job>.outputs.*`
 - verify optional inputs are intentionally omitted, not accidentally missing
+
+### Release Tagging Checks
+
+- if `release.yml` uses the local version action, keep its configured commit prefixes aligned with the team's commit convention
+- if the allowed PR title prefixes change, update `pull_request.yml` in the same change so the PR gate matches the release bump inputs
+- ensure the release job still reads plain semver tags from repo history in the same format it creates
+
+### Repo-Local Docker Action Checks
+
+- if a repo-local action uses `runs.using: docker` and needs to read git state, do not assume a fixed working directory inside the image
+- resolve the checkout from `GITHUB_WORKSPACE` first, and otherwise walk up to the nearest `.git` root for local test harnesses
+- before running `git` commands against the mounted checkout in GitHub Actions, add that path to git `safe.directory`
+- when changing a repo-local Docker action, prefer adding a PR validation job that executes the action itself so the real GitHub container path is exercised
 
 ### Runtime Coverage
 

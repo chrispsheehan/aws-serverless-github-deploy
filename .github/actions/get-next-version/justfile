@@ -1,0 +1,70 @@
+ACTION_DIR := justfile_directory()
+
+local-test *args:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    python3 "{{ACTION_DIR}}/get_next_version.py" "$@"
+
+
+feasibility-test *args:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    python3 "{{ACTION_DIR}}/test_versioning.py" "$@"
+
+
+unit-test:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    python3 "{{ACTION_DIR}}/test_versioning.py" --run-unittest
+
+
+docker-build:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    docker build \
+      --file "{{ACTION_DIR}}/Dockerfile" \
+      -t aws-serverless-github-deploy/get-next-version \
+      "{{ACTION_DIR}}"
+
+
+docker-run *args:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    repo_root="$(cd "{{ACTION_DIR}}/../../.." && pwd)"
+
+    docker run --rm \
+      -v "$repo_root:/repo" \
+      -w /repo \
+      aws-serverless-github-deploy/get-next-version \
+      "$@"
+
+
+docker-feasibility-test *args:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    repo_root="$(cd "{{ACTION_DIR}}/../../.." && pwd)"
+
+    docker run --rm \
+      --entrypoint python3 \
+      -v "$repo_root:/repo" \
+      -w /repo \
+      aws-serverless-github-deploy/get-next-version \
+      /app/test_versioning.py \
+      "$@"
+
+
+docker-unit-test:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    docker run --rm \
+      --entrypoint python3 \
+      aws-serverless-github-deploy/get-next-version \
+      /app/test_versioning.py \
+      --run-unittest

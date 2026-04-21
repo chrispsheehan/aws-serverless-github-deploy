@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       PR_TITLE: ${{ github.event.pull_request.title }}
-      ALLOWED_PREFIXES: "feat: chore: fix: !feat:"
+      ALLOWED_PREFIXES: "breaking: feat: patch: fix: minor: chore: docs:"
     steps:
       - name: Fail if PR title does not start with an allowed prefix
         run: |
@@ -42,6 +42,28 @@ jobs:
     with:
       ref: ${{ github.sha }}
     secrets: inherit
+
+  test-next-version-action:
+    name: Next Version Action
+    needs: check-pr-title
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Execute repo-local get-next-version action
+        id: get_next_version
+        uses: ./.github/actions/get-next-version
+        with:
+          subjects: ${{ github.event.pull_request.title }}
+
+      - name: Show action outputs
+        run: |
+          echo "currentVersion=${{ steps.get_next_version.outputs.currentVersion }}"
+          echo "version=${{ steps.get_next_version.outputs.version }}"
+          echo "hasNextVersion=${{ steps.get_next_version.outputs.hasNextVersion }}"
+          echo "bump=${{ steps.get_next_version.outputs.bump }}"
 
   format-github:
     needs: check
