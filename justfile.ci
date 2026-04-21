@@ -1,3 +1,7 @@
+# Read-only CI helpers only.
+# This file is for discovery, validation, artifact existence checks, and matrix shaping.
+# Do not put AWS-mutating rollout or deploy commands here.
+
 PROJECT_DIR := justfile_directory()
 LAMBDA_DIR := "lambdas"
 CONTAINERS_DIR := "containers"
