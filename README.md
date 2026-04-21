@@ -25,6 +25,7 @@ That async trace propagation uses the AWS X-Ray OpenTelemetry propagator so ECS 
 
 The repo vendors its internal GitHub Actions under [.github/actions](.github/actions), so workflow `uses:` references point at local paths rather than external action tags.
 The release workflow also uses a repo-local version action that bumps plain semver tags from configurable commit-subject prefixes such as `fix:`, `chore:`, `feat:`, and `minor:`.
+The shared change-detection workflow also uses a repo-local Docker action under [.github/actions/get-changes](.github/actions/get-changes).
 For repo-local Docker actions that read git state, the CI contract is to resolve the checkout from `GITHUB_WORKSPACE` and mark it as a git `safe.directory`; the detailed rule lives in [.github/docs/README.md](.github/docs/README.md).
 
 ## Prerequisites

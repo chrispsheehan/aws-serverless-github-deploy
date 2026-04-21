@@ -35,13 +35,45 @@ jobs:
   check:
     name: Changes
     needs: check-pr-title
+    runs-on: ubuntu-latest
     permissions:
       pull-requests: read
       contents: read
-    uses: ./.github/workflows/get_changes.yml
-    with:
-      ref: ${{ github.sha }}
-    secrets: inherit
+    outputs:
+      terraform: ${{ steps.filter.outputs.terraform }}
+      terragrunt: ${{ steps.filter.outputs.terragrunt }}
+      github: ${{ steps.filter.outputs.github }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      lambdas: ${{ steps.filter.outputs.lambdas }}
+      containers: ${{ steps.filter.outputs.containers }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Detect changed files
+        id: filter
+        uses: ./.github/actions/get-changes
+        with:
+          ref: ${{ github.sha }}
+          base_ref: ${{ github.event.pull_request.base.sha }}
+
+      - shell: bash
+        run: echo "terraform changes - ${{ steps.filter.outputs.terraform }}"
+
+      - shell: bash
+        run: echo "terragrunt changes - ${{ steps.filter.outputs.terragrunt }}"
+
+      - shell: bash
+        run: echo "github changes - ${{ steps.filter.outputs.github }}"
+
+      - shell: bash
+        run: echo "lambdas changes - ${{ steps.filter.outputs.lambdas }}"
+
+      - shell: bash
+        run: echo "frontend changes - ${{ steps.filter.outputs.frontend }}"
 
   test-next-version-action:
     name: Next Version Action
