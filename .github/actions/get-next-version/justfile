@@ -63,6 +63,8 @@ docker-unit-test:
     #!/usr/bin/env bash
     set -euo pipefail
 
+    just --justfile "{{ACTION_DIR}}/justfile" docker-build
+
     docker run --rm \
       --entrypoint python3 \
       aws-serverless-github-deploy/get-next-version \

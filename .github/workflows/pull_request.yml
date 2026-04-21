@@ -40,6 +40,7 @@ jobs:
       pull-requests: read
       contents: read
     outputs:
+      actions: ${{ steps.filter.outputs.actions }}
       terraform: ${{ steps.filter.outputs.terraform }}
       terragrunt: ${{ steps.filter.outputs.terragrunt }}
       github: ${{ steps.filter.outputs.github }}
@@ -59,6 +60,9 @@ jobs:
         with:
           ref: ${{ github.sha }}
           base_ref: ${{ github.event.pull_request.base.sha }}
+
+      - shell: bash
+        run: echo "actions changes - ${{ steps.filter.outputs.actions }}"
 
       - shell: bash
         run: echo "terraform changes - ${{ steps.filter.outputs.terraform }}"
@@ -109,6 +113,32 @@ jobs:
         with:
           shellcheck: false
           pyflakes: false
+
+  setup:
+    name: Discover
+    needs:
+      - check
+      - format-github
+    if: ${{ needs.check.outputs.lambdas == 'true' || needs.check.outputs.containers == 'true' || needs.check.outputs.actions == 'true' }}
+    uses: ./.github/workflows/get_directories.yml
+
+  action-docker-unit-tests:
+    name: Action Docker Unit Tests
+    needs:
+      - check
+      - format-github
+      - setup
+    if: ${{ needs.check.outputs.actions == 'true' }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        value: ${{ fromJson(needs.setup.outputs.action_dirs) }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Run Docker unit test
+        run: just --justfile ".github/actions/${{ matrix.value }}/justfile" docker-unit-test
 
   format-terragrunt:
     needs: check
@@ -212,12 +242,6 @@ jobs:
           fi
 
           echo "✅ All ECS task_/service_ pairs are present."
-
-  setup:
-    name: Discover
-    if: ${{ needs.check.outputs.lambdas == 'true' || needs.check.outputs.containers == 'true' }}
-    needs: check
-    uses: ./.github/workflows/get_directories.yml
 
   build-lambdas:
     name: Build Lambdas

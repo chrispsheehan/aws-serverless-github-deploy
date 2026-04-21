@@ -406,6 +406,21 @@ ecs-service-get-directories:
       '$found | map("service_" + .)'
 
 
+action-get-directories:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    find "{{PROJECT_DIR}}/.github/actions" -mindepth 1 -maxdepth 1 -type d \
+      | while read -r dir; do
+          if [[ -f "$dir/Dockerfile" ]]; then
+            basename "$dir"
+          fi
+        done \
+      | sort \
+      | jq -R . \
+      | jq -s -c .
+
+
 container-get-directories:
     #!/usr/bin/env bash
     set -euo pipefail

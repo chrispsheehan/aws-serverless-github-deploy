@@ -30,7 +30,7 @@ Use it when you need to understand:
 - `release.yml`
   Creates release tags, prepares shared CI artifacts, builds release outputs, and publishes the GitHub release. Version bumps come from a repo-local action that scans commit subjects since the latest semver tag and matches configurable major/minor/patch prefixes.
 - `pull_request.yml`
-  Provides fast validation for workflow syntax, Terraform formatting/linting, changed runtime builds, and a direct execution check of the repo-local `get-next-version` Docker action. The version preview job classifies the PR title, so it reflects the version that would be implied if that PR title lands on `main`. Its `check` job runs the repo-local `get-changes` Docker action directly, using the PR base SHA for a PR-style `base...HEAD` diff.
+  Provides fast validation for workflow syntax, Terraform formatting/linting, changed runtime builds, and a direct execution check of the repo-local `get-next-version` Docker action. The version preview job classifies the PR title, so it reflects the version that would be implied if that PR title lands on `main`. Its `check` job runs the repo-local `get-changes` Docker action directly, using the PR base SHA for a PR-style `base...HEAD` diff. When `.github/actions/**` changed, the workflow reuses `get_directories.yml` to discover action directories with `Dockerfile`s and runs a Docker unit-test matrix for them after the GitHub formatting job.
 
 The local version action can also be tested outside GitHub Actions, either by running the Python entrypoint directly or through its dedicated Docker image.
 
@@ -92,7 +92,7 @@ flowchart LR
 - `destroy.yml`
   Tears down app layers before shared dependencies, including the shared observability dashboard.
 - `get_directories.yml`
-  Derives the directory-based matrices used by wrapper workflows.
+  Derives the directory-based matrices used by wrapper workflows and PR action-test discovery.
 
 ## Feasibility Checks
 

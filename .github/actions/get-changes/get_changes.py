@@ -10,6 +10,7 @@ from pathlib import Path
 
 
 CATEGORY_PREFIXES = {
+    "actions": (".github/actions/",),
     "terraform": ("infra/modules/",),
     "terragrunt": ("infra/",),
     "github": (".github/",),

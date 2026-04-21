@@ -12,6 +12,8 @@ inputs:
     default: ""
 
 outputs:
+  actions:
+    description: "Whether repo-local GitHub action files changed"
   terraform:
     description: "Whether terraform files changed"
   terragrunt:

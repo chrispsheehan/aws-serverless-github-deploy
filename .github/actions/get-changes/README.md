@@ -7,6 +7,7 @@ Inside GitHub Actions, the script resolves the checkout from `GITHUB_WORKSPACE` 
 
 Default path buckets:
 
+- `actions`: `.github/actions/**`
 - `terraform`: `infra/modules/**`
 - `terragrunt`: `infra/**`
 - `github`: `.github/**`

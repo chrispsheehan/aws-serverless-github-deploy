@@ -46,6 +46,7 @@ class GetChangesTests(unittest.TestCase):
         self.assertEqual(
             outputs,
             {
+                "actions": "false",
                 "terraform": "true",
                 "terragrunt": "true",
                 "github": "true",
@@ -121,6 +122,7 @@ class GetChangesTests(unittest.TestCase):
             self.assertEqual(payload["diffRange"], diff_range(base_sha))
             self.assertEqual(payload["outputs"]["frontend"], "true")
             self.assertEqual(payload["outputs"]["github"], "false")
+            self.assertEqual(payload["outputs"]["actions"], "false")
 
 
 if __name__ == "__main__":
