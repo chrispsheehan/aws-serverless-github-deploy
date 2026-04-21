@@ -185,6 +185,7 @@ jobs:
   check-lambda-naming:
     needs: check
     runs-on: ubuntu-latest
+    if: ${{ needs.check.outputs.lambdas == 'true' }}
     name: Lambda Names
     steps:
       - uses: actions/checkout@v6
@@ -200,6 +201,7 @@ jobs:
   check-ecs-module-pairs:
     needs: check
     runs-on: ubuntu-latest
+    if: ${{ needs.check.outputs.containers == 'true' || needs.check.outputs.terragrunt == 'true' }}
     name: ECS Pairs
     steps:
       - uses: actions/checkout@v6
@@ -251,6 +253,7 @@ jobs:
     if: ${{ needs.check.outputs.lambdas == 'true' }}
     needs:
       - check
+      - check-lambda-naming
       - setup
     runs-on: ubuntu-latest
     strategy:
