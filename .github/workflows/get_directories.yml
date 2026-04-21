@@ -16,6 +16,9 @@ on:
       ecs_service_dirs:
         description: "List of ECS service stack directory names"
         value: ${{ jobs.directories.outputs.ecs_service_dirs }}
+      action_dirs:
+        description: "List of repo-local GitHub action directory names with Dockerfiles"
+        value: ${{ jobs.directories.outputs.action_dirs }}
 
 jobs:
   directories:
@@ -26,6 +29,7 @@ jobs:
       service_dirs: ${{ steps.service_dirs.outputs.just_outputs }}
       task_dirs: ${{ steps.task_dirs.outputs.just_outputs }}
       ecs_service_dirs: ${{ steps.ecs_service_dirs.outputs.just_outputs }}
+      action_dirs: ${{ steps.action_dirs.outputs.just_outputs }}
     steps:
       - uses: actions/checkout@v6
 
@@ -58,3 +62,9 @@ jobs:
         uses: ./.github/actions/just
         with:
           just_action: ecs-service-get-directories
+
+      - name: Get Action Directories
+        id: action_dirs
+        uses: ./.github/actions/just
+        with:
+          just_action: action-get-directories
