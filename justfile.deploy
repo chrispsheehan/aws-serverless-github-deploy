@@ -30,7 +30,7 @@ lambda-invoke:
     cat $OUTPUT_FILE
     LAMBDA_STATUS_CODE=$(jq -r '.statusCode // empty' "$OUTPUT_FILE")
 
-    if [ "$LAMBDA_STATUS_CODE" = "200" ]]; then
+    if [[ "$LAMBDA_STATUS_CODE" == "200" ]]; then
         echo "✅ Lambda function completed successfully."
         exit 0
     else
@@ -285,13 +285,23 @@ lambda-create-version:
 # Render the Lambda CodeDeploy AppSpec file with version values.
 lambda-prepare-appspec:
     #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "${APP_SPEC_FILE:-}" ]]; then
+        echo "❌ APP_SPEC_FILE environment variable is not set."
+        exit 1
+    fi
+
+    mkdir -p "$(dirname "$APP_SPEC_FILE")"
+    cp "{{justfile_directory()}}/config/deploy/appspec-lambda.yml" "$APP_SPEC_FILE"
+
     yq eval -i '
       .Resources[0].LambdaFunction.Properties.Name = env(FUNCTION_NAME) |
       .Resources[0].LambdaFunction.Properties.Alias = env(ALIAS_NAME) |
       .Resources[0].LambdaFunction.Properties.CurrentVersion = env(CURRENT_VERSION) |
       .Resources[0].LambdaFunction.Properties.TargetVersion = env(NEW_VERSION)
-    ' $APP_SPEC_FILE
-    cat $APP_SPEC_FILE
+    ' "$APP_SPEC_FILE"
+    cat "$APP_SPEC_FILE"
 
 
 # Zip and upload the rendered Lambda AppSpec bundle.
