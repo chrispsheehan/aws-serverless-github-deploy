@@ -156,6 +156,7 @@ jobs:
           LAMBDA_NAME: ${{ steps.get_infra_detail.outputs.lambda_function_name }}
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          justfile_path: justfile.deploy
           just_action: lambda-invoke
 
   rds-reader-tagger:
@@ -192,6 +193,7 @@ jobs:
           LAMBDA_NAME: ${{ steps.get_infra_detail.outputs.lambda_function_name }}
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          justfile_path: justfile.deploy
           just_action: lambda-invoke
 
   frontend:

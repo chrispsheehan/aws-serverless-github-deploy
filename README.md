@@ -155,7 +155,7 @@ After the infra stack and Lambda code are deployed:
 ```sh
 AWS_REGION=eu-west-2 \
 LAMBDA_NAME=dev-aws-serverless-github-deploy-migrations \
-just lambda-invoke
+just --justfile justfile.deploy lambda-invoke
 ```
 
 ### Open An ECS Worker Debug Shell
