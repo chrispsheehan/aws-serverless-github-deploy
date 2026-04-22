@@ -19,6 +19,9 @@ on:
       action_dirs:
         description: "List of repo-local GitHub action directory names with Dockerfiles"
         value: ${{ jobs.directories.outputs.action_dirs }}
+      terragrunt_dirs:
+        description: "List of live Terragrunt stack config paths"
+        value: ${{ jobs.directories.outputs.terragrunt_dirs }}
 
 jobs:
   directories:
@@ -30,6 +33,7 @@ jobs:
       task_dirs: ${{ steps.task_dirs.outputs.just_outputs }}
       ecs_service_dirs: ${{ steps.ecs_service_dirs.outputs.just_outputs }}
       action_dirs: ${{ steps.action_dirs.outputs.just_outputs }}
+      terragrunt_dirs: ${{ steps.terragrunt_dirs.outputs.just_outputs }}
     steps:
       - uses: actions/checkout@v6
 
@@ -74,3 +78,10 @@ jobs:
         with:
           justfile_path: justfile.ci
           just_action: action-get-directories
+
+      - name: Get Terragrunt Directories
+        id: terragrunt_dirs
+        uses: ./.github/actions/just
+        with:
+          justfile_path: justfile.ci
+          just_action: tg-get-directories

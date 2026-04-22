@@ -22,6 +22,34 @@ tf-lint-check:
         done
 
 
+# Validate a single live Terragrunt stack HCL file without Terraform init.
+tg-hcl-validate-file:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "${TG_CONFIG:-}" ]]; then
+        echo "❌ TG_CONFIG environment variable is not set."
+        exit 1
+    fi
+
+    cd "{{PROJECT_DIR}}/infra/live"
+    echo "🔍 Validating $TG_CONFIG"
+    terragrunt hclvalidate --terragrunt-config "$TG_CONFIG"
+
+
+# Discover live Terragrunt stack config paths for matrix validation.
+tg-get-directories:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    cd "{{PROJECT_DIR}}/infra/live"
+
+    find ci dev prod -name 'terragrunt.hcl' \
+      | sort \
+      | jq -R . \
+      | jq -s -c .
+
+
 # Check that the requested Lambda artifact version exists in the code bucket.
 lambda-check-version:
     #!/usr/bin/env bash
