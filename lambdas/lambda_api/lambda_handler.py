@@ -35,6 +35,17 @@ def _publish_worker_message(payload):
         raise RuntimeError("Missing WORKER_TOPIC_ARN")
 
     trace_attributes = _trace_message_attributes(payload.get("_trace", {}))
+    logger.info(
+        "lambda_api_publish_attempt",
+        extra={
+            "event": "lambda_api_publish_attempt",
+            "topic_name": WORKER_TOPIC_NAME,
+            "topic_arn_present": bool(WORKER_TOPIC_ARN),
+            "message_type": payload.get("type"),
+            "job_id": payload.get("job_id"),
+            "trace_attribute_keys": sorted(trace_attributes.keys()),
+        },
+    )
     response = _sns.publish(
         TopicArn=WORKER_TOPIC_ARN,
         Message=json.dumps(payload),
@@ -118,6 +129,19 @@ def lambda_handler(event, context):
         try:
             payload = _json_body(event)
             payload["_trace"] = _trace_payload(event, context)
+            logger.info(
+                "lambda_api_publish_request",
+                extra={
+                    "event": "lambda_api_publish_request",
+                    "request_id": context.aws_request_id,
+                    "path": path,
+                    "message_type": payload.get("type"),
+                    "job_id": payload.get("job_id"),
+                    "payload_keys": sorted(payload.keys()),
+                    "has_location": "location" in payload,
+                    "has_auth": "auth" in payload,
+                },
+            )
             message_id = _publish_worker_message(payload)
         except (ValueError, json.JSONDecodeError) as exc:
             logger.error(
@@ -134,6 +158,26 @@ def lambda_handler(event, context):
                 {
                     "ok": False,
                     "error": str(exc),
+                },
+            )
+        except Exception as exc:
+            logger.exception(
+                "lambda_api_publish_failed",
+                extra={
+                    "event": "lambda_api_publish_failed",
+                    "request_id": context.aws_request_id,
+                    "path": path,
+                    "topic_name": WORKER_TOPIC_NAME,
+                    "message_type": payload.get("type") if "payload" in locals() else None,
+                    "job_id": payload.get("job_id") if "payload" in locals() else None,
+                    "error": str(exc),
+                },
+            )
+            return json_response(
+                500,
+                {
+                    "ok": False,
+                    "error": "Failed to publish message",
                 },
             )
 
