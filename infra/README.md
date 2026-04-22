@@ -6,6 +6,7 @@ This directory contains the Terraform and Terragrunt layout for the repo.
 
 - `infra/root.hcl`
   Shared Terragrunt root config. This is where remote state, generated provider config, shared inputs, and naming conventions are defined.
+  It does not generate a repo-wide `versions.tf`; provider constraints are owned by the Terraform module or remote source being called, so Terragrunt does not collide with module-local `required_providers` blocks.
 - `infra/modules/aws`
   Reusable Terraform modules.
 - `infra/live/<environment>/aws/<stack>`
@@ -46,9 +47,11 @@ stores state at:
 - `_shared/*`
   Reusable building blocks such as Lambda, ECS task, ECS service, ECR, SQS, cluster, database, and code bucket.
   These modules should stay lift-and-shift friendly: they carry their own `versions.tf` provider constraints so they can be reused outside this repo's Terragrunt root without inheriting repo-only provider policy.
+  OIDC now lives in this shared layer too, so the live `aws/oidc` stacks use `_shared/oidc` rather than an external registry source.
 - concrete modules such as `task_worker`, `service_worker`, `lambda_worker`, `lambda_api`
   Thin wrappers that apply repo-specific behavior on top of shared modules.
   The `database` module is one of those wrappers: it owns the repo's VPC/subnet lookup and passes resolved subnet ids into `_shared/database`.
+  Concrete repo-local modules also own their own `versions.tf`, so provider version policy is explicit at the module boundary rather than injected by Terragrunt root generation.
 
 ## Shared Stack Responsibilities
 

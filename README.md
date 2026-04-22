@@ -56,6 +56,7 @@ just tg prod aws/oidc apply
 ```
 
 The `ci` OIDC role is intentionally narrower than the `dev` and `prod` roles. In this repo it is limited to build-artifact management, including the shared code bucket, IAM interactions needed by the existing CI flow, and publishing container images to ECR. It is not the repo's broad deployment role.
+The GitHub Actions OIDC module is vendored in this repo under [`infra/modules/aws/_shared/oidc`](infra/modules/aws/_shared/oidc), so the `aws/oidc` stacks no longer depend on an external Terraform Registry module.
 
 Role scope summary:
 

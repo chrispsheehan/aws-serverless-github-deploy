@@ -15,5 +15,5 @@ inputs = {
 }
 
 terraform {
-  source = "tfr:///chrispsheehan/github-oidc-role/aws?version=0.2.2"
+  source = "../../../../modules//aws//_shared//oidc"
 }
