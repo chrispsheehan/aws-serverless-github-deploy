@@ -180,6 +180,7 @@ jobs:
       - name: "Run terraform lint checks"
         uses: ./.github/actions/just
         with:
+          justfile_path: justfile.ci
           just_action: tf-lint-check
 
   check-lambda-naming:
@@ -268,6 +269,7 @@ jobs:
         env:
           LAMBDA_NAME: ${{ matrix.value }}
         with:
+          justfile_path: justfile.deploy
           just_action: lambda-build
 
   build-containers:
@@ -290,6 +292,7 @@ jobs:
         env:
           CONTAINER_NAME: ${{ matrix.value }}
         with:
+          justfile_path: justfile.deploy
           just_action: docker-build
 
   build-frontend:
@@ -304,4 +307,5 @@ jobs:
       - name: "Build"
         uses: ./.github/actions/just
         with:
+          justfile_path: justfile.deploy
           just_action: frontend-build

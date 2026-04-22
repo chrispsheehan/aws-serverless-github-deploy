@@ -1,0 +1,282 @@
+# Read-only CI helpers only.
+# This file is for discovery, validation, artifact existence checks, and matrix shaping.
+# Do not put AWS-mutating rollout or deploy commands here.
+
+PROJECT_DIR := justfile_directory()
+LAMBDA_DIR := "lambdas"
+CONTAINERS_DIR := "containers"
+EXTRA_CONTAINER_DIRECTORIES := "[\"debug\",\"otel_collector\"]"
+NON_SERVICE_CONTAINER_DIRECTORIES := "[\"lib\",\"_shared\"]"
+
+
+# Run `tflint` across Terraform module directories.
+tf-lint-check:
+    #!/bin/bash
+    set -euo pipefail
+    find infra/modules -type f -name '*.tf' -print0 \
+      | xargs -0 -n1 dirname \
+      | sort -u \
+      | while read -r dir; do
+          echo "🔍 Running tflint in $dir"
+          tflint --chdir="$dir" --force
+        done
+
+
+# Check that the requested Lambda artifact version exists in the code bucket.
+lambda-check-version:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    FULL_BUCKET_NAME="$BUCKET_NAME/lambdas/$VERSION/"
+
+    if ! aws s3api head-bucket --bucket "$BUCKET_NAME" >/dev/null 2>&1; then
+        echo "❌ The bucket '$BUCKET_NAME' does not exist or is inaccessible."
+        exit 1
+    fi
+
+    if ! aws s3 ls "$FULL_BUCKET_NAME" >/dev/null 2>&1; then
+        echo "❌ The subpath '$VERSION' does not exist in bucket '$BUCKET_NAME'."
+        exit 1
+    fi
+
+    FILES=$(aws s3 ls $FULL_BUCKET_NAME --recursive | wc -l | xargs)
+    if [ "$FILES" -gt 0 ]; then
+        echo "✅ $FILES file(s) found in $FULL_BUCKET_NAME"
+    else
+        echo "❌ No files found under $FULL_BUCKET_NAME"
+        exit 1
+    fi
+
+
+# List Lambda artifact basenames for a published version.
+get-version-files:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "$BUCKET_NAME" ]]; then
+        echo "❌ BUCKET_NAME environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "$VERSION" ]]; then
+        echo "❌ VERSION environment variable is not set."
+        exit 1
+    fi
+
+    FULL_BUCKET_PATH="s3://$BUCKET_NAME/lambdas/$VERSION/"
+
+    aws s3api head-bucket --bucket "$BUCKET_NAME" >/dev/null
+    aws s3 ls "$FULL_BUCKET_PATH" >/dev/null
+
+    aws s3 ls "$FULL_BUCKET_PATH" --recursive \
+      | awk '{print $4}' \
+      | xargs -n1 basename \
+      | sed 's/\.[^.]*$//' \
+      | grep -v 'appspec' \
+      | jq -R . \
+      | jq -s -c .
+
+
+# List Lambda zip object keys for a published version.
+get-version-file-keys:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "$BUCKET_NAME" ]]; then
+        echo "❌ BUCKET_NAME environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "$VERSION" ]]; then
+        echo "❌ VERSION environment variable is not set."
+        exit 1
+    fi
+
+    FULL_BUCKET_PATH="s3://$BUCKET_NAME/lambdas/$VERSION/"
+
+    aws s3api head-bucket --bucket "$BUCKET_NAME" >/dev/null
+    aws s3 ls "$FULL_BUCKET_PATH" >/dev/null
+
+    aws s3 ls "$FULL_BUCKET_PATH" --recursive \
+      | awk '{print $4}' \
+      | grep '\.zip$' \
+      | grep -v 'appspec' \
+      | jq -R . \
+      | jq -s -c .
+
+
+# List ECR image tag prefixes for a published version.
+get-ecr-version-images:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "${REPOSITORY_URL:-}" ]]; then
+        echo "❌ REPOSITORY_URL environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "${VERSION:-}" ]]; then
+        echo "❌ VERSION environment variable is not set."
+        exit 1
+    fi
+
+    repository_name="${REPOSITORY_URL#*/}"
+
+    aws ecr describe-images \
+      --repository-name "$repository_name" \
+      --query 'imageDetails[].imageTags[]' \
+      --output text \
+      | tr '\t' '\n' \
+      | grep -- "-$VERSION\$" \
+      | sed "s/-$VERSION$//" \
+      | jq -R . \
+      | jq -s -c .
+
+
+# Derive the ECS task matrix from published ECR image tags.
+get-ecr-version-tasks:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    image_names="$(just --justfile "{{PROJECT_DIR}}/justfile.ci" get-ecr-version-images)"
+
+    jq -cn \
+      --argjson images "$image_names" \
+      '
+      $images
+      | map(select(. != "bootstrap" and . != "debug" and . != "otel_collector"))
+      '
+
+
+# Discover deployable Lambda directory names.
+lambda-get-directories:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    find "{{LAMBDA_DIR}}" -mindepth 1 -maxdepth 1 -type d \
+      | xargs -I{} basename "{}" \
+      | grep -v '^build$' \
+      | grep -v '^lib$' \
+      | grep -v '^_shared$' \
+      | tr '-' '_' \
+      | jq -R . \
+      | jq -s -c .
+
+
+# Discover deployable ECS service/container directory names.
+service-get-directories:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    find "{{CONTAINERS_DIR}}" -mindepth 1 -maxdepth 1 -type d \
+      | xargs -I{} basename "{}" \
+      | jq -R . \
+      | jq -sc --argjson reserved '{{NON_SERVICE_CONTAINER_DIRECTORIES}}' 'map(select(. as $name | ($reserved | index($name) | not)))' \
+      | jq -r '.[]' \
+      | tr '-' '_' \
+      | jq -R . \
+      | jq -s -c .
+
+
+# Derive Terragrunt `task_*` stack names from service directories.
+task-get-directories:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    found_dirs="$(just --justfile "{{PROJECT_DIR}}/justfile.ci" service-get-directories)"
+
+    jq -cn \
+      --argjson found "$found_dirs" \
+      '$found | map("task_" + .)'
+
+
+# Resolve per-task ECS image URIs from the published image set.
+ecs-task-get-image-uris:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "${ECS_IMAGE_URIS:-}" ]]; then
+        echo "❌ ECS_IMAGE_URIS environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "${TASK_NAME:-}" ]]; then
+        echo "❌ TASK_NAME environment variable is not set."
+        exit 1
+    fi
+
+    service_name="${TASK_NAME#task_}"
+
+    jq -cn \
+      --argjson image_uris "$ECS_IMAGE_URIS" \
+      --arg service_name "$service_name" \
+      '
+      {
+        service_image_uri: ($image_uris | map(select(test(":" + $service_name + "-")))[0] // ""),
+        debug_image_uri: ($image_uris | map(select(test(":debug-")))[0] // ""),
+        otel_image_uri: ($image_uris | map(select(test(":otel_collector-")))[0] // "")
+      }
+      | if .service_image_uri == "" then error("Missing ECS image URI for " + $service_name) else . end
+      | if .debug_image_uri == "" then error("Missing debug image URI") else . end
+      | if .otel_image_uri == "" then error("Missing otel_collector image URI") else . end
+      '
+
+
+# Derive Terragrunt `service_*` stack names from service directories.
+ecs-service-get-directories:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    found_dirs="$(just --justfile "{{PROJECT_DIR}}/justfile.ci" service-get-directories)"
+
+    jq -cn \
+      --argjson found "$found_dirs" \
+      '$found | map("service_" + .)'
+
+
+# Discover repo-local Docker-based GitHub action directories.
+action-get-directories:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    find "{{PROJECT_DIR}}/.github/actions" -mindepth 1 -maxdepth 1 -type d \
+      | while read -r dir; do
+          if [[ -f "$dir/Dockerfile" ]]; then
+            basename "$dir"
+          fi
+        done \
+      | sort \
+      | jq -R . \
+      | jq -s -c .
+
+
+# Discover container build targets including shared CI extras.
+container-get-directories:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    found_dirs="$(just --justfile "{{PROJECT_DIR}}/justfile.ci" service-get-directories)"
+
+    jq -cn \
+      --argjson found "$found_dirs" \
+      --argjson extra '{{EXTRA_CONTAINER_DIRECTORIES}}' \
+      '$found + $extra | unique'
+
+
+# Check that the requested frontend artifact version exists in the code bucket.
+frontend-check-version:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "$BUCKET_NAME" ]]; then
+        echo "❌ BUCKET_NAME environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "$VERSION" ]]; then
+        echo "❌ VERSION environment variable is not set."
+        exit 1
+    fi
+
+    aws s3 ls "s3://$BUCKET_NAME/frontend/$VERSION/frontend.zip" \
+        && echo "✅ frontend.zip found at s3://$BUCKET_NAME/frontend/$VERSION/frontend.zip" \
+        || (echo "❌ frontend.zip not found at s3://$BUCKET_NAME/frontend/$VERSION/frontend.zip" && exit 1)

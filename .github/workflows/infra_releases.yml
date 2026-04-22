@@ -63,6 +63,7 @@ jobs:
           IMAGE_URI: ${{ steps.get_repository_url.outputs.repository_url }}:bootstrap-${{ inputs.infra_version }}
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          justfile_path: justfile.deploy
           just_action: docker-mirror docker-push
 
       - name: Set bootstrap image uri
