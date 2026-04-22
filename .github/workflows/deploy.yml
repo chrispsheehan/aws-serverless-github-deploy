@@ -122,7 +122,7 @@ jobs:
           justfile_path: justfile.deploy
           just_action: lambda-upload-bundle lambda-set-code-deploy-alarms lambda-deploy lambda-prune
 
-  migrations:
+  run-migrations:
     runs-on: ubuntu-latest
     needs: lambdas
     steps:
@@ -159,7 +159,7 @@ jobs:
           justfile_path: justfile.deploy
           just_action: lambda-invoke
 
-  rds-reader-tagger:
+  run-rds-reader-tagger:
     runs-on: ubuntu-latest
     needs: lambdas
     steps:
@@ -230,6 +230,7 @@ jobs:
           DISTRIBUTION_ID: ${{ steps.get_infra_detail.outputs.distribution_id }}
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          justfile_path: justfile.deploy
           just_action: frontend-deploy frontend-invalidate
 
   tasks:

@@ -63,7 +63,7 @@ flowchart LR
 - `infra.yml`
   Applies shared stacks first, then runtime stacks, then frontend infrastructure. Shared stacks now include the CloudWatch observability dashboard.
 - `deploy.yml`
-  Rolls out Lambda code, optional migrations, optional reconciliation Lambdas, ECS task and service updates, and optional frontend deploys. The reusable workflow renders its Lambda and ECS CodeDeploy AppSpec files from the shared templates under `config/deploy/`.
+  Rolls out Lambda code, optional migrations, optional reconciliation Lambdas, ECS task and service updates, and optional frontend deploys. The reusable workflow renders its Lambda and ECS CodeDeploy AppSpec files from the shared templates under `config/deploy/`, and its mutating `just` steps should target `justfile.deploy` rather than the repo-root `justfile`.
 
 ```mermaid
 flowchart LR

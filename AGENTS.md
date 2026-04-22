@@ -91,3 +91,4 @@ When changing CI workflows or Terraform module dependencies, check dependency be
 - before editing either file, print an explicit terminal warning to the user in commentary that the change touches CI/deploy command ownership
 - that warning should call out that workflow callers, `justfile_path` usage, and recipe ownership boundaries may also need updates
 - format that warning as a conspicuous ANSI-colored block when possible, for example with red bold text, so it stands out in the terminal
+- emit that warning as the last commentary message immediately before the edit tool call, so it stays visible in the terminal rather than scrolling off during earlier exploration
