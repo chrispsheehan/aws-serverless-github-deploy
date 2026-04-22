@@ -84,3 +84,10 @@ When changing CI workflows or Terraform module dependencies, check dependency be
 - for prod wrappers in this repo, remember that shared artifact resources come from `ci`, while deploy target resources are still in `prod`
 - prefer making modules tolerant of unnecessary upstream state dependencies where possible
 - do not change CI ordering blindly; first check whether the real issue is an avoidable cross-stack dependency
+
+## Justfile Change Warning
+
+- treat `justfile.ci` and `justfile.deploy` as high-signal command-boundary files
+- before editing either file, print an explicit terminal warning to the user in commentary that the change touches CI/deploy command ownership
+- that warning should call out that workflow callers, `justfile_path` usage, and recipe ownership boundaries may also need updates
+- format that warning as a conspicuous ANSI-colored block when possible, for example with red bold text, so it stands out in the terminal
