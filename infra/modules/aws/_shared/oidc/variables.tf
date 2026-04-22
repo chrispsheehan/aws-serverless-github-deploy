@@ -1,31 +1,55 @@
 variable "deploy_role_name" {
-  description = "Name of the IAM role assumed by GitHub Actions."
   type        = string
-}
-
-variable "environment" {
-  description = "Environment name for role description context."
-  type        = string
+  description = "The name of the OIDC role to be created"
 }
 
 variable "github_repo" {
-  description = "GitHub owner/repository slug allowed to assume the role."
   type        = string
+  description = "The target repo for OIDC access i.e octo-org/octo-repo"
+}
+
+variable "state_bucket" {
+  description = "Name of s3 terraform state bucket - used to allow state updates in ci deployments"
+  type        = string
+}
+
+variable "state_lock_table" {
+  description = "Name of dynamo db terraform state lock table - used to allow state locking in ci deployments"
+  type        = string
+}
+
+variable "deploy_branches" {
+  type        = list(string)
+  description = "The target repo branches for OIDC access i.e main or feature/this"
+  default     = []
+}
+
+variable "deploy_tags" {
+  type        = list(string)
+  description = "The target repo tag for OIDC access i.e * or v*"
+  default     = []
+}
+
+variable "deploy_environments" {
+  type        = list(string)
+  description = "The github environments allowed to deploy with this role - branches and tags inherited"
+  default     = []
+}
+
+variable "allow_deployments" {
+  type        = bool
+  description = "Allow github deployments to use role"
+  default     = false
 }
 
 variable "allowed_role_actions" {
-  description = "IAM actions allowed for the GitHub Actions role."
   type        = list(string)
+  description = "The action(s) to be allowed i.e. [ 's3:*', 'dynamodb:*/' ]"
+  default     = []
 }
 
-variable "github_thumbprint" {
-  description = "GitHub OIDC TLS certificate thumbprint."
-  type        = string
-  default     = "6938fd4d98bab03faadb97b34396831e3780aea1"
-}
-
-variable "max_session_duration" {
-  description = "Maximum session duration in seconds."
-  type        = number
-  default     = 3600
+variable "allowed_role_resources" {
+  type        = list(string)
+  description = "The resource(s) to be allowed - will be limited by the above actions"
+  default     = ["*"]
 }
