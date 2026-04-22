@@ -164,6 +164,25 @@ jobs:
         run: terragrunt hclfmt --terragrunt-check
         working-directory: infra
 
+  validate-terragrunt:
+    needs:
+      - check
+      - format-terragrunt
+    runs-on: ubuntu-latest
+    if: ${{ needs.check.outputs.terraform == 'true' || needs.check.outputs.terragrunt == 'true' }}
+    name: TG Validate
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@v6
+      - uses: hashicorp/setup-terraform@v3
+      - uses: autero1/action-terragrunt@v3.0.2
+        with:
+          terragrunt-version: 0.45.10
+
+      - name: Terragrunt hclvalidate
+        run: terragrunt hclvalidate
+        working-directory: infra
+
   lint-terraform:
     needs: check
     runs-on: ubuntu-latest
