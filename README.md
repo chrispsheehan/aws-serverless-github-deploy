@@ -118,7 +118,6 @@ To run one of those split justfiles locally, call `just` with `--justfile`:
 
 ```sh
 just --justfile justfile.ci tf-lint-check
-just --justfile justfile.ci tg-hcl-validate
 just --justfile justfile.deploy lambda-get-version
 just --justfile justfile.deploy frontend-build
 ```

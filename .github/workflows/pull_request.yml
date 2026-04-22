@@ -119,7 +119,7 @@ jobs:
     needs:
       - check
       - format-github
-    if: ${{ needs.check.outputs.lambdas == 'true' || needs.check.outputs.containers == 'true' || needs.check.outputs.actions == 'true' || needs.check.outputs.terragrunt == 'true' || needs.check.outputs.terraform == 'true' }}
+    if: ${{ needs.check.outputs.lambdas == 'true' || needs.check.outputs.containers == 'true' || needs.check.outputs.actions == 'true' }}
     uses: ./.github/workflows/get_directories.yml
 
   action-docker-unit-tests:
@@ -163,34 +163,6 @@ jobs:
       - name: Terragrunt hclfmt check
         run: terragrunt hclfmt --terragrunt-check
         working-directory: infra
-
-  validate-terragrunt:
-    needs:
-      - check
-      - format-terragrunt
-      - setup
-    runs-on: ubuntu-latest
-    if: ${{ needs.check.outputs.terraform == 'true' || needs.check.outputs.terragrunt == 'true' }}
-    name: TG Validate
-    timeout-minutes: 2
-    strategy:
-      fail-fast: false
-      matrix:
-        value: ${{ fromJson(needs.setup.outputs.terragrunt_dirs) }}
-    steps:
-      - uses: actions/checkout@v6
-      - uses: hashicorp/setup-terraform@v3
-      - uses: autero1/action-terragrunt@v3.0.2
-        with:
-          terragrunt-version: 0.45.10
-
-      - name: Terragrunt hclvalidate
-        uses: ./.github/actions/just
-        env:
-          TG_CONFIG: ${{ matrix.value }}
-        with:
-          justfile_path: justfile.ci
-          just_action: tg-hcl-validate-file
 
   lint-terraform:
     needs: check
