@@ -1,5 +1,10 @@
+# List root recipes plus split CI/deploy recipe files.
 _default:
-    just --list
+    @just --list
+    @printf '\nCI recipes (`just --justfile justfile.ci --list`):\n'
+    @just --justfile justfile.ci --list
+    @printf '\nDeploy recipes (`just --justfile justfile.deploy --list`):\n'
+    @just --justfile justfile.deploy --list
 
 
 PROJECT_DIR := justfile_directory()
@@ -7,6 +12,7 @@ LAMBDA_DIR := "lambdas"
 FRONTEND_DIR := "frontend"
 
 
+# Delete local git branches whose upstream refs have gone away.
 git-tidy:
     #!/usr/bin/env bash
     git fetch --prune
@@ -15,6 +21,7 @@ git-tidy:
     done
 
 
+# Create and push a new branch from the latest `main`.
 branch name:
     #!/usr/bin/env bash
     git fetch origin
@@ -24,24 +31,27 @@ branch name:
     git push -u origin {{ name }}
 
 
+# Run Terraform and Terragrunt formatting locally.
 format:
     #!/usr/bin/env bash
     terraform fmt -recursive
     terragrunt hclfmt
 
 
-# Terragrunt operation on {{module}} containing terragrunt.hcl
+# Run a Terragrunt operation for one environment/module pair.
 tg env module op:
     #!/usr/bin/env bash
     cd {{justfile_directory()}}/infra/live/{{env}}/{{module}} ; terragrunt {{op}}
 
 
+# Run a Terragrunt operation across all live stacks.
 tg-all op:
     #!/usr/bin/env bash
     cd {{justfile_directory()}}/infra/live
     terragrunt run-all {{op}}
 
 
+# Open an ECS Exec shell in the worker debug container.
 worker-debug-shell env:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -101,6 +111,7 @@ worker-debug-shell env:
       --command "/bin/sh -lc 'export PGUSER='\''${escaped_db_user}'\''; export DB_USER='\''${escaped_db_user}'\''; export PGPASSWORD='\''${escaped_db_password}'\''; exec /bin/sh'"
 
 
+# Create or update a readonly Cognito user in the target environment.
 cognito-create-readonly-user env email password:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -154,6 +165,7 @@ cognito-create-readonly-user env email password:
     echo "✅ Ensured readonly Cognito user {{email}} exists in {{env}}."
 
 
+# Publish a message directly to an SNS topic.
 sns-publish:
     #!/usr/bin/env bash
     set -euo pipefail

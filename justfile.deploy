@@ -7,6 +7,7 @@ LAMBDA_DIR := "lambdas"
 FRONTEND_DIR := "frontend"
 
 
+# Invoke a deployed Lambda and fail if it does not return HTTP 200.
 lambda-invoke:
     #!/bin/bash
     set -euo pipefail
@@ -38,6 +39,7 @@ lambda-invoke:
     fi
 
 
+# Build a Docker image for a specific container target.
 docker-build:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -57,6 +59,7 @@ docker-build:
       "{{PROJECT_DIR}}"
 
 
+# Mirror an existing image into the target registry/tag.
 docker-mirror:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -75,6 +78,7 @@ docker-mirror:
     docker tag "$SOURCE_IMAGE" "$IMAGE_URI"
 
 
+# Push a tagged Docker image to ECR.
 docker-push:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -98,6 +102,7 @@ docker-push:
     docker push "$IMAGE_URI"
 
 
+# Package a Lambda into a deployable zip artifact.
 lambda-build:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -132,6 +137,7 @@ lambda-build:
     echo "✅ Done: lambdas/$LAMBDA_NAME.zip"
 
 
+# Upload a packaged Lambda zip to the shared code bucket.
 lambda-upload:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -158,6 +164,7 @@ lambda-upload:
         --storage-class STANDARD
 
 
+# Build the frontend static assets.
 frontend-build:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -168,6 +175,7 @@ frontend-build:
     npm run build --prefix {{FRONTEND_DIR}}
 
 
+# Upload the frontend build artifact zip to the shared code bucket.
 frontend-upload:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -188,6 +196,7 @@ frontend-upload:
     echo "✅ Frontend uploaded to s3://$BUCKET_NAME/frontend/$VERSION/frontend.zip"
 
 
+# Sync a published frontend artifact into the live website bucket.
 frontend-deploy:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -214,6 +223,7 @@ frontend-deploy:
     echo "✅ Frontend deployed to s3://$WEBSITE_BUCKET"
 
 
+# Create and wait for a CloudFront invalidation.
 frontend-invalidate:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -253,6 +263,7 @@ frontend-invalidate:
     exit 1
 
 
+# Read the current Lambda alias version.
 lambda-get-version:
     #!/usr/bin/env bash
     aws lambda get-alias \
@@ -260,6 +271,7 @@ lambda-get-version:
         --query 'FunctionVersion' --output text
 
 
+# Publish a new Lambda version from a bucket object.
 lambda-create-version:
     #!/usr/bin/env bash
     aws lambda update-function-code \
@@ -270,6 +282,7 @@ lambda-create-version:
         --query 'Version' --output text
 
 
+# Render the Lambda CodeDeploy AppSpec file with version values.
 lambda-prepare-appspec:
     #!/usr/bin/env bash
     yq eval -i '
@@ -281,6 +294,7 @@ lambda-prepare-appspec:
     cat $APP_SPEC_FILE
 
 
+# Zip and upload the rendered Lambda AppSpec bundle.
 lambda-upload-bundle:
     #!/usr/bin/env bash
     just --justfile "{{PROJECT_DIR}}/justfile.deploy" lambda-prepare-appspec
@@ -293,6 +307,7 @@ lambda-upload-bundle:
     aws s3 cp $LOCAL_APP_SPEC_ZIP "s3://${BUCKET_NAME}/${APP_SPEC_KEY}"
 
 
+# Resolve a Lambda function ARN.
 lambda-get-function-arn:
     #!/usr/bin/env bash
     if [[ -z "$FUNCTION_NAME" ]]; then
@@ -306,6 +321,7 @@ lambda-get-function-arn:
         --output text
 
 
+# Read the CodeDeploy application tag from a Lambda.
 lambda-get-code-deploy-app:
     #!/usr/bin/env bash
     FUNCTION_ARN=$(just --justfile "{{PROJECT_DIR}}/justfile.deploy" lambda-get-function-arn)
@@ -315,6 +331,7 @@ lambda-get-code-deploy-app:
         --output text
 
 
+# Read the CodeDeploy deployment group tag from a Lambda.
 lambda-get-code-deploy-group:
     #!/usr/bin/env bash
     FUNCTION_ARN=$(just --justfile "{{PROJECT_DIR}}/justfile.deploy" lambda-get-function-arn)
@@ -324,6 +341,7 @@ lambda-get-code-deploy-group:
         --output text
 
 
+# Read ordered CodeDeploy alarm names from Lambda tags.
 lambda-get-code-deploy-alarms:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -342,6 +360,7 @@ lambda-get-code-deploy-alarms:
       '
 
 
+# Reset Lambda CodeDeploy alarms to `OK` before rollout.
 lambda-set-code-deploy-alarms:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -361,6 +380,7 @@ lambda-set-code-deploy-alarms:
     done
 
 
+# Start and monitor a Lambda CodeDeploy deployment.
 lambda-deploy:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -429,6 +449,7 @@ lambda-deploy:
     exit 1
 
 
+# Delete old Lambda versions while keeping the live and newest versions.
 lambda-prune:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -476,6 +497,7 @@ lambda-prune:
     done
 
 
+# Render the ECS CodeDeploy AppSpec file for a task definition.
 ecs-prepare-appspec:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -511,6 +533,7 @@ ecs-prepare-appspec:
     cat "$APP_SPEC_FILE"
 
 
+# Upload the rendered ECS AppSpec file to the shared code bucket.
 ecs-upload-bundle:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -529,6 +552,7 @@ ecs-upload-bundle:
     aws s3 cp "$APP_SPEC_FILE" "s3://${BUCKET_NAME}/${APP_SPEC_KEY}"
 
 
+# Start and monitor an ECS CodeDeploy deployment.
 ecs-deploy:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -599,6 +623,7 @@ ecs-deploy:
     exit 1
 
 
+# Update an ECS service directly and wait for stability.
 ecs-rolling-deploy:
     #!/usr/bin/env bash
     set -euo pipefail

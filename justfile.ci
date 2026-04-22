@@ -9,6 +9,7 @@ EXTRA_CONTAINER_DIRECTORIES := "[\"debug\",\"otel_collector\"]"
 NON_SERVICE_CONTAINER_DIRECTORIES := "[\"shared\"]"
 
 
+# Run `tflint` across Terraform module directories.
 tf-lint-check:
     #!/bin/bash
     set -euo pipefail
@@ -21,6 +22,7 @@ tf-lint-check:
         done
 
 
+# Check that the requested Lambda artifact version exists in the code bucket.
 lambda-check-version:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -46,6 +48,7 @@ lambda-check-version:
     fi
 
 
+# List Lambda artifact basenames for a published version.
 get-version-files:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -74,6 +77,7 @@ get-version-files:
       | jq -s -c .
 
 
+# List Lambda zip object keys for a published version.
 get-version-file-keys:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -101,6 +105,7 @@ get-version-file-keys:
       | jq -s -c .
 
 
+# List ECR image tag prefixes for a published version.
 get-ecr-version-images:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -128,6 +133,7 @@ get-ecr-version-images:
       | jq -s -c .
 
 
+# Derive the ECS task matrix from published ECR image tags.
 get-ecr-version-tasks:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -142,6 +148,7 @@ get-ecr-version-tasks:
       '
 
 
+# Discover deployable Lambda directory names.
 lambda-get-directories:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -153,6 +160,7 @@ lambda-get-directories:
       | jq -s -c .
 
 
+# Discover deployable ECS service/container directory names.
 service-get-directories:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -167,6 +175,7 @@ service-get-directories:
       | jq -s -c .
 
 
+# Derive Terragrunt `task_*` stack names from service directories.
 task-get-directories:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -178,6 +187,7 @@ task-get-directories:
       '$found | map("task_" + .)'
 
 
+# Resolve per-task ECS image URIs from the published image set.
 ecs-task-get-image-uris:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -209,6 +219,7 @@ ecs-task-get-image-uris:
       '
 
 
+# Derive Terragrunt `service_*` stack names from service directories.
 ecs-service-get-directories:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -220,6 +231,7 @@ ecs-service-get-directories:
       '$found | map("service_" + .)'
 
 
+# Discover repo-local Docker-based GitHub action directories.
 action-get-directories:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -235,6 +247,7 @@ action-get-directories:
       | jq -s -c .
 
 
+# Discover container build targets including shared CI extras.
 container-get-directories:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -247,6 +260,7 @@ container-get-directories:
       '$found + $extra | unique'
 
 
+# Check that the requested frontend artifact version exists in the code bucket.
 frontend-check-version:
     #!/usr/bin/env bash
     set -euo pipefail
