@@ -30,7 +30,7 @@ lambda-invoke:
     cat $OUTPUT_FILE
     LAMBDA_STATUS_CODE=$(jq -r '.statusCode // empty' "$OUTPUT_FILE")
 
-    if [ "$LAMBDA_STATUS_CODE" = "200" ]]; then
+    if [[ "$LAMBDA_STATUS_CODE" == "200" ]]; then
         echo "✅ Lambda function completed successfully."
         exit 0
     else

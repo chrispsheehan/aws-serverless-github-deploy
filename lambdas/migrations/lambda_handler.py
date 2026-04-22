@@ -9,7 +9,12 @@ logger = get_logger(__name__)
 
 
 def _sqlalchemy_url() -> str:
-    return postgres_url().replace("postgres://", "postgresql+psycopg://", 1)
+    url = postgres_url()
+    if url.startswith("postgresql://"):
+        return url.replace("postgresql://", "postgresql+psycopg://", 1)
+    if url.startswith("postgres://"):
+        return url.replace("postgres://", "postgresql+psycopg://", 1)
+    return url
 
 
 def _ensure_tables() -> dict[str, object]:
