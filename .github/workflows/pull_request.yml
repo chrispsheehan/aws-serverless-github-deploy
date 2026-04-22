@@ -181,7 +181,7 @@ jobs:
 
       - name: Terragrunt hclvalidate
         run: terragrunt hclvalidate
-        working-directory: infra
+        working-directory: infra/live
 
   lint-terraform:
     needs: check
