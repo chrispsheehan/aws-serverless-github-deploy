@@ -5,7 +5,7 @@ Container source directories for this boilerplate.
 ## Structure
 
 - each deployable service lives in its own top-level directory such as `api/` or `worker/`
-- `shared/` contains helper code used by deployable services and is intentionally not treated as a deployable image target
+- `lib/` contains ECS-only helper code used by deployable services and is intentionally not treated as a deployable image target
 - a deployable ECS runtime also needs the corresponding live Terragrunt stacks such as `infra/live/<environment>/aws/task_<name>/terragrunt.hcl` and, when applicable, `infra/live/<environment>/aws/service_<name>/terragrunt.hcl`
 
 ## Common Shape
@@ -13,13 +13,13 @@ Container source directories for this boilerplate.
 - `<service>/app.py`
 - `<service>/requirements.txt`
 - optional `<service>/README.md` for service-specific application logic and runtime notes
-- optional shared helpers under `containers/shared/`
+- optional ECS-only helpers under `containers/lib/`
 
 ## Build Behavior
 
 - ECS directory discovery auto-detects deployable top-level directories under `containers/`
 - ECS image discovery only includes deployable service directories
-- container images copy only the files referenced by the Dockerfile for the selected service shape
+- container images copy only the files referenced by the Dockerfile for the selected service shape, including shared helpers from `lib/` and `containers/lib/`
 - markdown files in `containers/` are documentation only and are not included in container image artifacts
 - detection alone is not enough: the runtime still needs the matching Terragrunt task and service stacks to participate in infra apply and code rollout correctly
 
@@ -27,17 +27,18 @@ Container source directories for this boilerplate.
 
 - HTTP services can be paired with `task_<name>` and `service_<name>` wrappers
 - internal workers can use queue-driven processing and non-HTTP health checks
-- shared tracing helpers live under `containers/shared/` and can be reused across ECS runtimes
+- shared tracing helpers live under `containers/lib/` and can be reused across ECS runtimes
+- shared logging and database helpers live under `lib/`
 
 ## Logging
 
-- ECS runtimes should use the shared JSON logger from `runtime_logging.py`
+- ECS runtimes should use the shared JSON logger from `lib/runtime_logging.py`
 - logs are written to stdout so the ECS log driver forwards them to CloudWatch
 - prefer structured fields via logger `extra={...}` rather than ad-hoc string interpolation
 
 ## Tracing
 
-- ECS runtimes use the shared tracing helper under `containers/shared/`
+- ECS runtimes use the shared tracing helper under `containers/lib/`
 - async Lambda -> SNS -> SQS -> ECS trace continuation relies on the AWS X-Ray OpenTelemetry propagator
 - that propagator lets ECS consumers understand AWS-native X-Ray trace headers, not just W3C `traceparent`
 

@@ -123,9 +123,9 @@ lambda-build:
     echo "📦 Building $LAMBDA_NAME Lambda..."
     pip install --target "$LAMBDA_BUILD_DIR/$LAMBDA_NAME" -r "{{PROJECT_DIR}}/{{LAMBDA_DIR}}/$LAMBDA_NAME/requirements.txt"
     cp "{{PROJECT_DIR}}/{{LAMBDA_DIR}}/$LAMBDA_NAME"/*.py "$LAMBDA_BUILD_DIR/$LAMBDA_NAME/"
-    cp "{{PROJECT_DIR}}/lambda_shared.py" "$LAMBDA_BUILD_DIR/$LAMBDA_NAME/"
-    cp "{{PROJECT_DIR}}/db_shared.py" "$LAMBDA_BUILD_DIR/$LAMBDA_NAME/"
-    cp "{{PROJECT_DIR}}/runtime_logging.py" "$LAMBDA_BUILD_DIR/$LAMBDA_NAME/"
+    cp "{{PROJECT_DIR}}/{{LAMBDA_DIR}}/lib/lambda_shared.py" "$LAMBDA_BUILD_DIR/$LAMBDA_NAME/"
+    cp "{{PROJECT_DIR}}/lib/db_shared.py" "$LAMBDA_BUILD_DIR/$LAMBDA_NAME/"
+    cp "{{PROJECT_DIR}}/lib/runtime_logging.py" "$LAMBDA_BUILD_DIR/$LAMBDA_NAME/"
     if [[ -d "{{PROJECT_DIR}}/{{LAMBDA_DIR}}/$LAMBDA_NAME/database_models" ]]; then
         cp -R "{{PROJECT_DIR}}/{{LAMBDA_DIR}}/$LAMBDA_NAME/database_models" "$LAMBDA_BUILD_DIR/$LAMBDA_NAME/"
     fi
@@ -299,7 +299,7 @@ lambda-upload-bundle:
     #!/usr/bin/env bash
     just --justfile "{{PROJECT_DIR}}/justfile.deploy" lambda-prepare-appspec
 
-    LOCAL_APP_SPEC_ZIP="{{justfile_directory()}}/appspec-lambda.zip"
+    LOCAL_APP_SPEC_ZIP="{{justfile_directory()}}/config/deploy/appspec-lambda.zip"
     TMPDIR="$(mktemp -d)"
     rm -f $LOCAL_APP_SPEC_ZIP
     cp "$APP_SPEC_FILE" "$TMPDIR/appspec.yml"
@@ -522,7 +522,7 @@ ecs-prepare-appspec:
         exit 1
     fi
 
-    cp "{{justfile_directory()}}/appspec-ecs.yml" "$APP_SPEC_FILE"
+    cp "{{justfile_directory()}}/config/deploy/appspec-ecs.yml" "$APP_SPEC_FILE"
 
     yq eval -i '
       .Resources[0].TargetService.Properties.TaskDefinition = env(TASK_DEFINITION_ARN) |

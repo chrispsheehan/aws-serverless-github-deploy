@@ -107,6 +107,9 @@ The frontend infra module also uploads a bootstrap `index.html` during infra app
 
 See [lambdas/README.md](lambdas/README.md) and [containers/README.md](containers/README.md) for runtime source layout, build behavior, and boilerplate patterns.
 
+Shared Python runtime helpers no longer live alongside deployable runtimes. Cross-runtime helpers live under [`lib/`](lib), Lambda-only helpers live under [`lambdas/lib/`](lambdas/lib), and ECS-only helpers live under [`containers/lib/`](containers/lib). The Lambda and container build flows copy those helpers into their packaged runtime roots so existing runtime imports stay flat.
+The shared CodeDeploy AppSpec templates live under [`config/deploy/`](config/deploy), and the deploy helpers render temporary environment-specific copies from there during CI rollout.
+
 ## Common Tasks
 
 CI-only helper recipes such as directory discovery, artifact/version checks, and Terraform linting now live in [`justfile.ci`](justfile.ci). CI-only rollout and build helpers such as Docker image builds, Lambda artifact packaging, Lambda CodeDeploy orchestration, and ECS AppSpec/deploy steps now live in [`justfile.deploy`](justfile.deploy). GitHub workflows call those files explicitly via the repo-local `just` action's `justfile_path` input, while local developer and runtime-oriented recipes remain in the root [`justfile`](justfile).

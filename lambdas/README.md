@@ -6,6 +6,7 @@ Lambda source directories for this boilerplate.
 
 - each top-level directory under `lambdas/` is treated as a deployable Lambda
 - the generated `lambdas/build` directory is build output only and is intentionally excluded from Lambda discovery
+- `lambdas/lib/` contains Lambda-only helper modules and is intentionally excluded from Lambda discovery
 - a deployable Lambda also needs a corresponding live Terragrunt stack under `infra/live/<environment>/aws/<lambda_name>/terragrunt.hcl`
 
 ## Common Shape
@@ -18,8 +19,9 @@ Lambda source directories for this boilerplate.
 ## Build Behavior
 
 - Lambda directory discovery auto-detects top-level directories under `lambdas/` for build and deploy workflows
+- discovery excludes `lambdas/build` and `lambdas/lib`
 - the Lambda build flow installs `requirements.txt` into a per-Lambda build directory
-- it copies Python source files and supported package directories into the zip artifact
+- it copies Python source files, shared helpers from `lib/` and `lambdas/lib/`, and supported package directories into the zip artifact
 - markdown files in Lambda source trees are documentation only and are pruned before the zip artifact is created
 - detection alone is not enough: the runtime still needs the matching Terragrunt stack to participate in infra apply and code rollout correctly
 
@@ -32,7 +34,7 @@ Lambda source directories for this boilerplate.
 
 ## Logging
 
-- Lambda runtimes should use the shared JSON logger backed by `runtime_logging.py`
+- Lambda runtimes should use the shared JSON logger from `lib/runtime_logging.py`
 - logs are written to stdout so they appear in the function's CloudWatch log group
 - prefer structured fields via logger `extra={...}` rather than ad-hoc string interpolation
 

@@ -63,7 +63,7 @@ flowchart LR
 - `infra.yml`
   Applies shared stacks first, then runtime stacks, then frontend infrastructure. Shared stacks now include the CloudWatch observability dashboard.
 - `deploy.yml`
-  Rolls out Lambda code, optional migrations, optional reconciliation Lambdas, ECS task and service updates, and optional frontend deploys.
+  Rolls out Lambda code, optional migrations, optional reconciliation Lambdas, ECS task and service updates, and optional frontend deploys. The reusable workflow renders its Lambda and ECS CodeDeploy AppSpec files from the shared templates under `config/deploy/`.
 
 ```mermaid
 flowchart LR
@@ -104,6 +104,7 @@ Run these checks on every CI, workflow, or deploy-contract change.
 - compare expected outputs against actual `jobs.<job>.outputs.*`
 - verify optional inputs are intentionally omitted, not accidentally missing
 - when using `./.github/actions/just`, check whether the caller needs the repo-root `justfile` or an explicit `justfile_path`
+- if a deploy step passes `APP_SPEC_FILE`, keep it aligned with the shared AppSpec template location under `config/deploy/`
 
 ### Release Tagging Checks
 
