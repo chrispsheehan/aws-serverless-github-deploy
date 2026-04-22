@@ -2,6 +2,8 @@
 
 Shared Lambda module with versioned deploys through CodeDeploy.
 
+This module keeps its own `versions.tf` so it can be lifted into another repo without depending on this repo's Terragrunt-generated provider constraints.
+
 ## Owns
 
 - Lambda function

@@ -19,7 +19,6 @@ on:
       action_dirs:
         description: "List of repo-local GitHub action directory names with Dockerfiles"
         value: ${{ jobs.directories.outputs.action_dirs }}
-
 jobs:
   directories:
     runs-on: ubuntu-latest

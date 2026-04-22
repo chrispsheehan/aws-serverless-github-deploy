@@ -21,6 +21,22 @@ git-tidy:
     done
 
 
+terraform-tidy:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    TARGET_DIR="{{justfile_directory()}}/infra/live"
+    echo "Cleaning in: $TARGET_DIR"
+
+    # Remove .terragrunt-cache directories
+    find "$TARGET_DIR" -type d -name ".terragrunt-cache" -prune -exec rm -rf {} +
+
+    # Remove .terraform.lock.hcl files
+    find "$TARGET_DIR" -type f -name ".terraform.lock.hcl" -exec rm -f {} +
+
+    echo "Done."
+
+
 # Create and push a new branch from the latest `main`.
 branch name:
     #!/usr/bin/env bash
