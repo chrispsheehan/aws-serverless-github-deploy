@@ -55,7 +55,18 @@ generate "versions" {
   # this allows individual provider versioning for local modules
   path      = "versions.tf"
   if_exists = "skip"
-  contents  = ""
+  contents  = <<EOF
+terraform {
+  required_version = ">= 1.0.8"
+
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "= 6.40.0"
+    }
+  }
+}
+EOF
 }
 
 generate "backend" {

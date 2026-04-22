@@ -45,6 +45,7 @@ stores state at:
 
 - `_shared/*`
   Reusable building blocks such as Lambda, ECS task, ECS service, ECR, SQS, cluster, database, and code bucket.
+  These modules should stay lift-and-shift friendly: they carry their own `versions.tf` provider constraints so they can be reused outside this repo's Terragrunt root without inheriting repo-only provider policy.
 - concrete modules such as `task_worker`, `service_worker`, `lambda_worker`, `lambda_api`
   Thin wrappers that apply repo-specific behavior on top of shared modules.
   The `database` module is one of those wrappers: it owns the repo's VPC/subnet lookup and passes resolved subnet ids into `_shared/database`.
