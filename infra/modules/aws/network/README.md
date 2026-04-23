@@ -34,6 +34,26 @@ In the common ECS API shape used here:
 - shared security groups from `security`
 - `cognito` remote state for the shared JWT issuer and audience
 
+## Bootstrap Notes
+
+This module is not bootstrap-independent. It reads multiple outputs from the `security` stack through remote state, including `vpc_endpoint_sg` for the interface VPC endpoints and `api_vpc_link_sg` for the shared API Gateway VPC link.
+
+That means:
+
+- `security` must be applied successfully before `network`
+- the `security` state file must contain the current outputs, not just an empty or partially initialized state
+- a failed or stale bootstrap of `security` can surface here as an `Unsupported attribute` error when Terraform tries to read `data.terraform_remote_state.security.outputs.*`
+
+If you see an error like:
+
+```text
+Error: Unsupported attribute
+data.terraform_remote_state.security.outputs is object with no attributes
+This object does not have an attribute named "vpc_endpoint_sg".
+```
+
+then the problem is usually not the `network` module itself. It means the upstream `security` stack has not produced readable outputs yet. In that case, apply `security` first and confirm its state includes `vpc_endpoint_sg`, `api_vpc_link_sg`, and the other expected outputs before retrying `network`.
+
 ## Feasibility Constraints
 
 - this module expects the landing-zone or StackSet VPC and the required private subnets to already exist

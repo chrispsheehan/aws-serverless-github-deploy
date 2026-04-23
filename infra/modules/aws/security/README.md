@@ -21,6 +21,18 @@ Shared security-group module.
 
 Used by `network`, `lambda_api`, and ECS service modules.
 
+## Bootstrap Notes
+
+`network` depends directly on this module's remote-state outputs. In particular, `network` reads `vpc_endpoint_sg` for interface VPC endpoints and `api_vpc_link_sg` for the shared API Gateway VPC link.
+
+Because of that dependency:
+
+- `security` must be applied before `network`
+- a state file that exists but has no outputs yet is not sufficient for downstream bootstrap
+- if `network` fails with an `Unsupported attribute` error for `vpc_endpoint_sg` or another security output, treat that as an upstream bootstrap/state problem in `security`
+
+For manual bootstrap, confirm `security` has completed and exported its outputs before moving on to `network`.
+
 Rules are defined with standalone `aws_vpc_security_group_ingress_rule` and `aws_vpc_security_group_egress_rule` resources rather than inline security-group blocks.
 
 The load balancer security group allows the main container port and the additional internal listener port from inside the VPC, and permits outbound traffic.
