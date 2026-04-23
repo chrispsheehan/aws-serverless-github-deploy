@@ -3,17 +3,53 @@
 **Terraform + GitHub Actions for AWS serverless deployments.**  
 Lambda + ECS with CodeDeploy rollouts, plus provisioned concurrency controls for Lambda — driven by clean module variables and `just` recipes.
 
-## What This Repo Gives You
+## Sections
 
-- shared Terraform/Terragrunt patterns for Lambda, ECS, frontend, database, auth, and messaging
-- event-driven and directly invokable automation hooks around shared infrastructure, such as helper Lambdas for reconciliation tasks
-- GitHub Actions workflows for infra apply, artifact build, code deploy, and destroy
-- shared deployment contracts for Lambda and ECS
-- boilerplate runtime layouts for Lambda functions and ECS services
-- shared JSON logging for Lambda and ECS runtimes through CloudWatch
-- async worker paths can propagate trace headers from `lambda_api` through SNS/SQS into the ECS worker and its database span
+- [What This Repo Gives You](#what-this-repo-gives-you)
+- [AI-Assisted Usage](#ai-assisted-usage)
+- [Example Prompts](#example-prompts)
+- [Prerequisites](#prerequisites)
+- [Setup](#setup)
+- [Common Tasks](#common-tasks)
+- [Frontend Auth](#frontend-auth)
+- [Reference](#reference)
+- [Read This Next](#read-this-next)
 
-That async trace propagation uses the AWS X-Ray OpenTelemetry propagator so ECS consumers can continue the AWS-native trace context emitted from the Lambda side, rather than only understanding W3C `traceparent` headers.
+## Overview
+
+- Terraform/Terragrunt stacks for a typical AWS application shape: APIs, workers, frontend, database, auth, and messaging
+- GitHub Actions workflows for infrastructure apply, artifact build, code deploy, and destroy
+- shared deployment patterns for Lambda and ECS, with repo-local `just` commands for local and CI operations
+- runtime and infrastructure layouts designed to be extended by humans or coding agents without having to rediscover the whole repo each time
+
+## AI-Assisted Usage
+
+This repo is structured to work well with coding agents as well as humans.
+
+- docs are split by ownership so agents can find the right contract before changing code
+- the root README is the entry point, while workflow, infra, runtime, and shared-module details live in their own READMEs
+- the `just` command surface is split so local commands, read-only CI helpers, and mutating deploy helpers stay distinct
+
+The example prompts below are not just suggestions; they reflect the intended way to ask for additive repo changes at the right level of abstraction.
+
+## Example Prompts
+
+Use prompts like these when you want an agent to extend the repo without having to spell out every file path up front:
+
+- Environment and infra shape:
+  - `Add a new env called qa.`
+  - `Add a readonly plan role for dev infra plans in pull requests.`
+- Lambda and API shape:
+  - `Add a new public API endpoint for reports.`
+  - `Add an API call that puts a message on a queue so a worker can pick it up and write it to the database.`
+- ECS and worker shape:
+  - `Add a new internal worker for report processing.`
+  - `Add a new ECS service for billing under /billing.`
+- Operational behavior:
+  - `Add a post-deploy reconciliation Lambda for the worker path.`
+  - `Add rollback alarms for the public API Lambda deploy.`
+
+Use [CONTRIBUTING.md](CONTRIBUTING.md) for expectations when changing the repo itself, especially for AI-assisted changes.
 
 ## Prerequisites
 
@@ -106,16 +142,6 @@ just worker-debug-shell dev
 ```
 
 The shared debug image includes `psql`, and `worker-debug-shell` injects `PGPASSWORD`, `PGUSER`, and `DB_USER` into the shell from the shared database credentials secret before opening ECS Exec.
-
-## Example Prompts
-
-Use prompts like these when asking for a new service in this repo:
-
-- `Add a new env called qa.`
-- `Add an API call that puts a message on a queue so a worker can pick it up and write it to the database.`
-- `Add a new public API endpoint for reports.`
-- `Add a new internal worker for report processing.`
-- `Add a new ECS service for billing under /billing.`
 
 ## Frontend Auth
 
