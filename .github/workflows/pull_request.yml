@@ -120,7 +120,7 @@ jobs:
       - check
       - format-github
     if: ${{ needs.check.outputs.lambdas == 'true' || needs.check.outputs.containers == 'true' || needs.check.outputs.actions == 'true' }}
-    uses: ./.github/workflows/get_directories.yml
+    uses: ./.github/workflows/shared_directories_get.yml
 
   action-docker-unit-tests:
     name: GH Action Docker Unit Tests

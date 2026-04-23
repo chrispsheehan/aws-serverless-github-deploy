@@ -1,0 +1,70 @@
+on:
+  workflow_call:
+    inputs:
+      plan_run_id:
+        description: "Workflow run ID from the earlier infra plan run"
+        required: true
+        type: string
+      github_token:
+        description: "GitHub token used for cross-run artifact download"
+        required: true
+        type: string
+      metadata_artifact_name:
+        description: "Plan metadata artifact name"
+        required: false
+        type: string
+        default: "infra-plan-metadata"
+    outputs:
+      infra_version:
+        description: "Infrastructure ref captured at plan time"
+        value: ${{ jobs.metadata.outputs.infra_version }}
+      code_bucket:
+        description: "Resolved code bucket captured at plan time"
+        value: ${{ jobs.metadata.outputs.code_bucket }}
+      lambda_matrix:
+        description: "Resolved lambda matrix captured at plan time"
+        value: ${{ jobs.metadata.outputs.lambda_matrix }}
+      bootstrap_image_uri:
+        description: "Resolved bootstrap image URI captured at plan time"
+        value: ${{ jobs.metadata.outputs.bootstrap_image_uri }}
+      service_matrix:
+        description: "Resolved ECS service matrix captured at plan time"
+        value: ${{ jobs.metadata.outputs.service_matrix }}
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  metadata:
+    runs-on: ubuntu-latest
+    outputs:
+      infra_version: ${{ steps.metadata.outputs.infra_version }}
+      code_bucket: ${{ steps.metadata.outputs.code_bucket }}
+      lambda_matrix: ${{ steps.metadata.outputs.lambda_matrix }}
+      bootstrap_image_uri: ${{ steps.metadata.outputs.bootstrap_image_uri }}
+      service_matrix: ${{ steps.metadata.outputs.service_matrix }}
+    steps:
+      - name: Download plan metadata artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.metadata_artifact_name }}
+          path: .
+          github-token: ${{ inputs.github_token }}
+          run-id: ${{ inputs.plan_run_id }}
+          if-no-artifact-found: error
+
+      - name: Read plan metadata
+        id: metadata
+        shell: bash
+        run: |
+          test -f plan-metadata.json || {
+            echo "Expected plan metadata artifact was not found." >&2
+            exit 1
+          }
+
+          echo "infra_version=$(jq -r '.infra_version' plan-metadata.json)" >> "$GITHUB_OUTPUT"
+          echo "code_bucket=$(jq -r '.code_bucket' plan-metadata.json)" >> "$GITHUB_OUTPUT"
+          echo "lambda_matrix=$(jq -c '.lambda_matrix' plan-metadata.json)" >> "$GITHUB_OUTPUT"
+          echo "bootstrap_image_uri=$(jq -r '.bootstrap_image_uri' plan-metadata.json)" >> "$GITHUB_OUTPUT"
+          echo "service_matrix=$(jq -c '.service_matrix' plan-metadata.json)" >> "$GITHUB_OUTPUT"

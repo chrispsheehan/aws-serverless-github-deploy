@@ -26,6 +26,21 @@ on:
         required: false
         type: string
         default: "[]"
+      tg_action:
+        description: "Terragrunt action to run across the infra graph"
+        required: false
+        type: string
+        default: "apply"
+      plan_artifact_run_id:
+        description: "Optional workflow run ID used for apply-from-plan artifact downloads"
+        required: false
+        type: string
+        default: ""
+      github_token:
+        description: "Optional GitHub token used for cross-run artifact download in apply-from-plan mode"
+        required: false
+        type: string
+        default: ""
 
 
 concurrency: # only run one instance of workflow at any one time
@@ -49,10 +64,14 @@ jobs:
           ref: ${{ inputs.infra_version }}
 
       - name: Deploy oidc role infra
+        if: inputs.tg_action != 'plan' && inputs.tg_action != 'apply_plan'
         uses: ./.github/actions/terragrunt
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/oidc
+          tg_action: ${{ inputs.tg_action }}
+          plan_artifact_run_id: ${{ inputs.plan_artifact_run_id }}
+          github_token: ${{ inputs.github_token }}
 
   worker_messaging:
     needs: oidc
@@ -67,6 +86,9 @@ jobs:
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/worker_messaging
+          tg_action: ${{ inputs.tg_action }}
+          plan_artifact_run_id: ${{ inputs.plan_artifact_run_id }}
+          github_token: ${{ inputs.github_token }}
 
   observability:
     needs: oidc
@@ -81,6 +103,9 @@ jobs:
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/observability
+          tg_action: ${{ inputs.tg_action }}
+          plan_artifact_run_id: ${{ inputs.plan_artifact_run_id }}
+          github_token: ${{ inputs.github_token }}
 
   cognito:
     needs: oidc
@@ -97,6 +122,9 @@ jobs:
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/cognito
+          tg_action: ${{ inputs.tg_action }}
+          plan_artifact_run_id: ${{ inputs.plan_artifact_run_id }}
+          github_token: ${{ inputs.github_token }}
 
   frontend:
     needs:
@@ -155,6 +183,9 @@ jobs:
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/frontend
+          tg_action: ${{ inputs.tg_action }}
+          plan_artifact_run_id: ${{ inputs.plan_artifact_run_id }}
+          github_token: ${{ inputs.github_token }}
 
   cluster:
     needs: oidc
@@ -169,6 +200,9 @@ jobs:
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/cluster
+          tg_action: ${{ inputs.tg_action }}
+          plan_artifact_run_id: ${{ inputs.plan_artifact_run_id }}
+          github_token: ${{ inputs.github_token }}
 
   security:
     needs: oidc
@@ -186,9 +220,13 @@ jobs:
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/security
+          tg_action: ${{ inputs.tg_action }}
+          plan_artifact_run_id: ${{ inputs.plan_artifact_run_id }}
+          github_token: ${{ inputs.github_token }}
 
       - name: Get security outputs
         id: get_security_outputs
+        if: inputs.tg_action != 'destroy'
         env:
           TG_OUTPUTS: ${{ steps.deploy-security.outputs.tg_outputs }}
         run: |
@@ -211,6 +249,9 @@ jobs:
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/database
+          tg_action: ${{ inputs.tg_action }}
+          plan_artifact_run_id: ${{ inputs.plan_artifact_run_id }}
+          github_token: ${{ inputs.github_token }}
 
   network:
     needs:
@@ -227,6 +268,9 @@ jobs:
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/network
+          tg_action: ${{ inputs.tg_action }}
+          plan_artifact_run_id: ${{ inputs.plan_artifact_run_id }}
+          github_token: ${{ inputs.github_token }}
 
   lambdas:
     needs: 
@@ -250,6 +294,9 @@ jobs:
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.value }}
+          tg_action: ${{ inputs.tg_action }}
+          plan_artifact_run_id: ${{ inputs.plan_artifact_run_id }}
+          github_token: ${{ inputs.github_token }}
 
   services:
     needs:
@@ -277,3 +324,6 @@ jobs:
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.value }}
+          tg_action: ${{ inputs.tg_action }}
+          plan_artifact_run_id: ${{ inputs.plan_artifact_run_id }}
+          github_token: ${{ inputs.github_token }}

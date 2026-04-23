@@ -10,7 +10,7 @@ permissions:
 jobs:
   get_build:
     name: Resolve
-    uses: ./.github/workflows/build_get.yml
+    uses: ./.github/workflows/shared_build_get.yml
     with:
       environment: ci
       lambda_version: 0.9.4
@@ -21,7 +21,7 @@ jobs:
     name: Apply
     needs:
       - get_build
-    uses: ./.github/workflows/infra.yml
+    uses: ./.github/workflows/shared_infra.yml
     with:
       environment: prod
       infra_version: 0.9.4

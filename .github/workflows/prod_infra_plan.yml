@@ -1,0 +1,82 @@
+name: Plan Prod Infra
+
+on:
+  workflow_dispatch:
+    inputs:
+      infra_version:
+        description: "Infrastructure ref to plan"
+        required: true
+        default: "main"
+        type: string
+      lambda_version:
+        description: "Release version to plan"
+        required: true
+        default: "0.9.4"
+        type: string
+      frontend_version:
+        description: "Frontend version to plan"
+        required: true
+        default: "0.9.4"
+        type: string
+      ecs_version:
+        description: "ECS version to plan"
+        required: true
+        default: "0.9.4"
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  get_build:
+    name: Resolve
+    uses: ./.github/workflows/shared_build_get.yml
+    with:
+      environment: ci
+      lambda_version: ${{ inputs.lambda_version }}
+      frontend_version: ${{ inputs.frontend_version }}
+      ecs_version: ${{ inputs.ecs_version }}
+
+  metadata:
+    name: Metadata
+    needs: get_build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Write plan metadata
+        shell: bash
+        run: |
+          cat > plan-metadata.json <<EOF
+          {
+            "infra_version": "${{ inputs.infra_version }}",
+            "lambda_version": "${{ inputs.lambda_version }}",
+            "frontend_version": "${{ inputs.frontend_version }}",
+            "ecs_version": "${{ inputs.ecs_version }}",
+            "code_bucket": "${{ needs.get_build.outputs.code_bucket }}",
+            "lambda_matrix": ${{ needs.get_build.outputs.lambda_version_files }},
+            "bootstrap_image_uri": "${{ needs.get_build.outputs.bootstrap_image_uri }}",
+            "service_matrix": ${{ needs.get_build.outputs.ecs_service_matrix }}
+          }
+          EOF
+
+      - name: Upload plan metadata artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: infra-plan-metadata
+          path: plan-metadata.json
+          if-no-files-found: error
+
+  infra:
+    name: Plan
+    needs:
+      - get_build
+      - metadata
+    uses: ./.github/workflows/shared_infra.yml
+    with:
+      environment: prod
+      infra_version: ${{ inputs.infra_version }}
+      code_bucket: ${{ needs.get_build.outputs.code_bucket }}
+      lambda_matrix: ${{ needs.get_build.outputs.lambda_version_files }}
+      bootstrap_image_uri: ${{ needs.get_build.outputs.bootstrap_image_uri }}
+      service_matrix: ${{ needs.get_build.outputs.ecs_service_matrix }}
+      tg_action: plan
