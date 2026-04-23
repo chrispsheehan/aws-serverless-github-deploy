@@ -45,7 +45,6 @@ jobs:
       lambda_matrix: ${{ needs.setup.outputs.lambda_dirs }}
       bootstrap_image_uri: ${{ needs.code.outputs.bootstrap_image_uri }}
       service_matrix: ${{ needs.setup.outputs.ecs_service_dirs }}
-      tg_action: plan
 
   apply:
     name: Apply Planned Infra
