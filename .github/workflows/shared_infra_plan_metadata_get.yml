@@ -1,7 +1,7 @@
 on:
   workflow_call:
     inputs:
-      plan_run_id:
+      plan_artifact_run_id:
         description: "Workflow run ID from the earlier infra plan run"
         required: true
         type: string
@@ -51,13 +51,13 @@ jobs:
           name: ${{ inputs.metadata_artifact_name }}
           path: .
           github-token: ${{ inputs.github_token }}
-          run-id: ${{ inputs.plan_run_id }}
+          run-id: ${{ inputs.plan_artifact_run_id }}
 
       - name: Check plan metadata artifact
         shell: bash
         run: |
           if [ ! -f plan-metadata.json ]; then
-            echo "::error title=Missing plan metadata artifact::Expected 'plan-metadata.json' from artifact '${{ inputs.metadata_artifact_name }}' in run '${{ inputs.plan_run_id }}', but it was not downloaded."
+            echo "::error title=Missing plan metadata artifact::Expected 'plan-metadata.json' from artifact '${{ inputs.metadata_artifact_name }}' in run '${{ inputs.plan_artifact_run_id }}', but it was not downloaded."
             exit 1
           fi
 

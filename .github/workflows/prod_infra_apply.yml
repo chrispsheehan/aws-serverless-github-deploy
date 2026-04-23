@@ -3,8 +3,8 @@ name: Apply Planned Prod Infra
 on:
   workflow_dispatch:
     inputs:
-      plan_run_id:
-        description: "Workflow run ID from the earlier plan_prod run"
+      plan_artifact_run_id:
+        description: "Workflow run ID from the earlier prod_infra_plan run"
         required: true
         type: string
 
@@ -18,7 +18,7 @@ jobs:
     name: Metadata
     uses: ./.github/workflows/shared_infra_plan_metadata_get.yml
     with:
-      plan_run_id: ${{ inputs.plan_run_id }}
+      plan_artifact_run_id: ${{ inputs.plan_artifact_run_id }}
       github_token: ${{ github.token }}
 
   infra:
@@ -34,5 +34,5 @@ jobs:
       bootstrap_image_uri: ${{ needs.metadata.outputs.bootstrap_image_uri }}
       service_matrix: ${{ needs.metadata.outputs.service_matrix }}
       tg_action: apply_plan
-      plan_artifact_run_id: ${{ inputs.plan_run_id }}
+      plan_artifact_run_id: ${{ inputs.plan_artifact_run_id }}
       github_token: ${{ github.token }}
