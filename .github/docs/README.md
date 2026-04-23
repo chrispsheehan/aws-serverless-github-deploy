@@ -102,7 +102,7 @@ flowchart LR
 - `dev_infra_deploy.yml`
   Entry point for dev infra apply.
 - `dev_infra_plan_apply.yml`
-  Entry point for dev infra plan-then-apply. It uploads derived per-stack plan artifacts first, then reruns the same ordered infra graph in apply-from-plan mode.
+  Entry point for dev infra plan-then-apply. It captures the current workflow `run_id` as plan context, uploads derived per-stack plan artifacts, rehydrates the resolved infra inputs through the shared metadata-reader workflow, and then reruns the same ordered infra graph in apply-from-plan mode.
 - `prod_infra_plan.yml`
   Entry point for prod infra plan. It resolves released artifacts from `ci`, records both the exact input versions and the resolved infra graph inputs in a reusable metadata artifact, and uploads derived per-stack plan artifacts for that same resolved set.
 - `prod_infra_plan_apply.yml`
@@ -197,7 +197,7 @@ These are the workflows most users trigger directly.
 - `dev_infra_deploy.yml`
   Discovers directories, prepares dev artifacts, and applies dev infrastructure.
 - `dev_infra_plan_apply.yml`
-  Discovers directories, prepares dev artifacts, plans the ordered dev infra graph with derived uploaded plan artifacts, and then reapplies the same graph from those artifacts.
+  Discovers directories, prepares dev artifacts, captures the current run as plan context, plans the ordered dev infra graph with derived uploaded plan artifacts, reloads the resolved infra inputs from metadata, and then reapplies the same graph from those artifacts.
 - `prod_infra_plan.yml`
   Resolves released artifacts from `ci`, stores both the exact versions and the resolved infra graph inputs in the shared metadata artifact, and plans the ordered prod infra graph, uploading derived per-stack plan artifacts.
 - `prod_infra_plan_apply.yml`

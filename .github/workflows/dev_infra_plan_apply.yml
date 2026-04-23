@@ -2,13 +2,14 @@ name: Dev Infra With Plan
 
 on:
   workflow_dispatch:
-  # push:
-  #   branches:
-  #     - plan-artefacts
+  push:
+    branches:
+      - plan-artefacts
 
 permissions:
   id-token: write
   contents: write
+  actions: read
 
 jobs:
   setup:
@@ -21,6 +22,18 @@ jobs:
     with:
       environment: dev
       infra_version: ${{ github.sha }}
+
+  plan_context:
+    name: Plan Context
+    runs-on: ubuntu-latest
+    outputs:
+      plan_run_id: ${{ steps.plan_context.outputs.plan_run_id }}
+    steps:
+      - name: Capture plan run id
+        id: plan_context
+        shell: bash
+        run: |
+          echo "plan_run_id=${{ github.run_id }}" >> "$GITHUB_OUTPUT"
 
   plan:
     name: Plan
@@ -37,25 +50,29 @@ jobs:
       service_matrix: ${{ needs.setup.outputs.ecs_service_dirs }}
       tg_action: plan
 
-  # metadata:
-  #   name: Metadata
-  #   uses: ./.github/workflows/shared_infra_plan_metadata_get.yml
-  #   with:
-  #     plan_run_id: ${{ inputs.plan_run_id }}
-  #     github_token: ${{ github.token }}
+  metadata:
+    name: Metadata
+    needs:
+      - plan_context
+      - plan
+    uses: ./.github/workflows/shared_infra_plan_metadata_get.yml
+    with:
+      plan_run_id: ${{ needs.plan_context.outputs.plan_run_id }}
+      github_token: ${{ github.token }}
 
-  # apply:
-  #   name: Apply Planned Infra
-  #   needs:
-  #     - setup
-  #     - code
-  #     - plan
-  #   uses: ./.github/workflows/shared_infra.yml
-  #   with:
-  #     environment: dev
-  #     infra_version: ${{ github.sha }}
-  #     code_bucket: ${{ needs.code.outputs.code_bucket }}
-  #     lambda_matrix: ${{ needs.setup.outputs.lambda_dirs }}
-  #     bootstrap_image_uri: ${{ needs.code.outputs.bootstrap_image_uri }}
-  #     service_matrix: ${{ needs.setup.outputs.ecs_service_dirs }}
-  #     tg_action: apply_plan
+  apply:
+    name: Apply Planned Infra
+    needs:
+      - plan_context
+      - metadata
+    uses: ./.github/workflows/shared_infra.yml
+    with:
+      environment: dev
+      infra_version: ${{ needs.metadata.outputs.infra_version }}
+      code_bucket: ${{ needs.metadata.outputs.code_bucket }}
+      lambda_matrix: ${{ needs.metadata.outputs.lambda_matrix }}
+      bootstrap_image_uri: ${{ needs.metadata.outputs.bootstrap_image_uri }}
+      service_matrix: ${{ needs.metadata.outputs.service_matrix }}
+      tg_action: apply_plan
+      plan_artifact_run_id: ${{ needs.plan_context.outputs.plan_run_id }}
+      github_token: ${{ github.token }}
