@@ -52,17 +52,19 @@ jobs:
           path: .
           github-token: ${{ inputs.github_token }}
           run-id: ${{ inputs.plan_run_id }}
-          if-no-artifact-found: error
+
+      - name: Check plan metadata artifact
+        shell: bash
+        run: |
+          if [ ! -f plan-metadata.json ]; then
+            echo "::error title=Missing plan metadata artifact::Expected 'plan-metadata.json' from artifact '${{ inputs.metadata_artifact_name }}' in run '${{ inputs.plan_run_id }}', but it was not downloaded."
+            exit 1
+          fi
 
       - name: Read plan metadata
         id: metadata
         shell: bash
         run: |
-          test -f plan-metadata.json || {
-            echo "Expected plan metadata artifact was not found." >&2
-            exit 1
-          }
-
           echo "infra_version=$(jq -r '.infra_version' plan-metadata.json)" >> "$GITHUB_OUTPUT"
           echo "code_bucket=$(jq -r '.code_bucket' plan-metadata.json)" >> "$GITHUB_OUTPUT"
           echo "lambda_matrix=$(jq -c '.lambda_matrix' plan-metadata.json)" >> "$GITHUB_OUTPUT"
