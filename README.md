@@ -58,10 +58,9 @@ The `ci` OIDC role is intentionally narrower than the `dev` and `prod` roles. Th
 
 ### Shared Platform Shape
 
-- `network` owns the shared HTTP API, JWT authorizer, VPC link, internal ALB, and VPC endpoints used by the app stacks.
-- Lambda and ECS APIs can coexist on that shared routing surface, with the frontend exposing Lambda-backed `/api/*` paths and ECS-backed `/api/ecs/*` paths independently.
-- ECS task wrappers use a shared default ECR naming convention from `infra/root.hcl`, and the concrete task wrappers default `local_tunnel = false` and `xray_enabled = false` unless an environment opts in.
-- The detailed routing, listener, and feasibility rules live in [infra/modules/aws/network/README.md](infra/modules/aws/network/README.md), [infra/modules/aws/_shared/service/README.md](infra/modules/aws/_shared/service/README.md), and [infra/modules/aws/_shared/task/README.md](infra/modules/aws/_shared/task/README.md).
+Lambda and ECS APIs can coexist on the shared routing surface in this repo, with CloudFront exposing Lambda-backed `/api/*` paths and ECS-backed `/api/ecs/*` paths independently.
+
+The detailed routing, listener, and feasibility rules live in [infra/modules/aws/network/README.md](infra/modules/aws/network/README.md), [infra/modules/aws/_shared/service/README.md](infra/modules/aws/_shared/service/README.md), and [infra/modules/aws/_shared/task/README.md](infra/modules/aws/_shared/task/README.md).
 
 ### Workflow Split
 
@@ -145,12 +144,7 @@ Set the GitHub environment variable `DOMAIN_NAME` to the hosted zone base domain
 chrispsheehan.com
 ```
 
-When that value is present:
-
-- the `frontend` stack requests a CloudFront certificate in `us-east-1` and creates Route53 alias records for `<project_name>.<environment>.<domain_name>`
-- the `cognito` stack automatically adds `https://<project_name>.<environment>.<domain_name>` to its Hosted UI callback and logout URLs
-
-The repo still keeps `http://localhost:5173` in Cognito for local Vite development, so local and deployed login can coexist.
+When that value is present, the frontend and Cognito stacks derive the deployed domain and auth callback/logout URLs automatically. Local Vite login still coexists through `http://localhost:5173`.
 
 ## Example Prompts
 
@@ -166,79 +160,7 @@ Use prompts like these when asking for a new service in this repo:
 
 For Lambda provisioned concurrency patterns and example `provisioned_config` shapes, see [infra/modules/aws/_shared/lambda/README.md](infra/modules/aws/_shared/lambda/README.md).
 
-### Types Of ECS Service Scaling
-
-```hcl
-module "service_example" {
-  source = "../_shared/service"
-  ...
-  desired_task_count = 1
-  scaling_strategy   = var.your_scaling_strategy
-}
-```
-
-#### ✅ [default] Fixed task count
-- use case: predictable workloads or low-volume services
-- keep a fixed baseline task count and disable autoscaling
-```hcl
-desired_task_count = 1
-
-scaling_strategy = {}
-```
-
-#### 🧠 Scale on CPU
-- use case: services where CPU saturation is the clearest scale signal
-```hcl
-desired_task_count = 1
-
-scaling_strategy = {
-  max_scaled_task_count = 4
-  cpu = {
-    scale_out_threshold  = 70
-    scale_in_threshold   = 30
-    scale_out_adjustment = 1
-    scale_in_adjustment  = -1
-    cooldown_out         = 120
-    cooldown_in          = 300
-  }
-}
-```
-
-#### 📨 Scale on SQS depth
-- use case: queue-driven workers
-```hcl
-desired_task_count = 1
-
-scaling_strategy = {
-  max_scaled_task_count = 6
-  sqs = {
-    queue_name           = "my-worker-queue"
-    scale_out_threshold  = 10
-    scale_in_threshold   = 0
-    scale_out_adjustment = 1
-    scale_in_adjustment  = -1
-    cooldown_out         = 60
-    cooldown_in          = 300
-  }
-}
-```
-
-#### 🌐 Scale on ALB requests per task
-- use case: load-balanced HTTP services
-```hcl
-desired_task_count = 2
-
-scaling_strategy = {
-  max_scaled_task_count = 6
-  alb = {
-    target_requests_per_task = 100
-    cooldown_out             = 60
-    cooldown_in              = 300
-  }
-}
-```
-
-- detailed ECS scaling and deployment rules live in [infra/modules/aws/_shared/service/README.md](infra/modules/aws/_shared/service/README.md)
+For ECS scaling patterns and `scaling_strategy` examples, see [infra/modules/aws/_shared/service/README.md](infra/modules/aws/_shared/service/README.md).
 
 ### Deployment Overview
 
