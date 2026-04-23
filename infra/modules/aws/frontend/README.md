@@ -28,6 +28,13 @@ Static frontend hosting module.
 - all other paths
   served from the frontend bucket with SPA routing
 
+## Auth And Runtime Notes
+
+- the deployed frontend uses the Cognito Hosted UI authorization-code-plus-PKCE flow
+- CloudFront owns the `/api/*` and `/api/ecs/*` prefix strip before forwarding to API Gateway
+- the forwarded API behavior uses CloudFront's managed `AllViewerExceptHostHeader` origin-request policy so `Authorization` and the other viewer headers reach API Gateway
+- the local Vite app can be wired to the same auth flow through `frontend/public/auth-config.json`
+
 ## Custom domain
 
 The module expects `domain_name` and derives the deployed frontend URL as `<project_name>.<environment>.<domain_name>`.

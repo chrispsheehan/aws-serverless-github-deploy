@@ -1,5 +1,13 @@
 # Repo Instructions
 
+## Common Elevations
+
+- request escalation for `just tg <env> <module> validate` when Terragrunt needs normal network or AWS access outside the sandbox
+- request escalation for `just tg <env> <module> plan` when Terragrunt needs normal network, AWS, or remote-state access outside the sandbox
+- request escalation for `just tg-all <op>` when the command needs real Terragrunt/Terraform access beyond sandbox limits
+- when one of those commands is relevant to the task, ask for escalation immediately before running it rather than failing inside the sandbox first
+- use stable command prefixes where possible so repeated `just tg` escalations can be approved and reused consistently
+
 ## Documentation
 
 Update documentation in the same change:
@@ -84,6 +92,13 @@ When changing CI workflows or Terraform module dependencies, check dependency be
 - for prod wrappers in this repo, remember that shared artifact resources come from `ci`, while deploy target resources are still in `prod`
 - prefer making modules tolerant of unnecessary upstream state dependencies where possible
 - do not change CI ordering blindly; first check whether the real issue is an avoidable cross-stack dependency
+
+## Terragrunt Plan Expectation
+
+- when a change touches `*.hcl`, Terraform modules, live Terragrunt stacks, or downstream dependencies that can affect Terraform evaluation or plan output, run the relevant `just tg <env> <module> plan` command before closing the task when feasible
+- choose the smallest relevant plan surface rather than defaulting to `run-all`; for example, plan only the affected `dev`, `ci`, or `prod` stack(s)
+- when shared modules or remote-state contracts change, consider the downstream consumer stacks too and run plans for the affected dependents, not just the module wrapper you edited
+- if a plan is not feasible because credentials, network, permissions, or state access are unavailable, say that explicitly in the final response and name the plan command that should be run manually
 
 ## Justfile Change Warning
 

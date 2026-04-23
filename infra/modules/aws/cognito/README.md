@@ -30,3 +30,12 @@ Concrete Cognito user-auth module for the frontend and HTTP API.
 This module intentionally creates infrastructure, not individual users. In this repo, user seeding is expected to happen operationally with AWS CLI or `just` recipes so access can be granted explicitly to a small allowlist such as the initial `readonly` user.
 The module derives the deployed frontend URL as `https://<project_name>.<environment>.<domain_name>` and adds it to the Hosted UI callback and logout URLs alongside any local development URLs.
 The managed Cognito Hosted UI domain prefix is derived from the project, environment, and account id, but replaces `aws` with `app` because Cognito reserves `aws` in managed domain names.
+
+## Frontend Auth Contract
+
+The frontend in this repo uses Cognito Hosted UI with the authorization-code-plus-PKCE flow.
+
+- unauthenticated users are redirected to Cognito before the app calls `/api/*`
+- after sign-in, the frontend exchanges the callback code for tokens and sends `Authorization: Bearer ...` to the API
+- the repo keeps `http://localhost:5173` in the callback/logout set so local Vite development can coexist with the deployed domain
+- if Cognito returns `invalid_grant` during callback exchange or refresh, the frontend is expected to clear stale browser auth state and start a fresh login

@@ -25,6 +25,8 @@ Use it when you need to understand:
 
 ## Workflow Contracts
 
+The repo vendors its internal GitHub Actions under `.github/actions`, so workflow `uses:` references point at local paths rather than external action tags. The release workflow uses a repo-local version action, and the change-detection path uses a repo-local Docker action under `.github/actions/get-changes`.
+
 ### Release And Validation
 
 - `release.yml`
@@ -105,6 +107,10 @@ Run these checks on every CI, workflow, or deploy-contract change.
 - verify optional inputs are intentionally omitted, not accidentally missing
 - when using `./.github/actions/just`, check whether the caller needs the repo-root `justfile` or an explicit `justfile_path`
 - if a deploy step passes `APP_SPEC_FILE`, keep it aligned with the shared AppSpec template location under `config/deploy/`
+- keep the split `just` ownership clear:
+  - repo-root `justfile` for local/developer commands
+  - `justfile.ci` for read-only CI helpers
+  - `justfile.deploy` for mutating CI build and deploy steps
 
 ### Release Tagging Checks
 
@@ -169,4 +175,4 @@ These are the workflows most users trigger directly.
 
 - `get_directories.yml` is the workflow-level source for directory-derived matrices
 - top-level Lambda directories under `lambdas/` are treated as deployable functions, excluding generated build output
-- top-level deployable container directories under `containers/` are treated as ECS image targets, excluding helper-only directories such as `shared`
+- top-level deployable container directories under `containers/` are treated as ECS image targets, excluding helper-only directories such as `lib` and `_shared`

@@ -1,148 +1,67 @@
-# 🚀 terraform-aws-github-oidc-role
+# `_shared/oidc`
 
-Creates an **OIDC-enabled AWS IAM role** to be used via the [aws-actions/configure-aws-credentials](https://github.com/aws-actions/configure-aws-credentials) GitHub Action.
+Shared GitHub Actions OIDC role module.
 
-## 🔐 Priority Logic
+This repo vendors the module locally so the live `aws/oidc` stacks do not depend on an external Terraform Registry source.
 
-- 🥇 **Branches take top priority** — if a branch is allowed, it overrides everything else.
-- 🌱 **Environments are fallback** — if a branch is _not_ allowed, but the environment is, the workflow can run.
-- 🏷️ **Tags** enable deployments from versioned releases if neither branch nor environment is explicitly allowed.
-- ⚙️ **`allow_deployments`** acts as a global override — if enabled, _any_ workflow can assume the role.
-- 🔑 IAM permissions (`allowed_role_actions`, `allowed_role_resources`) control AWS access.
-- ✍️ IAM permissions can be updated when assuming the role dynamically.
+## Owns
 
----
+- IAM role for GitHub Actions OIDC assumption
+- attached IAM policies for state access, repo-defined AWS access, and optional role-management access
+- lookup of the existing GitHub Actions OIDC provider in the target AWS account
 
-## 📋 Requirements
+## Does Not Own
 
-The OIDC provider must exist in your AWS account. Terraform will pull it in using the following data block:
+- creation of the GitHub OIDC provider itself
+- workflow-level `configure-aws-credentials` usage
+- repo-specific decisions about how broad `ci`, `dev`, or `prod` access should be
 
-```hcl
-locals {
-  oidc_domain = "token.actions.githubusercontent.com"
-}
+## Requirements
 
-data "aws_caller_identity" "this" {}
+- the AWS account must already contain the IAM OIDC provider for `https://token.actions.githubusercontent.com`
+- the Terragrunt caller must provide the state bucket and DynamoDB lock table names
+- caller policy scope is controlled by `allowed_role_actions` and `allowed_role_resources`
 
-data "aws_iam_openid_connect_provider" "this" {
-  arn = "arn:aws:iam::${data.aws_caller_identity.this.account_id}:oidc-provider/${local.oidc_domain}"
-}
+## Repo Contract
+
+The live stacks are:
+
+- `infra/live/ci/aws/oidc`
+- `infra/live/dev/aws/oidc`
+- `infra/live/prod/aws/oidc`
+
+Apply them with:
+
+```sh
+just tg ci aws/oidc apply
+just tg dev aws/oidc apply
+just tg prod aws/oidc apply
 ```
 
----
+Role scope in this repo:
 
-## ⚙️ Usage
+- `ci`
+  intentionally narrow; used for shared artifact management, current CI IAM interactions, and ECR image publishing
+- `dev` and `prod`
+  broader deploy roles; include the database, Cognito, certificate, and Route53 access needed by the repo's runtime stacks
 
-### ▶️ Terraform Module
+The `ci` role is not the repo's general deploy role. If a workflow needs deploy permissions, treat that as a contract change and document the exact additional AWS actions.
 
-```hcl
-module "github-oidc-role" {
-  source  = "chrispsheehan/github-oidc-role/aws"
+## Inputs That Change Behavior
 
-  deploy_role_name = "your_deploy_role_name"
-  state_bucket     = "700011111111-eu-west-2-project-deploy-tfstate"
-  state_lock_table = "project-deploy-tf-lockid"
-  github_repo      = "chrisheehan/project"
+- `deploy_role_name`
+- `github_repo`
+- `deploy_branches`
+- `deploy_tags`
+- `deploy_environments`
+- `allow_deployments`
+- `allowed_role_actions`
+- `allowed_role_resources`
+- `state_bucket`
+- `state_lock_table`
 
-  allowed_role_actions   = ["s3:*"]
-  allowed_role_resources = ["*"]
+## Outputs Consumers Rely On
 
-  deploy_branches     = ["main"]
-  deploy_tags         = ["*"]
-  deploy_environments = ["dev", "prod"]
-}
-```
+- role ARN
 
----
-
-### 🧱 Terragrunt Configuration
-
-```hcl
-locals {
-  git_remote   = run_cmd("--terragrunt-quiet", "git", "remote", "get-url", "origin")
-  github_repo  = regex("[/:]([-0-9_A-Za-z]*/[-0-9_A-Za-z]*)[^/]*$", local.git_remote)[0]
-  project_name = replace(local.github_repo, "/", "-")
-
-  aws_account_id = get_aws_account_id()
-  aws_region     = "eu-west-2"
-
-  deploy_role_name = "${local.project_name}-github-oidc-role"
-  state_bucket     = "${local.aws_account_id}-${local.aws_region}-${local.project_name}-tfstate"
-  state_key        = "${local.project_name}/terraform.tfstate"
-  state_lock_table = "${local.project_name}-tf-lockid"
-}
-
-generate "backend" {
-  path      = "backend.tf"
-  if_exists = "skip"
-  contents  = <<EOF
-terraform {
-  backend "s3" {}
-}
-EOF
-}
-
-generate "aws_provider" {
-  path      = "provider_aws.tf"
-  if_exists = "overwrite_terragrunt"
-  contents  = <<EOF
-provider "aws" {
-  region              = "${local.aws_region}"
-  allowed_account_ids = ["${local.aws_account_id}"]
-}
-EOF
-}
-
-remote_state {
-  backend = "s3"
-  config = {
-    bucket         = local.state_bucket
-    key            = local.state_key
-    region         = local.aws_region
-    dynamodb_table = local.state_lock_table
-    encrypt        = true
-  }
-}
-
-terraform {
-  source = "tfr:///chrispsheehan/github-oidc-role/aws?version=0.2.1"
-}
-
-inputs = {
-  aws_region           = local.aws_region
-  state_bucket         = local.state_bucket
-  state_lock_table     = local.state_lock_table
-  allowed_role_actions = ["s3:*"]
-  deploy_branches      = ["main"]
-  deploy_role_name     = local.deploy_role_name
-  github_repo          = local.github_repo
-}
-```
-
----
-
-## 🤖 GitHub Action Example
-
-```yaml
-name: Deploy Environment
-
-on:
-  workflow_call:
-
-permissions:
-  id-token: write
-  contents: read
-
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v3
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/your_deploy_role_name
-          aws-region: ${{ vars.AWS_REGION }}
-      - name: deploy
-        run: terraform apply -auto-approve
-```
+Used by GitHub Actions via `aws-actions/configure-aws-credentials`.
