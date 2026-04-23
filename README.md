@@ -5,7 +5,7 @@ Lambda + ECS with CodeDeploy rollouts, plus provisioned concurrency controls for
 
 ## Sections
 
-- [What This Repo Gives You](#what-this-repo-gives-you)
+- [Overview](#overview)
 - [AI-Assisted Usage](#ai-assisted-usage)
 - [Example Prompts](#example-prompts)
 - [Prerequisites](#prerequisites)
