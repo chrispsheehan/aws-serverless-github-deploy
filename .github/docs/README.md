@@ -26,6 +26,25 @@ Use it when you need to understand:
 ## Workflow Contracts
 
 The repo vendors its internal GitHub Actions under `.github/actions`, so workflow `uses:` references point at local paths rather than external action tags. The release workflow uses a repo-local version action, and the change-detection path uses a repo-local Docker action under `.github/actions/get-changes`.
+The reusable infra, build, deploy, and destroy workflows now build `AWS_OIDC_ROLE_ARN` from two GitHub variables, `AWS_ACCOUNT_ID` and `PROJECT_NAME`, plus the workflow environment input. Runtime and deploy steps that need a region should read `AWS_REGION` from GitHub variables instead of hardcoding it in workflow YAML. In this repo the role name comes from `infra/root.hcl`:
+
+```hcl
+deploy_role_name = "${local.project_name}-${local.environment}-github-oidc-role"
+```
+
+The workflow shape is:
+
+```text
+arn:aws:iam::<AWS_ACCOUNT_ID>:role/<PROJECT_NAME>-<environment>-github-oidc-role
+```
+
+So for the current repo and environment pattern, examples are:
+
+- `aws-serverless-github-deploy-ci-github-oidc-role`
+- `aws-serverless-github-deploy-dev-github-oidc-role`
+- `aws-serverless-github-deploy-prod-github-oidc-role`
+
+If you are unsure, the live `aws/oidc` stack in the target environment is the source of truth, since Terragrunt passes `deploy_role_name` into the shared OIDC module from `infra/root.hcl`.
 
 ### Release And Validation
 
