@@ -331,26 +331,9 @@ jobs:
 
   metadata:
     if: inputs.tg_action == 'plan'
-    needs:
-      - worker_messaging
-      - observability
-      - cognito
-      - frontend
-      - cluster
-      - security
-      - database
-      - network
-      - lambdas
-      - services
     runs-on: ubuntu-latest
     steps:
-      - name: Download plan artifacts
-        uses: actions/download-artifact@v4
-        with:
-          pattern: terragrunt-plan-*
-          path: plan-artifacts
-
-      - name: Write aggregated plan metadata
+      - name: Write plan metadata
         shell: bash
         run: |
           cat > plan-metadata.json <<EOF
