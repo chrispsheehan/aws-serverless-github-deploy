@@ -127,6 +127,23 @@ That `containers/lib` directory is helper code only and is not treated as a depl
     - or use native ECS rolling updates for internal services
   - ECS task rollout is not implicitly blocked on Lambda or migration jobs; add that ordering only where a caller actually needs it
 
+## Local Command Surface
+
+- root `justfile`
+  local developer and Terragrunt commands
+- `justfile.ci`
+  read-only CI helpers such as discovery, version lookup, and lint-style checks
+- `justfile.deploy`
+  mutating CI build and deploy helpers
+
+Run the split files locally with:
+
+```sh
+just --justfile justfile.ci tf-lint-check
+just --justfile justfile.deploy lambda-get-version
+just --justfile justfile.deploy frontend-build
+```
+
 ## Naming Conventions
 
 - `task_<name>`

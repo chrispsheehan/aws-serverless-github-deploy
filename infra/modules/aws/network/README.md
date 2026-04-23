@@ -13,6 +13,21 @@ Shared network and routing module.
 - interface VPC endpoints, including SQS for private ECS workers, SSM for private runtimes that read Parameter Store values, and Secrets Manager for private runtimes that read the shared database credentials object
 - S3 gateway endpoint
 
+## Routing Surface
+
+This module is the shared routing layer for both Lambda-backed and ECS-backed APIs in this repo.
+
+- Lambda routes plug into the shared HTTP API at `/*`
+- ECS API routes plug into the shared HTTP API at `/ecs/*`
+- the frontend exposes those as `/api/*` for Lambda and `/api/ecs/*` for ECS
+- the shared JWT authorizer from this module can be attached to both Lambda and ECS API paths
+
+In the common ECS API shape used here:
+
+- the ECS service uses `connection_type = "vpc_link"`
+- the ECS service owns its dedicated listener and routing details
+- the ALB itself, the base listener surface, and the VPC link stay here in `network`
+
 ## Dependencies
 
 - pre-existing tagged VPC and private subnets discovered with `data` lookups

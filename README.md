@@ -21,12 +21,11 @@ That async trace propagation uses the AWS X-Ray OpenTelemetry propagator so ECS 
 - Lambda source layout: [lambdas/README.md](lambdas/README.md)
 - Container source layout: [containers/README.md](containers/README.md)
 - Infra layout and stack glossary: [infra/README.md](infra/README.md)
+- OIDC role ownership and setup contract: [infra/modules/aws/_shared/oidc/README.md](infra/modules/aws/_shared/oidc/README.md)
+- Shared Lambda deployment and provisioned concurrency behavior: [infra/modules/aws/_shared/lambda/README.md](infra/modules/aws/_shared/lambda/README.md)
+- Shared network and routing surface: [infra/modules/aws/network/README.md](infra/modules/aws/network/README.md)
+- Frontend auth and hosting contracts: [infra/modules/aws/cognito/README.md](infra/modules/aws/cognito/README.md) and [infra/modules/aws/frontend/README.md](infra/modules/aws/frontend/README.md)
 - Shared runtime log dashboard for the primary Lambda and ECS request/worker runtimes, with default views biased toward structured app events instead of Lambda platform noise: [infra/modules/aws/observability/README.md](infra/modules/aws/observability/README.md)
-
-The repo vendors its internal GitHub Actions under [.github/actions](.github/actions), so workflow `uses:` references point at local paths rather than external action tags.
-The release workflow also uses a repo-local version action that bumps plain semver tags from configurable commit-subject prefixes such as `fix:`, `chore:`, `feat:`, and `minor:`.
-The shared change-detection workflow also uses a repo-local Docker action under [.github/actions/get-changes](.github/actions/get-changes).
-For repo-local Docker actions that read git state, the CI contract is to resolve the checkout from `GITHUB_WORKSPACE` and mark it as a git `safe.directory`; the detailed rule lives in [.github/docs/README.md](.github/docs/README.md).
 
 ## Prerequisites
 
@@ -55,67 +54,27 @@ just tg dev aws/oidc apply
 just tg prod aws/oidc apply
 ```
 
-The `ci` OIDC role is intentionally narrower than the `dev` and `prod` roles. In this repo it is limited to build-artifact management, including the shared code bucket, IAM interactions needed by the existing CI flow, and publishing container images to ECR. It is not the repo's broad deployment role.
-The GitHub Actions OIDC module is vendored in this repo under [`infra/modules/aws/_shared/oidc`](infra/modules/aws/_shared/oidc), so the `aws/oidc` stacks no longer depend on an external Terraform Registry module.
-
-Role scope summary:
-
-- `ci`: shared code bucket access, current CI IAM interactions, and ECR image publishing
-- `dev` and `prod`: deploy scope plus the `rds`, `ssm`, `secretsmanager`, and `kms` permissions needed by the shared database stack
-- `dev` and `prod`: also include `acm`, `route53`, and `cognito-idp` for the frontend and Cognito custom-domain/auth resources
+The `ci` OIDC role is intentionally narrower than the `dev` and `prod` roles. The detailed scope contract and the vendored module shape live in [infra/modules/aws/_shared/oidc/README.md](infra/modules/aws/_shared/oidc/README.md).
 
 ### Shared Platform Shape
 
-The repo `network` module also owns the shared internal ALB and shared HTTP API Gateway surface used by ECS services:
-
-- HTTP API
-- default API stage
-- VPC link
-- internal ALB and target groups
-- interface VPC endpoints required by private runtimes, including SQS for the worker poller, SSM for Parameter Store reads where still used, and Secrets Manager for the shared database credentials object consumed by ECS and Lambda runtimes
-
-This boilerplate supports Lambda APIs and ECS services side by side on the shared routing surface. A typical ECS API shape in this repo looks like:
-
-- public Lambda path via CloudFront: `/api/*`
-- public ECS path via CloudFront: `/api/ecs/*`
-- API Gateway Lambda route namespace: `/*`
-- API Gateway ECS route namespace: `/ecs/*`
-- deployment model: ECS CodeDeploy `blue_green`
-- ALB shape: shared private ALB with a dedicated ECS API listener on port `8080`
-- stacks: `task_<name>` and `service_<name>`
-- frontend and routing layers can expose Lambda-backed and ECS-backed paths independently
-
-The `lambda_api` family plugs Lambda integrations and routes into that shared API, while `network` owns the shared Cognito-backed JWT authorizer used by both Lambda and ECS API routes.
-
-Terragrunt also provides a shared default ECR repository name to ECS task modules:
-
-- shared artifact base: `dev -> <account>-<region>-<project>-dev`, otherwise `<account>-<region>-<project>-ci`
-- default ECR repository: `<artifact_base>-ecs-worker`
-- override it in `infra/live/<environment>/environment_vars.hcl` only if the repository naming diverges from that convention
-- the concrete ECS worker task wrapper defaults `local_tunnel = false` and `xray_enabled = false` unless you explicitly set them
-- in `dev`, `otel_sampling_percentage` is set to `100` so ECS traces are easy to verify while iterating
-
-The frontend infra module also uploads a bootstrap `index.html` during infra apply so CloudFront serves a placeholder page before the built frontend assets are deployed. The deployed frontend runtime config also includes a direct link to the environment's CloudWatch observability dashboard.
+- `network` owns the shared HTTP API, JWT authorizer, VPC link, internal ALB, and VPC endpoints used by the app stacks.
+- Lambda and ECS APIs can coexist on that shared routing surface, with the frontend exposing Lambda-backed `/api/*` paths and ECS-backed `/api/ecs/*` paths independently.
+- ECS task wrappers use a shared default ECR naming convention from `infra/root.hcl`, and the concrete task wrappers default `local_tunnel = false` and `xray_enabled = false` unless an environment opts in.
+- The detailed routing, listener, and feasibility rules live in [infra/modules/aws/network/README.md](infra/modules/aws/network/README.md), [infra/modules/aws/_shared/service/README.md](infra/modules/aws/_shared/service/README.md), and [infra/modules/aws/_shared/task/README.md](infra/modules/aws/_shared/task/README.md).
 
 ### Workflow Split
 
 - `*_infra` workflows apply infrastructure only
 - `*_code` workflows deploy feature code only
 - infra re-runs do not roll out new code
-- the reusable code deploy workflow can also invoke post-deploy helper Lambdas, such as migrations or reconciliation helpers, when they are present in the Lambda matrix
-- code deploys should pass explicit runtime versions, including `ecs_version` for ECS rollouts
-- detailed workflow contracts live in [.github/docs/README.md](.github/docs/README.md)
+- detailed workflow contracts, reusable-workflow inputs, repo-local action behavior, and `justfile_path` rules live in [.github/docs/README.md](.github/docs/README.md)
 
 See [lambdas/README.md](lambdas/README.md) and [containers/README.md](containers/README.md) for runtime source layout, build behavior, and boilerplate patterns.
 
-Shared Python runtime helpers no longer live alongside deployable runtimes. Cross-runtime helpers live under [`lib/`](lib), Lambda-only helpers live under [`lambdas/lib/`](lambdas/lib), and ECS-only helpers live under [`containers/lib/`](containers/lib). The Lambda and container build flows copy those helpers into their packaged runtime roots so existing runtime imports stay flat.
-The shared CodeDeploy AppSpec templates live under [`config/deploy/`](config/deploy), and the deploy helpers render temporary environment-specific copies from there during CI rollout.
-
 ## Common Tasks
 
-CI-only helper recipes such as directory discovery, artifact/version checks, and Terraform linting now live in [`justfile.ci`](justfile.ci). CI-only rollout and build helpers such as Docker image builds, Lambda artifact packaging, Lambda CodeDeploy orchestration, and ECS AppSpec/deploy steps now live in [`justfile.deploy`](justfile.deploy). GitHub workflows call those files explicitly via the repo-local `just` action's `justfile_path` input, while local developer and runtime-oriented recipes remain in the root [`justfile`](justfile).
-
-To run one of those split justfiles locally, call `just` with `--justfile`:
+The root [`justfile`](justfile) keeps local developer commands. CI-only helpers live in [`justfile.ci`](justfile.ci), and CI build/deploy helpers live in [`justfile.deploy`](justfile.deploy). Run the split files locally with `--justfile`:
 
 ```sh
 just --justfile justfile.ci tf-lint-check
@@ -172,12 +131,7 @@ The shared debug image includes `psql`, and `worker-debug-shell` injects `PGPASS
 
 ## Frontend Auth
 
-The boilerplate frontend uses Cognito Hosted UI with the authorization-code-plus-PKCE flow.
-
-- unauthenticated users are redirected to Cognito before the app calls `/api/*`
-- after sign-in, the frontend exchanges the callback code for tokens and sends `Authorization: Bearer ...` to `/api/*`
-- if Cognito returns `invalid_grant` during callback exchange or refresh, the frontend clears the stale browser auth state and starts a fresh login instead of staying stuck on an auth error
-- CloudFront owns the `/api/*` prefix strip and forwards the `Authorization` header to API Gateway
+The boilerplate frontend uses Cognito Hosted UI with the authorization-code-plus-PKCE flow. The detailed frontend auth contract, callback/logout URL behavior, and `/api/*` forwarding rules live in [infra/modules/aws/cognito/README.md](infra/modules/aws/cognito/README.md) and [infra/modules/aws/frontend/README.md](infra/modules/aws/frontend/README.md).
 
 The Cognito stack creates the user pool, app client, Hosted UI domain, and `readonly` group. It does not create users automatically. To seed the initial read-only user after `cognito` is applied:
 
@@ -197,7 +151,6 @@ When that value is present:
 - the `cognito` stack automatically adds `https://<project_name>.<environment>.<domain_name>` to its Hosted UI callback and logout URLs
 
 The repo still keeps `http://localhost:5173` in Cognito for local Vite development, so local and deployed login can coexist.
-For local `vite` dev, the repo includes [`frontend/public/auth-config.json`](frontend/public/auth-config.json) as a disabled placeholder; update that file locally if you want the localhost frontend to use the same Cognito flow.
 
 ## Example Prompts
 
@@ -211,52 +164,7 @@ Use prompts like these when asking for a new service in this repo:
 
 ## Reference
 
-### Types Of Lambda Provisioned Concurrency
-
-```hcl
-module "lambda_example" {
-  source = "../lambda"
-  ...
-  provisioned_config = var.your_provisioned_config
-}
-```
-
-#### ✅ [default] No provisioned lambdas
-- use case: background processes
-- we can handle an initial lag while lambda warms up/boots
-```hcl
-provisioned_config = {
-    fixed                = 0
-    reserved_concurrency = 2 # only allow 2 concurrent executions THIS ALSO SERVES AS A LIMIT TO AVOID THROTTLING
-}
-```
-
-#### 🔒 X number of provisioned lambdas
-- use case: high predictable usage
-- we never want lag due to warm up and can predict traffic
-```hcl
-provisioned_config = {
-    fixed                = 10
-    reserved_concurrency = 50
-}
-```
-
-#### 📈 Scale provisioning when usage exceeds % tolerance 
-- use case: react to traffic i.e. api backend
-- limit the cost with autoscale.max
-- ensure minimal concurrency (no cold starts) with autoscale.min
-- set tolerance to amount of used concurrent executions. Below will trigger when 70% are used and add more to meet demands.
-- set cool down seconds to reasonable time before you would like the system to react.
-```hcl
-provisioned_config = {
-    auto_scale = {
-        max               = 3,
-        min               = 1,
-        trigger_percent   = 70
-        cool_down_seconds = 60
-    }
-}
-```
+For Lambda provisioned concurrency patterns and example `provisioned_config` shapes, see [infra/modules/aws/_shared/lambda/README.md](infra/modules/aws/_shared/lambda/README.md).
 
 ### Types Of ECS Service Scaling
 
