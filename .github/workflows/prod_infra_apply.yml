@@ -1,23 +1,31 @@
-name: Prod Infra Apply From Plan
+name: Prod Infra Deploy
 
 on:
   workflow_dispatch:
-    inputs:
-      plan_artifact_run_id:
-        description: "Workflow run ID from the earlier prod_infra_plan run"
-        required: true
-        type: string
 
 permissions:
   id-token: write
-  contents: read
-  actions: read
+  contents: write
 
 jobs:
+  get_build:
+    name: Resolve
+    uses: ./.github/workflows/shared_build_get.yml
+    with:
+      environment: ci
+      lambda_version: 0.9.4
+      frontend_version: 0.9.4
+      ecs_version: 0.9.4
+
   infra:
-    name: Apply Planned Infra
-    uses: ./.github/workflows/shared_infra_apply_from_plan.yml
+    name: Apply
+    needs:
+      - get_build
+    uses: ./.github/workflows/shared_infra_apply.yml
     with:
       environment: prod
-      plan_artifact_run_id: ${{ inputs.plan_artifact_run_id }}
-      github_token: ${{ github.token }}
+      infra_version: 0.9.4
+      code_bucket: ${{ needs.get_build.outputs.code_bucket }}
+      lambda_matrix: ${{ needs.get_build.outputs.lambda_version_files }}
+      bootstrap_image_uri: ${{ needs.get_build.outputs.bootstrap_image_uri }}
+      service_matrix: ${{ needs.get_build.outputs.ecs_service_matrix }}

@@ -20,7 +20,7 @@ Use it when you need to understand:
 - Release and validation: `release.yml`, `pull_request.yml`
 - Shared artifact prep and build: `shared_infra_releases.yml`, `shared_build.yml`, `shared_build_get.yml`
 - Shared infra and code rollout: `shared_infra_plan.yml`, `shared_infra_apply.yml`, `shared_infra_apply_from_plan.yml`, `shared_infra.yml`, `shared_deploy.yml`, `shared_directories_get.yml`
-- Environment entry points: `dev_infra_deploy.yml`, `dev_infra_plan_and_apply.yml`, `dev_code_deploy.yml`, `prod_infra_deploy.yml`, `prod_infra_plan.yml`, `prod_infra_apply.yml`
+- Environment entry points: `dev_infra_apply.yml`, `dev_infra_plan_and_apply.yml`, `dev_code_deploy.yml`, `prod_infra_apply.yml`, `prod_infra_plan.yml`, `prod_infra_apply_from_plan.yml`
 - Cleanup: `destroy.yml`
 
 ## Workflow Contracts
@@ -105,16 +105,16 @@ flowchart LR
 
 ### Wrapper Workflows
 
-- `dev_infra_deploy.yml`
+- `dev_infra_apply.yml`
   Entry point for dev infra apply.
 - `dev_infra_plan_and_apply.yml`
   Entry point for dev infra plan-then-apply. It captures the current workflow `run_id` as plan context, runs the shared infra wrapper in direct-input `plan` mode so that the wrapper emits both plan artifacts and `infra-plan-metadata`, and then reruns the same ordered infra graph in metadata-backed `apply_plan` mode.
 - `prod_infra_plan.yml`
   Entry point for prod infra plan. It resolves released artifacts from `ci` and then runs the shared infra wrapper in direct-input `plan` mode so that it emits both the reusable metadata artifact and the derived per-stack plan artifacts for that resolved input set.
 - `prod_infra_apply.yml`
-  Entry point for prod infra apply-from-plan. It only needs the earlier `plan_artifact_run_id`; the shared infra wrapper runs in metadata mode to recover the exact resolved infra graph inputs from that run and then downloads and applies the plan artifacts from that same run.
-- `prod_infra_deploy.yml`
   Entry point for prod infra apply using shared artifacts from `ci`.
+- `prod_infra_apply_from_plan.yml`
+  Entry point for prod infra apply-from-plan. It only needs the earlier `plan_artifact_run_id`; the shared infra wrapper runs in metadata mode to recover the exact resolved infra graph inputs from that run and then downloads and applies the plan artifacts from that same run.
 - `dev_code_deploy.yml`
   Entry point for dev code build and deploy.
 - `prod_code_deploy.yml`
@@ -198,16 +198,16 @@ Run these checks on every CI, workflow, or deploy-contract change.
 
 These are the workflows most users trigger directly.
 
-- `dev_infra_deploy.yml`
+- `dev_infra_apply.yml`
   Discovers directories, prepares dev artifacts, and applies dev infrastructure.
 - `dev_infra_plan_and_apply.yml`
   Discovers directories, prepares dev artifacts, captures the current run as plan context, plans the ordered dev infra graph through `shared_infra_plan.yml` so that the wrapper emits both the metadata artifact and derived uploaded plan artifacts, and then reapplies the same graph through `shared_infra_apply_from_plan.yml`.
 - `prod_infra_plan.yml`
   Resolves released artifacts from `ci`, then plans the ordered prod infra graph so that shared infra emits both the metadata artifact and the derived per-stack plan artifacts.
 - `prod_infra_apply.yml`
-  Reapplies the ordered prod infra graph from plan artifacts created by a prior `prod_infra_plan` run, using the shared `plan_artifact_run_id` contract end-to-end. `shared_infra_apply_from_plan.yml` reads the matching metadata artifact before delegating to `shared_infra.yml`.
-- `prod_infra_deploy.yml`
   Resolves released artifacts from `ci` and applies prod infrastructure.
+- `prod_infra_apply_from_plan.yml`
+  Reapplies the ordered prod infra graph from plan artifacts created by a prior `prod_infra_plan` run, using the shared `plan_artifact_run_id` contract end-to-end. `shared_infra_apply_from_plan.yml` reads the matching metadata artifact before delegating to `shared_infra.yml`.
 - `dev_code_deploy.yml`
   Discovers directories, builds fresh dev artifacts, resolves deploy inputs, and deploys code to dev.
 - `prod_code_deploy.yml`
