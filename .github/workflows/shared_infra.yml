@@ -65,7 +65,6 @@ jobs:
           ref: ${{ inputs.infra_version }}
 
       - name: ${{ env.TG_ACTION_LABEL }} oidc role infra
-        if: inputs.tg_action != 'plan' && inputs.tg_action != 'apply_plan'
         uses: ./.github/actions/terragrunt
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
