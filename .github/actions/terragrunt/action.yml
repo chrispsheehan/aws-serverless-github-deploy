@@ -43,6 +43,9 @@ outputs:
   plan_artifact_name:
     description: "Derived GitHub artifact name for a Terragrunt plan"
     value: ${{ steps.plan_artifact.outputs.plan_artifact_name }}
+  has_changes:
+    description: "Whether a Terragrunt plan detected changes"
+    value: ${{ steps.plan_result.outputs.has_changes }}
 
 runs:
   using: "composite"
@@ -109,6 +112,7 @@ runs:
         }
 
     - name: Action Terragrunt
+      id: terragrunt_action
       shell: bash
       env:
         TF_IN_AUTOMATION: true
@@ -119,8 +123,23 @@ runs:
             terragrunt apply -auto-approve -compact-warnings -var-file=override_tg_vars.tfvars.json
             ;;
           plan)
-            terragrunt plan -input=false -lock=false -compact-warnings -out=terragrunt.tfplan -var-file=override_tg_vars.tfvars.json
+            set +e
+            terragrunt plan -input=false -lock=false -detailed-exitcode -compact-warnings -out=terragrunt.tfplan -var-file=override_tg_vars.tfvars.json
+            plan_exit_code=$?
+            set -e
+
+            if [ "$plan_exit_code" -eq 1 ]; then
+              exit 1
+            fi
+
+            if [ "$plan_exit_code" -eq 2 ]; then
+              has_changes=true
+            else
+              has_changes=false
+            fi
+
             terragrunt show -no-color terragrunt.tfplan > terragrunt.plan.txt
+            printf '{"has_changes":%s}\n' "$has_changes" > terragrunt.plan.meta.json
             ;;
           apply_plan)
             terragrunt apply -auto-approve -compact-warnings terragrunt.tfplan
@@ -138,6 +157,14 @@ runs:
             ;;
         esac
 
+    - name: Capture plan result
+      if: inputs.tg_action == 'plan'
+      id: plan_result
+      shell: bash
+      working-directory: ${{ inputs.tg_directory }}
+      run: |
+        echo "has_changes=$(jq -r '.has_changes' terragrunt.plan.meta.json)" >> "$GITHUB_OUTPUT"
+
     - name: Upload plan artifact
       if: inputs.tg_action == 'plan'
       uses: actions/upload-artifact@v4
@@ -146,6 +173,7 @@ runs:
         path: |
           ${{ inputs.tg_directory }}/terragrunt.tfplan
           ${{ inputs.tg_directory }}/terragrunt.plan.txt
+          ${{ inputs.tg_directory }}/terragrunt.plan.meta.json
         if-no-files-found: error
 
     - name: Capture Terraform Outputs

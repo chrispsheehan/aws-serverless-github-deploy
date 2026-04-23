@@ -18,6 +18,9 @@ on:
       infra_version:
         description: "Infrastructure ref captured at plan time"
         value: ${{ jobs.metadata.outputs.infra_version }}
+      has_changes:
+        description: "Whether the earlier shared infra plan detected changes"
+        value: ${{ jobs.metadata.outputs.has_changes }}
       code_bucket:
         description: "Resolved code bucket captured at plan time"
         value: ${{ jobs.metadata.outputs.code_bucket }}
@@ -40,6 +43,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       infra_version: ${{ steps.metadata.outputs.infra_version }}
+      has_changes: ${{ steps.metadata.outputs.has_changes }}
       code_bucket: ${{ steps.metadata.outputs.code_bucket }}
       lambda_matrix: ${{ steps.metadata.outputs.lambda_matrix }}
       bootstrap_image_uri: ${{ steps.metadata.outputs.bootstrap_image_uri }}
@@ -66,6 +70,7 @@ jobs:
         shell: bash
         run: |
           echo "infra_version=$(jq -r '.infra_version' plan-metadata.json)" >> "$GITHUB_OUTPUT"
+          echo "has_changes=$(jq -r '.has_changes' plan-metadata.json)" >> "$GITHUB_OUTPUT"
           echo "code_bucket=$(jq -r '.code_bucket' plan-metadata.json)" >> "$GITHUB_OUTPUT"
           echo "lambda_matrix=$(jq -c '.lambda_matrix' plan-metadata.json)" >> "$GITHUB_OUTPUT"
           echo "bootstrap_image_uri=$(jq -r '.bootstrap_image_uri' plan-metadata.json)" >> "$GITHUB_OUTPUT"

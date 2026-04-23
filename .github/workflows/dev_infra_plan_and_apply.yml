@@ -3,8 +3,8 @@ name: Dev Infra Plan And Apply
 on:
   workflow_dispatch:
   push:
-    # branches:
-    #   - plan-artefacts
+    branches:
+      - plan-artefacts
 
 permissions:
   id-token: write
@@ -62,6 +62,7 @@ jobs:
 
   apply:
     name: Apply Planned Infra
+    if: needs.metadata.outputs.has_changes == 'true'
     needs:
       - plan_context
       - metadata

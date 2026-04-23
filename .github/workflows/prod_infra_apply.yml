@@ -23,6 +23,7 @@ jobs:
 
   infra:
     name: Apply Planned Infra
+    if: needs.metadata.outputs.has_changes == 'true'
     needs:
       - metadata
     uses: ./.github/workflows/shared_infra.yml
