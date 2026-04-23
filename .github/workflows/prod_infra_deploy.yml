@@ -21,7 +21,7 @@ jobs:
     name: Apply
     needs:
       - get_build
-    uses: ./.github/workflows/shared_infra.yml
+    uses: ./.github/workflows/shared_infra_apply.yml
     with:
       environment: prod
       infra_version: 0.9.4

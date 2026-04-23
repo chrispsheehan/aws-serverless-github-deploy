@@ -42,7 +42,7 @@ jobs:
     name: Plan
     needs:
       - get_build
-    uses: ./.github/workflows/shared_infra.yml
+    uses: ./.github/workflows/shared_infra_plan.yml
     with:
       environment: prod
       infra_version: ${{ inputs.infra_version }}
@@ -50,4 +50,3 @@ jobs:
       lambda_matrix: ${{ needs.get_build.outputs.lambda_version_files }}
       bootstrap_image_uri: ${{ needs.get_build.outputs.bootstrap_image_uri }}
       service_matrix: ${{ needs.get_build.outputs.ecs_service_matrix }}
-      tg_action: plan

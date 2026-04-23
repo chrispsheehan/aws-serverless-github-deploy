@@ -2,9 +2,6 @@ name: Dev Infra Plan And Apply
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - plan-artefacts
 
 permissions:
   id-token: write
@@ -40,7 +37,7 @@ jobs:
     needs:
       - setup
       - code
-    uses: ./.github/workflows/shared_infra.yml
+    uses: ./.github/workflows/shared_infra_plan.yml
     with:
       environment: dev
       infra_version: ${{ github.sha }}
@@ -50,29 +47,13 @@ jobs:
       service_matrix: ${{ needs.setup.outputs.ecs_service_dirs }}
       tg_action: plan
 
-  metadata:
-    name: Metadata
-    needs:
-      - plan_context
-      - plan
-    uses: ./.github/workflows/shared_infra_plan_metadata_get.yml
-    with:
-      plan_artifact_run_id: ${{ needs.plan_context.outputs.plan_artifact_run_id }}
-      github_token: ${{ github.token }}
-
   apply:
     name: Apply Planned Infra
     needs:
       - plan_context
-      - metadata
-    uses: ./.github/workflows/shared_infra.yml
+      - plan
+    uses: ./.github/workflows/shared_infra_apply_from_plan.yml
     with:
       environment: dev
-      infra_version: ${{ needs.metadata.outputs.infra_version }}
-      code_bucket: ${{ needs.metadata.outputs.code_bucket }}
-      lambda_matrix: ${{ needs.metadata.outputs.lambda_matrix }}
-      bootstrap_image_uri: ${{ needs.metadata.outputs.bootstrap_image_uri }}
-      service_matrix: ${{ needs.metadata.outputs.service_matrix }}
-      tg_action: apply_plan
       plan_artifact_run_id: ${{ needs.plan_context.outputs.plan_artifact_run_id }}
       github_token: ${{ github.token }}

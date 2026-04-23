@@ -19,7 +19,7 @@ Use it when you need to understand:
 
 - Release and validation: `release.yml`, `pull_request.yml`
 - Shared artifact prep and build: `shared_infra_releases.yml`, `shared_build.yml`, `shared_build_get.yml`
-- Shared infra and code rollout: `shared_infra.yml`, `shared_deploy.yml`, `shared_directories_get.yml`, `shared_infra_plan_metadata_get.yml`
+- Shared infra and code rollout: `shared_infra_plan.yml`, `shared_infra_apply.yml`, `shared_infra_apply_from_plan.yml`, `shared_infra.yml`, `shared_deploy.yml`, `shared_directories_get.yml`
 - Environment entry points: `dev_infra_deploy.yml`, `dev_infra_plan_and_apply.yml`, `dev_code_deploy.yml`, `prod_infra_deploy.yml`, `prod_infra_plan.yml`, `prod_infra_apply.yml`
 - Cleanup: `destroy.yml`
 
@@ -81,8 +81,14 @@ flowchart LR
 
 ### Infra And Code Rollout
 
+- `shared_infra_plan.yml`
+  Plan wrapper around `shared_infra.yml`. It takes resolved workflow inputs directly, writes and uploads `infra-plan-metadata`, and then calls `shared_infra.yml` with `tg_action: plan`.
+- `shared_infra_apply.yml`
+  Direct-input apply wrapper around `shared_infra.yml`. It takes resolved workflow inputs directly and calls `shared_infra.yml` with `tg_action: apply`.
+- `shared_infra_apply_from_plan.yml`
+  Apply-from-plan wrapper around `shared_infra.yml`. It takes `plan_artifact_run_id` and `github_token`, downloads `infra-plan-metadata`, reads the frozen graph inputs back out, and then calls `shared_infra.yml` with `tg_action: apply_plan`.
 - `shared_infra.yml`
-  Applies shared stacks first, then runtime stacks, then frontend infrastructure. Shared stacks now include the CloudWatch observability dashboard. The reusable workflow now accepts `tg_action` so the same graph can run a normal apply, upload derived per-stack plan artifacts, or apply from previously uploaded plan artifacts. In `plan` mode it also writes the shared `infra-plan-metadata` artifact from the resolved infra graph inputs. That metadata write is independent of the stack plan jobs, so it can run immediately rather than waiting for the full infra graph to finish. Its visible step labels now follow `tg_action` too, so plan and apply-from-plan runs no longer show everything as `Deploy ...`. The `security -> network` edge is a real bootstrap dependency because `network` reads security outputs like `vpc_endpoint_sg` from remote state; if those outputs do not exist yet, `network` fails with an upstream `Unsupported attribute` error rather than a networking-specific error.
+  Pure ordered infra graph executor. It applies shared stacks first, then runtime stacks, then frontend infrastructure. Shared stacks now include the CloudWatch observability dashboard. It accepts `tg_action` so the same graph can run a normal apply, upload derived per-stack plan artifacts, or apply from previously uploaded plan artifacts. Its visible step labels now follow `tg_action` too, so plan and apply-from-plan runs no longer show everything as `Deploy ...`. The `security -> network` edge is a real bootstrap dependency because `network` reads security outputs like `vpc_endpoint_sg` from remote state; if those outputs do not exist yet, `network` fails with an upstream `Unsupported attribute` error rather than a networking-specific error.
 - `shared_deploy.yml`
   Rolls out Lambda code, optional migrations, optional reconciliation Lambdas, ECS task and service updates, and optional frontend deploys. The reusable workflow renders its Lambda and ECS CodeDeploy AppSpec files from the shared templates under `config/deploy/`, and its mutating `just` steps should target `justfile.deploy` rather than the repo-root `justfile`.
 
@@ -102,13 +108,11 @@ flowchart LR
 - `dev_infra_deploy.yml`
   Entry point for dev infra apply.
 - `dev_infra_plan_and_apply.yml`
-  Entry point for dev infra plan-then-apply. It captures the current workflow `run_id` as plan context, runs the shared infra graph in `plan` mode so that graph emits both plan artifacts and `infra-plan-metadata`, rehydrates the resolved infra inputs through the shared metadata-reader workflow, and then reruns the same ordered infra graph in apply-from-plan mode.
+  Entry point for dev infra plan-then-apply. It captures the current workflow `run_id` as plan context, runs the shared infra wrapper in direct-input `plan` mode so that the wrapper emits both plan artifacts and `infra-plan-metadata`, and then reruns the same ordered infra graph in metadata-backed `apply_plan` mode.
 - `prod_infra_plan.yml`
-  Entry point for prod infra plan. It resolves released artifacts from `ci` and then runs the shared infra graph in `plan` mode so that graph emits both the reusable metadata artifact and the derived per-stack plan artifacts for that resolved input set.
+  Entry point for prod infra plan. It resolves released artifacts from `ci` and then runs the shared infra wrapper in direct-input `plan` mode so that it emits both the reusable metadata artifact and the derived per-stack plan artifacts for that resolved input set.
 - `prod_infra_apply.yml`
-  Entry point for prod infra apply-from-plan. It only needs the earlier `plan_artifact_run_id`; it reuses the shared metadata-reader workflow to recover the exact resolved infra graph inputs from that run, and then downloads and applies the plan artifacts from that same run.
-- `shared_infra_plan_metadata_get.yml`
-  Reusable workflow that downloads and parses the shared infra plan metadata artifact from an earlier run and exposes the resolved infra graph inputs as outputs.
+  Entry point for prod infra apply-from-plan. It only needs the earlier `plan_artifact_run_id`; the shared infra wrapper runs in metadata mode to recover the exact resolved infra graph inputs from that run and then downloads and applies the plan artifacts from that same run.
 - `prod_infra_deploy.yml`
   Entry point for prod infra apply using shared artifacts from `ci`.
 - `dev_code_deploy.yml`
@@ -136,7 +140,7 @@ Run these checks on every CI, workflow, or deploy-contract change.
 - `./.github/actions/terragrunt` derives its plan artifact name from `tg_directory`, so callers do not need to pass artifact naming inputs
 - if `apply_plan` is used across separate workflow runs, pass the earlier workflow `run_id` through `plan_artifact_run_id` and a token with `actions: read` so both the shared metadata artifact and the plan artifacts can be downloaded
 - if a cross-run apply should not ask the operator to re-enter versions or recompute artifact resolution, store both the input versions and the resolved reusable-workflow outputs in a metadata artifact during plan and recover them in the apply wrapper from the earlier `run_id`
-- if multiple environments will need the same metadata handoff, prefer having `shared_infra.yml` emit the shared metadata artifact in `plan` mode and reusing the shared metadata-reader workflow for the download/parse side
+- keep `shared_infra.yml` as the pure graph executor and prefer handling metadata creation/recovery in the dedicated plan/apply wrappers
 - when using `./.github/actions/just`, check whether the caller needs the repo-root `justfile` or an explicit `justfile_path`
 - if a deploy step passes `APP_SPEC_FILE`, keep it aligned with the shared AppSpec template location under `config/deploy/`
 - keep the split `just` ownership clear:
@@ -197,11 +201,11 @@ These are the workflows most users trigger directly.
 - `dev_infra_deploy.yml`
   Discovers directories, prepares dev artifacts, and applies dev infrastructure.
 - `dev_infra_plan_and_apply.yml`
-  Discovers directories, prepares dev artifacts, captures the current run as plan context, plans the ordered dev infra graph so that shared infra emits both the metadata artifact and derived uploaded plan artifacts, reloads the resolved infra inputs from metadata, and then reapplies the same graph from those artifacts.
+  Discovers directories, prepares dev artifacts, captures the current run as plan context, plans the ordered dev infra graph through `shared_infra_plan.yml` so that the wrapper emits both the metadata artifact and derived uploaded plan artifacts, and then reapplies the same graph through `shared_infra_apply_from_plan.yml`.
 - `prod_infra_plan.yml`
   Resolves released artifacts from `ci`, then plans the ordered prod infra graph so that shared infra emits both the metadata artifact and the derived per-stack plan artifacts.
 - `prod_infra_apply.yml`
-  Reads the exact resolved infra graph inputs from metadata in a prior `prod_infra_plan` run via the shared metadata-reader workflow and reapplies the ordered prod infra graph from plan artifacts created by that run, using the shared `plan_artifact_run_id` contract end-to-end.
+  Reapplies the ordered prod infra graph from plan artifacts created by a prior `prod_infra_plan` run, using the shared `plan_artifact_run_id` contract end-to-end. `shared_infra_apply_from_plan.yml` reads the matching metadata artifact before delegating to `shared_infra.yml`.
 - `prod_infra_deploy.yml`
   Resolves released artifacts from `ci` and applies prod infrastructure.
 - `dev_code_deploy.yml`
