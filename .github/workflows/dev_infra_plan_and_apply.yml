@@ -62,7 +62,6 @@ jobs:
 
   apply:
     name: Apply Planned Infra
-    if: needs.metadata.outputs.has_changes == 'true'
     needs:
       - plan_context
       - metadata

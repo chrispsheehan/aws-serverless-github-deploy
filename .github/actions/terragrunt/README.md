@@ -33,14 +33,13 @@ This GitHub Action sets up **Terraform** and **Terragrunt**, authenticates to AW
 |---|---|
 | `tg_outputs` | All Terraform outputs in compact JSON. If no state exists, returns `{}` |
 | `plan_artifact_name` | Derived GitHub artifact name for a Terragrunt plan |
-| `has_changes` | `true` when `tg_action: plan` detected changes, otherwise `false` |
 
 ## Behavior
 
 - `apply`
   Runs `terragrunt apply -auto-approve`
 - `plan`
-  Runs `terragrunt plan -detailed-exitcode -out=terragrunt.tfplan`, renders a text view to `terragrunt.plan.txt`, writes a small `terragrunt.plan.meta.json` file containing `has_changes`, and uploads all three files as a GitHub artifact. The artifact name is derived from `tg_directory`.
+  Runs `terragrunt plan -out=terragrunt.tfplan`, renders a text view to `terragrunt.plan.txt`, and uploads both files as a GitHub artifact. The artifact name is derived from `tg_directory`.
 - `apply_plan`
   Downloads the derived plan artifact into the working directory, fails if the artifact or binary plan file is missing, and then runs `terragrunt apply terragrunt.tfplan`. For separate workflow runs, pass `plan_artifact_run_id` and `github_token`.
 - `destroy`
