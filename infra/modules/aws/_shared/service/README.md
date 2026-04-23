@@ -195,6 +195,18 @@ scaling_strategy = {
 - the deployment workflow applies the new task revision, uses CodeDeploy for load-balanced services, and uses native rolling deploys for internal services
 - the shared module accepts `codedeploy_alarm_names` for automatic rollback
 
+## Rollback
+
+Use CloudWatch alarms with `codedeploy_alarm_names` when you want ECS CodeDeploy to roll back a load-balanced service deployment automatically.
+
+```hcl
+codedeploy_alarm_names = [
+  local.api_5xx_alarm_name
+]
+```
+
+The alarm resources themselves are owned by the caller. This shared module consumes the alarm names and wires them into the ECS deployment group.
+
 ## Drift / Ownership Rules
 
 The ECS service ignores:

@@ -15,18 +15,6 @@ Lambda + ECS with CodeDeploy rollouts, plus provisioned concurrency controls for
 
 That async trace propagation uses the AWS X-Ray OpenTelemetry propagator so ECS consumers can continue the AWS-native trace context emitted from the Lambda side, rather than only understanding W3C `traceparent` headers.
 
-## Read This Next
-
-- CI contracts and feasibility checks: [.github/docs/README.md](.github/docs/README.md)
-- Lambda source layout: [lambdas/README.md](lambdas/README.md)
-- Container source layout: [containers/README.md](containers/README.md)
-- Infra layout and stack glossary: [infra/README.md](infra/README.md)
-- OIDC role ownership and setup contract: [infra/modules/aws/_shared/oidc/README.md](infra/modules/aws/_shared/oidc/README.md)
-- Shared Lambda deployment and provisioned concurrency behavior: [infra/modules/aws/_shared/lambda/README.md](infra/modules/aws/_shared/lambda/README.md)
-- Shared network and routing surface: [infra/modules/aws/network/README.md](infra/modules/aws/network/README.md)
-- Frontend auth and hosting contracts: [infra/modules/aws/cognito/README.md](infra/modules/aws/cognito/README.md) and [infra/modules/aws/frontend/README.md](infra/modules/aws/frontend/README.md)
-- Shared runtime log dashboard for the primary Lambda and ECS request/worker runtimes, with default views biased toward structured app events instead of Lambda platform noise: [infra/modules/aws/observability/README.md](infra/modules/aws/observability/README.md)
-
 ## Prerequisites
 
 The AWS account must already have the landing-zone or StackSet network in place before deploying this repo.
@@ -61,15 +49,6 @@ The `ci` OIDC role is intentionally narrower than the `dev` and `prod` roles. Th
 Lambda and ECS APIs can coexist on the shared routing surface in this repo, with CloudFront exposing Lambda-backed `/api/*` paths and ECS-backed `/api/ecs/*` paths independently.
 
 The detailed routing, listener, and feasibility rules live in [infra/modules/aws/network/README.md](infra/modules/aws/network/README.md), [infra/modules/aws/_shared/service/README.md](infra/modules/aws/_shared/service/README.md), and [infra/modules/aws/_shared/task/README.md](infra/modules/aws/_shared/task/README.md).
-
-### Workflow Split
-
-- `*_infra` workflows apply infrastructure only
-- `*_code` workflows deploy feature code only
-- infra re-runs do not roll out new code
-- detailed workflow contracts, reusable-workflow inputs, repo-local action behavior, and `justfile_path` rules live in [.github/docs/README.md](.github/docs/README.md)
-
-See [lambdas/README.md](lambdas/README.md) and [containers/README.md](containers/README.md) for runtime source layout, build behavior, and boilerplate patterns.
 
 ## Common Tasks
 
@@ -128,6 +107,16 @@ just worker-debug-shell dev
 
 The shared debug image includes `psql`, and `worker-debug-shell` injects `PGPASSWORD`, `PGUSER`, and `DB_USER` into the shell from the shared database credentials secret before opening ECS Exec.
 
+## Example Prompts
+
+Use prompts like these when asking for a new service in this repo:
+
+- `Add a new env called qa.`
+- `Add an API call that puts a message on a queue so a worker can pick it up and write it to the database.`
+- `Add a new public API endpoint for reports.`
+- `Add a new internal worker for report processing.`
+- `Add a new ECS service for billing under /billing.`
+
 ## Frontend Auth
 
 The boilerplate frontend uses Cognito Hosted UI with the authorization-code-plus-PKCE flow. The detailed frontend auth contract, callback/logout URL behavior, and `/api/*` forwarding rules live in [infra/modules/aws/cognito/README.md](infra/modules/aws/cognito/README.md) and [infra/modules/aws/frontend/README.md](infra/modules/aws/frontend/README.md).
@@ -146,21 +135,24 @@ chrispsheehan.com
 
 When that value is present, the frontend and Cognito stacks derive the deployed domain and auth callback/logout URLs automatically. Local Vite login still coexists through `http://localhost:5173`.
 
-## Example Prompts
-
-Use prompts like these when asking for a new service in this repo:
-
-- `Add a new env called qa.`
-- `Add an API call that puts a message on a queue so a worker can pick it up and write it to the database.`
-- `Add a new public API endpoint for reports.`
-- `Add a new internal worker for report processing.`
-- `Add a new ECS service for billing under /billing.`
-
 ## Reference
 
 For Lambda provisioned concurrency patterns and example `provisioned_config` shapes, see [infra/modules/aws/_shared/lambda/README.md](infra/modules/aws/_shared/lambda/README.md).
 
 For ECS scaling patterns and `scaling_strategy` examples, see [infra/modules/aws/_shared/service/README.md](infra/modules/aws/_shared/service/README.md).
+
+### Deployment Model
+
+Infrastructure apply and feature-code rollout are intentionally decoupled in this boilerplate.
+
+- infra workflows create the stable runtime shape, including the Lambda and ECS CodeDeploy applications and deployment groups used later for real rollouts
+- `*_infra` workflows apply infrastructure only
+- `*_code` workflows deploy feature code only
+- code deploy workflows publish the real Lambda versions and ECS task revisions into that pre-created deploy surface
+- rerunning infrastructure apply does not roll out new feature code
+- the shared Lambda and ECS module READMEs are the canonical source for bootstrap, rollout, and rollback details for each runtime shape
+- detailed workflow contracts, reusable-workflow inputs, repo-local action behavior, and `justfile_path` rules live in [.github/docs/README.md](.github/docs/README.md)
+- see [lambdas/README.md](lambdas/README.md) and [containers/README.md](containers/README.md) for runtime source layout, build behavior, and boilerplate patterns
 
 ### Deployment Overview
 
@@ -180,30 +172,15 @@ flowchart TD
   ecs_lb --> ecs_cd["all_at_once / canary / linear / blue_green"]
 ```
 
-- Lambda deployment rules live in [infra/modules/aws/_shared/lambda/README.md](infra/modules/aws/_shared/lambda/README.md)
-- ECS deployment strategy and connection-type rules live in [infra/modules/aws/_shared/service/README.md](infra/modules/aws/_shared/service/README.md)
-- use the shared module READMEs as the canonical technical source for deployment decisions and feasibility checks
+## Read This Next
 
-### Deployment Rollback
-
-- use cloudwatch metrics and alarms to automatically roll-back a deployment
-- create a [cloudwatch_metric_alarm](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudwatch_metric_alarm) resource and pass in as per below
-
-```hcl
-module "lambda_example" {
-  source = "../_shared/lambda"
-  ...
-  codedeploy_alarm_names = [
-    local.api_5xx_alarm_name
-  ]
-}
-```
-- the ECS shared service module accepts the same `codedeploy_alarm_names` input
-- alarm-driven rollback behavior is part of the shared Lambda and ECS deploy contracts
-
-### Deployment Model
-
-- Infrastructure applies and feature-code rollouts are intentionally decoupled in this boilerplate.
-- Shared module READMEs document the bootstrap and rollout details for each runtime shape.
-- The code deploy app and group are also deployed, which is the mechanism used to deploy the real builds.
-- Subsequent re-runs of the infrastructure deployments will not update the code.
+- CI contracts and feasibility checks: [.github/docs/README.md](.github/docs/README.md)
+- Lambda source layout: [lambdas/README.md](lambdas/README.md)
+- Container source layout: [containers/README.md](containers/README.md)
+- Infra layout and stack glossary: [infra/README.md](infra/README.md)
+- OIDC role ownership and setup contract: [infra/modules/aws/_shared/oidc/README.md](infra/modules/aws/_shared/oidc/README.md)
+- Shared Lambda deployment and provisioned concurrency behavior: [infra/modules/aws/_shared/lambda/README.md](infra/modules/aws/_shared/lambda/README.md)
+- Shared ECS deployment and scaling behavior: [infra/modules/aws/_shared/service/README.md](infra/modules/aws/_shared/service/README.md)
+- Shared network and routing surface: [infra/modules/aws/network/README.md](infra/modules/aws/network/README.md)
+- Frontend auth and hosting contracts: [infra/modules/aws/cognito/README.md](infra/modules/aws/cognito/README.md) and [infra/modules/aws/frontend/README.md](infra/modules/aws/frontend/README.md)
+- Shared runtime log dashboard for the primary Lambda and ECS request/worker runtimes, with default views biased toward structured app events instead of Lambda platform noise: [infra/modules/aws/observability/README.md](infra/modules/aws/observability/README.md)
