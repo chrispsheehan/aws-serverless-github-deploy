@@ -1,4 +1,4 @@
-name: Prod Code
+name: Prod Code Deploy
 # This deploys code changes to prod from release artifacts already present in the shared CI bucket and ECR repository.
 
 on:

@@ -1,4 +1,4 @@
-name: Plan Prod Infra
+name: Prod Infra Plan
 
 on:
   workflow_dispatch:

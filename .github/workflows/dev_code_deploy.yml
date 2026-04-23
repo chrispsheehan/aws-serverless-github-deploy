@@ -1,4 +1,4 @@
-name: Dev Code
+name: Dev Code Deploy
 # This deploys code changes to dev without touching infra.
 
 on:

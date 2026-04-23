@@ -1,4 +1,4 @@
-name: Apply Planned Prod Infra
+name: Prod Infra Apply From Plan
 
 on:
   workflow_dispatch:

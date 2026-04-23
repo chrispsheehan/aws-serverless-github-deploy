@@ -1,4 +1,4 @@
-name: Dev Infra With Plan
+name: Dev Infra Plan And Apply
 
 on:
   workflow_dispatch:
