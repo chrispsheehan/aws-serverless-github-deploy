@@ -115,16 +115,23 @@ runs:
         TF_IN_AUTOMATION: true
       working-directory: ${{ inputs.tg_directory }}
       run: |
+        PLAN_PATH="$(pwd)/terragrunt.tfplan"
+        PLAN_TEXT_PATH="$(pwd)/terragrunt.plan.txt"
+
         case "${{ inputs.tg_action }}" in
           apply)
             terragrunt apply -auto-approve -compact-warnings -var-file=override_tg_vars.tfvars.json
             ;;
           plan)
-            terragrunt plan -input=false -lock=false -compact-warnings -out=terragrunt.tfplan -var-file=override_tg_vars.tfvars.json
-            terragrunt show -no-color terragrunt.tfplan > terragrunt.plan.txt
+            terragrunt plan -input=false -lock=false -compact-warnings -out="$PLAN_PATH" -var-file=override_tg_vars.tfvars.json
+            terragrunt show -no-color "$PLAN_PATH" > "$PLAN_TEXT_PATH"
+            echo "Terragrunt binary plan path: $PLAN_PATH"
+            ls -l "$PLAN_PATH"
+            echo "Terragrunt rendered plan path: $PLAN_TEXT_PATH"
+            cat "$PLAN_TEXT_PATH"
             ;;
           apply_plan)
-            terragrunt apply -auto-approve -compact-warnings terragrunt.tfplan
+            terragrunt apply -auto-approve -compact-warnings "$PLAN_PATH"
             ;;
           destroy)
             terragrunt destroy -auto-approve -compact-warnings -var-file=override_tg_vars.tfvars.json

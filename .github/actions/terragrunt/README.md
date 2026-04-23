@@ -39,9 +39,9 @@ This GitHub Action sets up **Terraform** and **Terragrunt**, authenticates to AW
 - `apply`
   Runs `terragrunt apply -auto-approve`
 - `plan`
-  Runs `terragrunt plan -out=terragrunt.tfplan`, renders a text view to `terragrunt.plan.txt`, and uploads both files as a GitHub artifact. The artifact name is derived from `tg_directory`.
+  Runs `terragrunt plan -out=<absolute stack path>/terragrunt.tfplan`, renders a text view to `terragrunt.plan.txt`, and uploads both files as a GitHub artifact. The artifact name is derived from `tg_directory`.
 - `apply_plan`
-  Downloads the derived plan artifact into the working directory, fails if the artifact or binary plan file is missing, and then runs `terragrunt apply terragrunt.tfplan`. For separate workflow runs, pass `plan_artifact_run_id` and `github_token`.
+  Downloads the derived plan artifact into the working directory, fails if the artifact or binary plan file is missing, and then runs `terragrunt apply` against the downloaded absolute stack-path plan file. For separate workflow runs, pass `plan_artifact_run_id` and `github_token`.
 - `destroy`
   Runs `terragrunt destroy -auto-approve`
 - `init`
