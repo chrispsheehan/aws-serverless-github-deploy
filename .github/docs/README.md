@@ -20,7 +20,7 @@ Use it when you need to understand:
 - Release and validation: `release.yml`, `pull_request.yml`
 - Shared artifact prep and build: `shared_infra_releases.yml`, `shared_build.yml`, `shared_build_get.yml`
 - Shared infra and code rollout: `shared_infra.yml`, `shared_deploy.yml`, `shared_directories_get.yml`, `shared_infra_plan_metadata_get.yml`
-- Environment entry points: `dev_infra_deploy.yml`, `dev_infra_plan_apply.yml`, `dev_code_deploy.yml`, `prod_infra_deploy.yml`, `prod_infra_plan.yml`, `prod_infra_plan_apply.yml`
+- Environment entry points: `dev_infra_deploy.yml`, `dev_infra_plan_and_apply.yml`, `dev_code_deploy.yml`, `prod_infra_deploy.yml`, `prod_infra_plan.yml`, `prod_infra_plan_apply.yml`
 - Cleanup: `destroy.yml`
 
 ## Workflow Contracts
@@ -101,7 +101,7 @@ flowchart LR
 
 - `dev_infra_deploy.yml`
   Entry point for dev infra apply.
-- `dev_infra_plan_apply.yml`
+- `dev_infra_plan_and_apply.yml`
   Entry point for dev infra plan-then-apply. It captures the current workflow `run_id` as plan context, runs the shared infra graph in `plan` mode so that graph emits both plan artifacts and `infra-plan-metadata`, rehydrates the resolved infra inputs through the shared metadata-reader workflow, and then reruns the same ordered infra graph in apply-from-plan mode.
 - `prod_infra_plan.yml`
   Entry point for prod infra plan. It resolves released artifacts from `ci` and then runs the shared infra graph in `plan` mode so that graph emits both the reusable metadata artifact and the derived per-stack plan artifacts for that resolved input set.
@@ -196,7 +196,7 @@ These are the workflows most users trigger directly.
 
 - `dev_infra_deploy.yml`
   Discovers directories, prepares dev artifacts, and applies dev infrastructure.
-- `dev_infra_plan_apply.yml`
+- `dev_infra_plan_and_apply.yml`
   Discovers directories, prepares dev artifacts, captures the current run as plan context, plans the ordered dev infra graph so that shared infra emits both the metadata artifact and derived uploaded plan artifacts, reloads the resolved infra inputs from metadata, and then reapplies the same graph from those artifacts.
 - `prod_infra_plan.yml`
   Resolves released artifacts from `ci`, then plans the ordered prod infra graph so that shared infra emits both the metadata artifact and the derived per-stack plan artifacts.

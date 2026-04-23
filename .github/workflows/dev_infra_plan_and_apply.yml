@@ -3,8 +3,8 @@ name: Dev Infra With Plan
 on:
   workflow_dispatch:
   push:
-    branches:
-      - plan-artefacts
+    # branches:
+    #   - plan-artefacts
 
 permissions:
   id-token: write
