@@ -2,9 +2,6 @@ name: Dev Infra Deploy
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - plan-artefacts
 
 permissions:
   id-token: write
