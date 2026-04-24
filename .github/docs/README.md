@@ -110,7 +110,7 @@ flowchart LR
 - `dev_infra_plan_and_apply.yml`
   Entry point for dev infra plan-then-apply. It captures the current workflow `run_id` as plan context, runs the shared infra wrapper in direct-input `plan` mode so that the wrapper emits both plan artifacts and `infra-plan-metadata`, and then reruns the same ordered infra graph in metadata-backed `apply_plan` mode.
 - `prod_infra_plan.yml`
-  Entry point for prod infra plan. It resolves released artifacts from `ci` and then runs the shared infra wrapper in direct-input `plan` mode so that it emits both the reusable metadata artifact and the derived per-stack plan artifacts for that resolved input set.
+  Entry point for prod infra plan. It resolves released artifacts from `ci` and then runs the shared infra wrapper in direct-input `plan` mode so that it emits both the reusable metadata artifact and the derived per-stack plan artifacts for that resolved input set. After the plan completes, it prints the current workflow `github.run_id` into both the logs and the GitHub Actions step summary so operators have a clear `plan_artifact_run_id` to pass into `prod_infra_apply_from_plan.yml`.
 - `prod_infra_apply.yml`
   Entry point for prod infra apply using shared artifacts from `ci`.
 - `prod_infra_apply_from_plan.yml`

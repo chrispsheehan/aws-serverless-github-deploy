@@ -50,3 +50,24 @@ jobs:
       lambda_matrix: ${{ needs.get_build.outputs.lambda_version_files }}
       bootstrap_image_uri: ${{ needs.get_build.outputs.bootstrap_image_uri }}
       service_matrix: ${{ needs.get_build.outputs.ecs_service_matrix }}
+
+  plan_context:
+    name: Plan Context
+    needs:
+      - infra
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print plan artifact run id
+        env:
+          PLAN_ARTIFACT_RUN_ID: ${{ github.run_id }}
+          PLAN_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          echo "plan_artifact_run_id=$PLAN_ARTIFACT_RUN_ID"
+          {
+            echo "## Prod Infra Plan Context"
+            echo
+            echo "- \`plan_artifact_run_id\`: \`$PLAN_ARTIFACT_RUN_ID\`"
+            echo "- Run URL: $PLAN_RUN_URL"
+            echo
+            echo "Use this value when dispatching \`prod_infra_apply_from_plan.yml\`."
+          } >> "$GITHUB_STEP_SUMMARY"

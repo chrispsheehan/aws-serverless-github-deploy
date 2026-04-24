@@ -20,18 +20,6 @@ jobs:
       environment: dev
       infra_version: ${{ github.sha }}
 
-  plan_context:
-    name: Plan Context
-    runs-on: ubuntu-latest
-    outputs:
-      plan_artifact_run_id: ${{ steps.plan_context.outputs.plan_artifact_run_id }}
-    steps:
-      - name: Capture plan artifact run id
-        id: plan_context
-        shell: bash
-        run: |
-          echo "plan_artifact_run_id=${{ github.run_id }}" >> "$GITHUB_OUTPUT"
-
   plan:
     name: Plan
     needs:
@@ -49,10 +37,9 @@ jobs:
   apply:
     name: Apply Planned Infra
     needs:
-      - plan_context
       - plan
     uses: ./.github/workflows/shared_infra_apply_from_plan.yml
     with:
       environment: dev
-      plan_artifact_run_id: ${{ needs.plan_context.outputs.plan_artifact_run_id }}
+      plan_artifact_run_id: ${{ github.run_id }}
       github_token: ${{ github.token }}
