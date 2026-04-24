@@ -11,10 +11,10 @@ on:
         description: "Workflow run ID used to recover metadata and plan artifacts"
         required: true
         type: string
-    secrets:
-      artifact_token:
+      github_token:
         description: "GitHub token used for cross-run artifact download"
         required: true
+        type: string
 
 permissions:
   id-token: write
@@ -37,7 +37,7 @@ jobs:
           name: infra-plan-metadata
           path: .
           repository: ${{ github.repository }}
-          github-token: ${{ secrets.artifact_token }}
+          github-token: ${{ inputs.github_token }}
           run-id: ${{ inputs.plan_artifact_run_id }}
 
       - name: Check plan metadata artifact
@@ -71,5 +71,4 @@ jobs:
       service_matrix: ${{ needs.metadata.outputs.service_matrix }}
       tg_action: apply_plan
       plan_artifact_run_id: ${{ inputs.plan_artifact_run_id }}
-    secrets:
-      artifact_token: ${{ secrets.artifact_token }}
+      github_token: ${{ inputs.github_token }}

@@ -38,10 +38,11 @@ on:
         required: false
         type: string
         default: ""
-    secrets:
-      artifact_token:
+      github_token:
         description: "Optional GitHub token used for cross-run artifact download in apply-from-plan mode"
         required: false
+        type: string
+        default: ""
 
 
 concurrency: # only run one instance of workflow at any one time
@@ -73,7 +74,7 @@ jobs:
           tg_directory: infra/live/${{ inputs.environment }}/aws/oidc
           tg_action: ${{ inputs.tg_action }}
           plan_artifact_run_id: ${{ inputs.plan_artifact_run_id }}
-          github_token: ${{ secrets.artifact_token }}
+          github_token: ${{ inputs.github_token }}
 
   worker_messaging:
     needs: oidc
@@ -90,7 +91,7 @@ jobs:
           tg_directory: infra/live/${{ inputs.environment }}/aws/worker_messaging
           tg_action: ${{ inputs.tg_action }}
           plan_artifact_run_id: ${{ inputs.plan_artifact_run_id }}
-          github_token: ${{ secrets.artifact_token }}
+          github_token: ${{ inputs.github_token }}
 
   observability:
     needs: oidc
@@ -107,7 +108,7 @@ jobs:
           tg_directory: infra/live/${{ inputs.environment }}/aws/observability
           tg_action: ${{ inputs.tg_action }}
           plan_artifact_run_id: ${{ inputs.plan_artifact_run_id }}
-          github_token: ${{ secrets.artifact_token }}
+          github_token: ${{ inputs.github_token }}
 
   cognito:
     needs: oidc
@@ -126,7 +127,7 @@ jobs:
           tg_directory: infra/live/${{ inputs.environment }}/aws/cognito
           tg_action: ${{ inputs.tg_action }}
           plan_artifact_run_id: ${{ inputs.plan_artifact_run_id }}
-          github_token: ${{ secrets.artifact_token }}
+          github_token: ${{ inputs.github_token }}
 
   frontend:
     needs:
@@ -187,7 +188,7 @@ jobs:
           tg_directory: infra/live/${{ inputs.environment }}/aws/frontend
           tg_action: ${{ inputs.tg_action }}
           plan_artifact_run_id: ${{ inputs.plan_artifact_run_id }}
-          github_token: ${{ secrets.artifact_token }}
+          github_token: ${{ inputs.github_token }}
 
   cluster:
     needs: oidc
@@ -204,7 +205,7 @@ jobs:
           tg_directory: infra/live/${{ inputs.environment }}/aws/cluster
           tg_action: ${{ inputs.tg_action }}
           plan_artifact_run_id: ${{ inputs.plan_artifact_run_id }}
-          github_token: ${{ secrets.artifact_token }}
+          github_token: ${{ inputs.github_token }}
 
   security:
     needs: oidc
@@ -224,7 +225,7 @@ jobs:
           tg_directory: infra/live/${{ inputs.environment }}/aws/security
           tg_action: ${{ inputs.tg_action }}
           plan_artifact_run_id: ${{ inputs.plan_artifact_run_id }}
-          github_token: ${{ secrets.artifact_token }}
+          github_token: ${{ inputs.github_token }}
 
       - name: Get security outputs
         id: get_security_outputs
@@ -253,7 +254,7 @@ jobs:
           tg_directory: infra/live/${{ inputs.environment }}/aws/database
           tg_action: ${{ inputs.tg_action }}
           plan_artifact_run_id: ${{ inputs.plan_artifact_run_id }}
-          github_token: ${{ secrets.artifact_token }}
+          github_token: ${{ inputs.github_token }}
 
   network:
     needs:
@@ -272,7 +273,7 @@ jobs:
           tg_directory: infra/live/${{ inputs.environment }}/aws/network
           tg_action: ${{ inputs.tg_action }}
           plan_artifact_run_id: ${{ inputs.plan_artifact_run_id }}
-          github_token: ${{ secrets.artifact_token }}
+          github_token: ${{ inputs.github_token }}
 
   lambdas:
     needs: 
@@ -298,7 +299,7 @@ jobs:
           tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.value }}
           tg_action: ${{ inputs.tg_action }}
           plan_artifact_run_id: ${{ inputs.plan_artifact_run_id }}
-          github_token: ${{ secrets.artifact_token }}
+          github_token: ${{ inputs.github_token }}
 
   services:
     needs:
@@ -328,4 +329,4 @@ jobs:
           tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.value }}
           tg_action: ${{ inputs.tg_action }}
           plan_artifact_run_id: ${{ inputs.plan_artifact_run_id }}
-          github_token: ${{ secrets.artifact_token }}
+          github_token: ${{ inputs.github_token }}
