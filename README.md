@@ -12,6 +12,7 @@ Lambda + ECS with CodeDeploy rollouts, plus provisioned concurrency controls for
 - [Setup](#setup)
 - [Common Tasks](#common-tasks)
 - [Frontend Auth](#frontend-auth)
+- [Infra Deployment Use Cases](#infra-deployment-use-cases)
 - [Reference](#reference)
 - [Read This Next](#read-this-next)
 
@@ -161,6 +162,17 @@ chrispsheehan.com
 
 When that value is present, the frontend and Cognito stacks derive the deployed domain and auth callback/logout URLs automatically. Local Vite login still coexists through `http://localhost:5173`.
 
+## Infra Deployment Use Cases
+
+For focused infra changes such as:
+
+- upgrading the database
+- changing a Lambda env var
+- adding an API route
+- changing a security group
+
+see [infra/README.md](infra/README.md#infra-deployment-use-cases).
+
 ## Reference
 
 For Lambda provisioned concurrency patterns and example `provisioned_config` shapes, see [infra/modules/aws/_shared/lambda/README.md](infra/modules/aws/_shared/lambda/README.md).
@@ -176,7 +188,6 @@ Infrastructure apply and feature-code rollout are intentionally decoupled in thi
 - `*_code` workflows deploy feature code only
 - code deploy workflows publish the real Lambda versions and ECS task revisions into that pre-created deploy surface
 - rerunning infrastructure apply does not roll out new feature code
-- for focused infra change examples such as upgrading the database, changing a Lambda env var, adding an API route, or changing a security group, see [infra/README.md](infra/README.md#infra-deployment-use-cases)
 - the shared Lambda and ECS module READMEs are the canonical source for bootstrap, rollout, and rollback details for each runtime shape
 - detailed workflow contracts, reusable-workflow inputs, repo-local action behavior, and `justfile_path` rules live in [.github/docs/README.md](.github/docs/README.md)
 - see [lambdas/README.md](lambdas/README.md) and [containers/README.md](containers/README.md) for runtime source layout, build behavior, and boilerplate patterns
