@@ -28,6 +28,10 @@ on:
         required: false
         type: string
         default: "[]"
+    outputs:
+      plan_artifact_run_id:
+        description: "Workflow run ID for the saved plan artifacts and metadata"
+        value: ${{ jobs.plan_context.outputs.plan_artifact_run_id }}
 
 permissions:
   id-token: write
@@ -70,3 +74,23 @@ jobs:
       bootstrap_image_uri: ${{ inputs.bootstrap_image_uri }}
       service_matrix: ${{ inputs.service_matrix }}
       tg_action: plan
+
+  plan_context:
+    name: Plan Context
+    runs-on: ubuntu-latest
+    outputs:
+      plan_artifact_run_id: ${{ steps.emit.outputs.plan_artifact_run_id }}
+    steps:
+      - name: Print plan artifact run id
+        id: emit
+        env:
+          PLAN_ARTIFACT_RUN_ID: ${{ github.run_id }}
+        shell: bash
+        run: |
+          echo "plan_artifact_run_id=$PLAN_ARTIFACT_RUN_ID" >> "$GITHUB_OUTPUT"
+          echo "plan_artifact_run_id=$PLAN_ARTIFACT_RUN_ID"
+          {
+            echo "## Infra Plan Context"
+            echo
+            echo "- \`plan_artifact_run_id\`: \`$PLAN_ARTIFACT_RUN_ID\`"
+          } >> "$GITHUB_STEP_SUMMARY"
