@@ -77,22 +77,19 @@ runs:
 
     - name: Download plan artifact from current run
       if: inputs.tg_action == 'apply_plan' && inputs.plan_artifact_run_id == ''
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         name: ${{ steps.plan_artifact.outputs.plan_artifact_name }}
         path: ${{ inputs.tg_directory }}
 
     - name: Download plan artifact from prior run
       if: inputs.tg_action == 'apply_plan' && inputs.plan_artifact_run_id != ''
-      shell: bash
-      env:
-        GH_TOKEN: ${{ inputs.github_token }}
-      run: |
-        mkdir -p "${{ inputs.tg_directory }}"
-        gh run download "${{ inputs.plan_artifact_run_id }}" \
-          --repo "${{ github.repository }}" \
-          --name "${{ steps.plan_artifact.outputs.plan_artifact_name }}" \
-          --dir "${{ inputs.tg_directory }}"
+      uses: actions/download-artifact@v8
+      with:
+        name: ${{ steps.plan_artifact.outputs.plan_artifact_name }}
+        path: ${{ inputs.tg_directory }}
+        github-token: ${{ inputs.github_token }}
+        run-id: ${{ inputs.plan_artifact_run_id }}
 
     - name: Verify plan artifact files exist
       if: inputs.tg_action == 'apply_plan'
@@ -188,7 +185,7 @@ runs:
 
     - name: Upload plan artifact
       if: inputs.tg_action == 'plan'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: ${{ steps.plan_artifact.outputs.plan_artifact_name }}
         path: |

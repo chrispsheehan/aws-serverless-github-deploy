@@ -39,9 +39,9 @@ This GitHub Action sets up **Terraform** and **Terragrunt**, authenticates to AW
 - `apply`
   Runs `terragrunt apply -auto-approve`
 - `plan`
-  Runs `terragrunt plan -detailed-exitcode -out=<absolute stack path>/terragrunt.tfplan`, renders a text view to `terragrunt.plan.txt`, writes `terragrunt.plan.meta.json` with `exit_code` and `has_changes`, and uploads all three files as a GitHub artifact. The artifact name is derived from `tg_directory`.
+  Runs `terragrunt plan -detailed-exitcode -out=<absolute stack path>/terragrunt.tfplan`, renders a text view to `terragrunt.plan.txt`, writes `terragrunt.plan.meta.json` with `exit_code` and `has_changes`, and uploads all three files as a GitHub artifact via `actions/upload-artifact@v7`. The artifact name is derived from `tg_directory`.
 - `apply_plan`
-  Downloads the derived plan artifact into the working directory, fails if the artifact, binary plan file, or `terragrunt.plan.meta.json` is missing, reads `has_changes` from the saved metadata file, and skips both AWS authentication and apply with a GitHub Actions warning when the saved plan contains no mutating resource changes. Otherwise it configures AWS credentials and runs `terragrunt apply` against the downloaded absolute stack-path plan file. For separate workflow runs, pass `plan_artifact_run_id` and `github_token`.
+  Downloads the derived plan artifact into the working directory via `actions/download-artifact@v8`, fails if the artifact, binary plan file, or `terragrunt.plan.meta.json` is missing, reads `has_changes` from the saved metadata file, and skips both AWS authentication and apply with a GitHub Actions warning when the saved plan contains no mutating resource changes. Otherwise it configures AWS credentials and runs `terragrunt apply` against the downloaded absolute stack-path plan file. For separate workflow runs, pass `plan_artifact_run_id` and `github_token`.
 - `destroy`
   Runs `terragrunt destroy -auto-approve`
 - `init`
