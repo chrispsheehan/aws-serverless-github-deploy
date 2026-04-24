@@ -12,7 +12,7 @@ on:
         required: true
         type: string
     secrets:
-      github_token:
+      artifact_token:
         description: "GitHub token used for cross-run artifact download"
         required: true
 
@@ -36,7 +36,7 @@ jobs:
         with:
           name: infra-plan-metadata
           path: .
-          github-token: ${{ secrets.github_token }}
+          github-token: ${{ secrets.artifact_token }}
           run-id: ${{ inputs.plan_artifact_run_id }}
 
       - name: Check plan metadata artifact
@@ -71,4 +71,4 @@ jobs:
       tg_action: apply_plan
       plan_artifact_run_id: ${{ inputs.plan_artifact_run_id }}
     secrets:
-      github_token: ${{ secrets.github_token }}
+      artifact_token: ${{ secrets.artifact_token }}

@@ -21,4 +21,4 @@ jobs:
       environment: dev
       plan_artifact_run_id: ${{ inputs.plan_artifact_run_id }}
     secrets:
-      github_token: ${{ github.token }}
+      artifact_token: ${{ github.token }}

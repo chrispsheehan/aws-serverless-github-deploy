@@ -1,4 +1,4 @@
-name: Prod Infra Deploy
+name: Prod Infra Apply (no plan)
 
 on:
   workflow_dispatch:
