@@ -5,9 +5,9 @@ Lambda + ECS with CodeDeploy rollouts, plus provisioned concurrency controls for
 
 ## Sections
 
+- [Example Prompts](#example-prompts)
 - [Overview](#overview)
 - [AI-Assisted Usage](#ai-assisted-usage)
-- [Example Prompts](#example-prompts)
 - [Prerequisites](#prerequisites)
 - [Setup](#setup)
 - [Common Tasks](#common-tasks)
@@ -15,6 +15,18 @@ Lambda + ECS with CodeDeploy rollouts, plus provisioned concurrency controls for
 - [Infra Deployment Use Cases](#infra-deployment-use-cases)
 - [Reference](#reference)
 - [Read This Next](#read-this-next)
+
+## Example Prompts
+
+Use prompts like these when you want an agent to extend the repo without having to spell out every file path up front:
+
+- `Add a new env called qa.`
+- `Add a public API that has a home page, a health check, a test failure route, and a way to send a message into the shared worker flow.`
+- `Add a background Lambda worker that picks up messages from the shared worker flow and processes them.`
+- `Add an ECS-based API service for a new feature that is available through the existing shared API setup.`
+- `Add an internal ECS worker service that reads from the shared worker queue and saves results to the database.`
+
+Use [CONTRIBUTING.md](CONTRIBUTING.md) for expectations when changing the repo itself, especially for AI-assisted changes.
 
 ## Overview
 
@@ -30,27 +42,6 @@ This repo is structured to work well with coding agents as well as humans.
 - docs are split by ownership so agents can find the right contract before changing code
 - the root README is the entry point, while workflow, infra, runtime, and shared-module details live in their own READMEs
 - the `just` command surface is split so local commands, read-only CI helpers, and mutating deploy helpers stay distinct
-
-The example prompts below are not just suggestions; they reflect the intended way to ask for additive repo changes at the right level of abstraction.
-
-## Example Prompts
-
-Use prompts like these when you want an agent to extend the repo without having to spell out every file path up front:
-
-- Environment and infra shape:
-  - `Add a new env called qa.`
-  - `Add a readonly plan role for dev infra plans in pull requests.`
-- Lambda and API shape:
-  - `Add a new public API endpoint for reports.`
-  - `Add an API call that puts a message on a queue so a worker can pick it up and write it to the database.`
-- ECS and worker shape:
-  - `Add a new internal worker for report processing.`
-  - `Add a new ECS service for billing under /billing.`
-- Operational behavior:
-  - `Add a post-deploy reconciliation Lambda for the worker path.`
-  - `Add rollback alarms for the public API Lambda deploy.`
-
-Use [CONTRIBUTING.md](CONTRIBUTING.md) for expectations when changing the repo itself, especially for AI-assisted changes.
 
 ## Prerequisites
 
