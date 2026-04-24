@@ -81,7 +81,6 @@ runs:
       with:
         name: ${{ steps.plan_artifact.outputs.plan_artifact_name }}
         path: ${{ inputs.tg_directory }}
-        if-no-artifact-found: error
 
     - name: Download plan artifact from prior run
       if: inputs.tg_action == 'apply_plan' && inputs.plan_artifact_run_id != ''
@@ -91,7 +90,6 @@ runs:
         path: ${{ inputs.tg_directory }}
         github-token: ${{ inputs.github_token }}
         run-id: ${{ inputs.plan_artifact_run_id }}
-        if-no-artifact-found: error
 
     - name: Verify plan artifact files exist
       if: inputs.tg_action == 'apply_plan'
@@ -99,6 +97,10 @@ runs:
       run: |
         test -f "${{ inputs.tg_directory }}/terragrunt.tfplan" || {
           echo "Expected plan file '${{ inputs.tg_directory }}/terragrunt.tfplan' was not found after artifact download." >&2
+          exit 1
+        }
+        test -f "${{ inputs.tg_directory }}/terragrunt.plan.meta.json" || {
+          echo "Expected plan metadata file '${{ inputs.tg_directory }}/terragrunt.plan.meta.json' was not found after artifact download." >&2
           exit 1
         }
 
@@ -109,19 +111,13 @@ runs:
       working-directory: ${{ inputs.tg_directory }}
       run: |
         PLAN_PATH="$(pwd)/terragrunt.tfplan"
-        PLAN_JSON_PATH="$(pwd)/terragrunt.plan.apply.json"
+        PLAN_META_PATH="$(pwd)/terragrunt.plan.meta.json"
 
-        terraform show -json "$PLAN_PATH" > "$PLAN_JSON_PATH"
-        if jq -e '
-          [
-            .resource_changes[]?.change.actions[]?
-          ]
-          | any(. == "create" or . == "update" or . == "delete" or . == "replace")
-        ' "$PLAN_JSON_PATH" >/dev/null; then
-          echo "should_apply=true" >> "$GITHUB_OUTPUT"
-        else
+        if [ "$(jq -r '.has_changes' "$PLAN_META_PATH")" != "true" ]; then
           echo "::warning title=Empty saved plan::Saved plan '$PLAN_PATH' contains no mutating resource changes. Skipping apply."
           echo "should_apply=false" >> "$GITHUB_OUTPUT"
+        else
+          echo "should_apply=true" >> "$GITHUB_OUTPUT"
         fi
 
     - name: Configure AWS OIDC Authentication
@@ -141,18 +137,35 @@ runs:
       run: |
         PLAN_PATH="$(pwd)/terragrunt.tfplan"
         PLAN_TEXT_PATH="$(pwd)/terragrunt.plan.txt"
+        PLAN_META_PATH="$(pwd)/terragrunt.plan.meta.json"
 
         case "${{ inputs.tg_action }}" in
           apply)
             terragrunt apply -auto-approve -compact-warnings -var-file=override_tg_vars.tfvars.json
             ;;
           plan)
-            terragrunt plan -input=false -lock=false -compact-warnings -out="$PLAN_PATH" -var-file=override_tg_vars.tfvars.json
+            set +e
+            terragrunt plan -input=false -lock=false -detailed-exitcode -compact-warnings -out="$PLAN_PATH" -var-file=override_tg_vars.tfvars.json
+            plan_exit_code=$?
+            set -e
+
+            if [ "$plan_exit_code" -eq 1 ]; then
+              exit 1
+            fi
+
             terragrunt show -no-color "$PLAN_PATH" > "$PLAN_TEXT_PATH"
+            jq -n \
+              --arg tg_directory "${{ inputs.tg_directory }}" \
+              --argjson exit_code "$plan_exit_code" \
+              --argjson has_changes "$([ "$plan_exit_code" -eq 2 ] && echo true || echo false)" \
+              '{tg_directory: $tg_directory, exit_code: $exit_code, has_changes: $has_changes}' \
+              > "$PLAN_META_PATH"
             echo "Terragrunt binary plan path: $PLAN_PATH"
             ls -l "$PLAN_PATH"
             echo "Terragrunt rendered plan path: $PLAN_TEXT_PATH"
             cat "$PLAN_TEXT_PATH"
+            echo "Terragrunt plan metadata path: $PLAN_META_PATH"
+            cat "$PLAN_META_PATH"
             ;;
           apply_plan)
             terragrunt apply -auto-approve -compact-warnings "$PLAN_PATH"
@@ -178,6 +191,7 @@ runs:
         path: |
           ${{ inputs.tg_directory }}/terragrunt.tfplan
           ${{ inputs.tg_directory }}/terragrunt.plan.txt
+          ${{ inputs.tg_directory }}/terragrunt.plan.meta.json
         if-no-files-found: error
 
     - name: Capture Terraform Outputs
