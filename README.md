@@ -23,6 +23,7 @@ Use prompts like these when you want an agent to extend the repo without having 
 - `Add a new env called qa.`
 - `Add a public API that has a home page, a health check, a test failure route, and a way to send a message into the shared worker flow.`
 - `Add a background Lambda worker that picks up messages from the shared worker flow and processes them.`
+- `Add a Lambda that watches for new Aurora reader instances and copies the database cluster tags onto them automatically.`
 - `Add an ECS-based API service for a new feature that is available through the existing shared API setup.`
 - `Add an internal ECS worker service that reads from the shared worker queue and saves results to the database.`
 

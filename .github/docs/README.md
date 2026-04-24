@@ -117,7 +117,7 @@ flowchart LR
 - `prod_infra_apply.yml`
   Entry point for prod infra apply using shared artifacts from `ci`.
 - `dev_infra_apply_from_plan.yml`
-  Entry point for dev infra apply-from-plan. It takes a prior `plan_artifact_run_id` and reruns the ordered dev infra graph through `shared_infra_apply_from_plan.yml`.
+  Entry point for dev infra apply-from-plan. It takes a prior `plan_artifact_run_id` from an earlier `dev_infra_plan.yml` or `dev_infra_plan_and_apply.yml` run and reruns the ordered dev infra graph through `shared_infra_apply_from_plan.yml`.
 - `prod_infra_apply_from_plan.yml`
   Entry point for prod infra apply-from-plan. It only needs the earlier `plan_artifact_run_id`; the shared infra wrapper runs in metadata mode to recover the exact resolved infra graph inputs from that run and then downloads and applies the plan artifacts from that same run.
 - `dev_code_deploy.yml`
