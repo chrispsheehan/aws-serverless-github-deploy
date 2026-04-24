@@ -23,6 +23,8 @@ locals {
   state_key        = "${local.environment}/${local.provider}/${local.module}/terraform.tfstate"
   state_lock_table = "${local.project_name}-tf-lockid"
 
+  infra_plan_artifact_bucket = "${local.aws_account_id}-${local.project_name}-${local.environment}-infra-plan"
+
   # separate shared artifact resources when dev, otherwise ci
   artifact_base       = local.environment == "dev" ? "${local.base_reference}-${local.environment}" : "${local.base_reference}-ci"
   code_bucket         = "${local.artifact_base}-code"
@@ -103,7 +105,8 @@ inputs = merge(
     deploy_role_arn              = local.deploy_role_arn
     state_bucket                 = local.state_bucket
     state_lock_table             = local.state_lock_table
-    code_bucket         = local.code_bucket
-    ecr_repository_name = local.ecr_repository_name
+    infra_plan_artifact_bucket   = local.infra_plan_artifact_bucket
+    code_bucket                  = local.code_bucket
+    ecr_repository_name          = local.ecr_repository_name
   }
 )

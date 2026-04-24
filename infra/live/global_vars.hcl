@@ -27,12 +27,14 @@ locals {
     "route53:*",
     "cognito-idp:*",
   ]
-  container_port = 80
+  container_port           = 80
+  infra_plan_artifact_days = 30
 }
 
 inputs = {
-  vpc_name             = local.vpc_name
-  aws_region           = local.aws_region
-  allowed_role_actions = local.allowed_role_actions
-  container_port       = local.container_port
+  vpc_name                 = local.vpc_name
+  aws_region               = local.aws_region
+  allowed_role_actions     = local.allowed_role_actions
+  container_port           = local.container_port
+  infra_plan_artifact_days = local.infra_plan_artifact_days
 }

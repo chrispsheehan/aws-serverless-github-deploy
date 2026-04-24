@@ -66,7 +66,7 @@ flowchart LR
 ### Shared Artifact Prep And Build
 
 - `shared_infra_releases.yml`
-  Prepares or reads shared CI-side artifact infrastructure such as ECR and the code bucket.
+  Prepares or reads shared CI-side artifact infrastructure such as ECR, the code bucket, and the infra plan artifact bucket.
 - `shared_build.yml`
   Builds and publishes frontend, Lambda, and ECS artifacts.
 - `shared_build_get.yml`
@@ -128,7 +128,7 @@ flowchart LR
 ### Cleanup And Discovery
 
 - `destroy.yml`
-  Tears down app layers before shared dependencies, including the shared observability dashboard.
+  Tears down app layers before shared dependencies, including the shared observability dashboard and the infra plan artifact bucket stack.
 - `shared_directories_get.yml`
   Derives the directory-based matrices used by wrapper workflows and PR action-test discovery.
 
