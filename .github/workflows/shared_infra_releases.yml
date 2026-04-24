@@ -15,6 +15,9 @@ on:
       code_bucket:
         description: "Bucket containing build artifacts"
         value: ${{ jobs.bucket.outputs.bucket_name }}
+      infra_artifact_bucket:
+        description: "Bucket containing infra plan artifacts"
+        value: ${{ jobs.infra-artifact-bucket.outputs.bucket_name }}
       repository_url:
         description: "ECR repository url"
         value: ${{ jobs.ecr.outputs.repository_url }}
@@ -36,16 +39,26 @@ env:
 jobs:
   infra-artifact-bucket:
     runs-on: ubuntu-latest
+    outputs:
+      bucket_name: ${{ steps.get_bucket_name.outputs.bucket }}
     steps:
       - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.infra_version }}
 
       - name: Deploy infra plan artifact bucket
+        id: deploy_bucket
         uses: ./.github/actions/terragrunt
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/infra_artifact_bucket
+
+      - name: Get infra artifact bucket name
+        id: get_bucket_name
+        env:
+          TG_OUTPUTS: ${{ steps.deploy_bucket.outputs.tg_outputs }}
+        run: |
+          echo "bucket=$(echo "$TG_OUTPUTS" | jq -r '.bucket.value')" >> "$GITHUB_OUTPUT"
 
   ecr:
     runs-on: ubuntu-latest

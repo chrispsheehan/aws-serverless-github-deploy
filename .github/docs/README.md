@@ -66,7 +66,7 @@ flowchart LR
 ### Shared Artifact Prep And Build
 
 - `shared_infra_releases.yml`
-  Prepares or reads shared CI-side artifact infrastructure such as ECR, the code bucket, and the infra plan artifact bucket.
+  Prepares or reads shared CI-side artifact infrastructure such as ECR, the code bucket, and the infra plan artifact bucket, and exposes those bucket/repository values as reusable-workflow outputs.
 - `shared_build.yml`
   Builds and publishes frontend, Lambda, and ECS artifacts.
 - `shared_build_get.yml`
