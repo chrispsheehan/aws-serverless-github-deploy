@@ -1,6 +1,4 @@
 locals {
-  github_token = get_env("GITHUB_TOKEN", "not_set")
-
   git_remote                   = run_cmd("--terragrunt-quiet", "git", "remote", "get-url", "origin")
   github_repo                  = regex("[/:]([-0-9_A-Za-z]*/[-0-9_A-Za-z]*)[^/]*$", local.git_remote)[0]
   repo_owner                   = split("/", local.github_repo)[0]
@@ -105,7 +103,7 @@ inputs = merge(
     deploy_role_arn              = local.deploy_role_arn
     state_bucket                 = local.state_bucket
     state_lock_table             = local.state_lock_table
-    code_bucket                  = local.code_bucket
-    ecr_repository_name          = local.ecr_repository_name
+    code_bucket         = local.code_bucket
+    ecr_repository_name = local.ecr_repository_name
   }
 )
