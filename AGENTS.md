@@ -81,6 +81,7 @@ When changing CI workflows or Terraform module dependencies, check dependency be
 - if you add helper code under `containers/`, check the `just` directory-discovery recipes so CI does not accidentally treat that directory as a deployable ECS image target
 - check workflow dependency wiring such as `needs`, job outputs, matrix values, and reused workflow inputs
 - watch for `data.terraform_remote_state` dependencies that can fail if another stack has not been created yet or has already been destroyed
+- prefer `data.terraform_remote_state` only for outputs that are stable and rarely changed; avoid using it as the normal handoff for values that commonly change during the same infra rollout, such as task definition arns, API routing identifiers, auth client details, queue wiring, or other active runtime/deploy outputs
 - avoid cross-runtime ownership when a resource is really part of one app shape; for example, keep the ECS worker queue with `task_worker` rather than making ECS consume `lambda_worker` state
 - when a bootstrap path needs placeholder values, prefer hiding that conditional logic in locals instead of repeating `count`-indexed remote-state references through the module body
 - if you do add a genuinely new stack type, update the discovery and lifecycle workflows too: `get_directories.yml`, `infra.yml`, and `destroy.yml`

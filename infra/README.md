@@ -103,6 +103,7 @@ That `containers/lib` directory is helper code only and is not treated as a depl
 ## Dependency Notes
 
 - many modules use `data.terraform_remote_state` to read outputs from other stacks
+- prefer using `data.terraform_remote_state` only for outputs that are expected to stay stable or change rarely; avoid using it as the normal handoff for values that change as part of the same rollout, because downstream plans can then drift from the upstream state they were planned against
 - because of that, workflow ordering matters for apply, deploy, and destroy
 - `service_api` consumes the shared JWT authorizer output from `network`, so `cognito` and `network` must exist before that ECS API service stack applies, and the service must destroy before `network` is torn down
 - on destroy, `network` can tear down once downstream consumers such as `frontend`, `service_*`, `task_*`, and `database` are gone
