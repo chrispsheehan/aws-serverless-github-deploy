@@ -7,6 +7,7 @@ Shared S3 bucket for deployable artifacts.
 - Lambda zip storage
 - frontend bundle storage
 - ECS AppSpec storage for CodeDeploy
+- Terragrunt saved plan artifacts under the `terragrunt_plan/` prefix
 
 ## Key outputs
 

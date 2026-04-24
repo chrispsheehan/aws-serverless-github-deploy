@@ -38,10 +38,17 @@ permissions:
   contents: read
   actions: read
 
+env:
+  AWS_OIDC_ROLE_ARN: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/${{ vars.PROJECT_NAME }}-${{ inputs.environment }}-github-oidc-role
+
 jobs:
   metadata:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.infra_version }}
+
       - name: Write plan metadata from workflow inputs
         shell: bash
         run: |
@@ -55,12 +62,16 @@ jobs:
           }
           EOF
 
-      - name: Upload plan metadata artifact
-        uses: actions/upload-artifact@v7
+      - name: Upload plan metadata to S3
+        uses: ./.github/actions/just
+        env:
+          BUCKET_NAME: ${{ inputs.code_bucket }}
+          ENVIRONMENT: ${{ inputs.environment }}
+          RUN_ID: ${{ github.run_id }}
         with:
-          name: infra-plan-metadata
-          path: plan-metadata.json
-          if-no-files-found: error
+          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          justfile_path: justfile.ci
+          just_action: infra-plan-metadata-upload
 
   infra:
     needs:

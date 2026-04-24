@@ -105,6 +105,145 @@ get-version-file-keys:
       | jq -s -c .
 
 
+# Download saved Terragrunt plan files for a stack from the shared code bucket.
+terragrunt-plan-download:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "${BUCKET_NAME:-}" ]]; then
+        echo "❌ BUCKET_NAME environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "${ENVIRONMENT:-}" ]]; then
+        echo "❌ ENVIRONMENT environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "${RUN_ID:-}" ]]; then
+        echo "❌ RUN_ID environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "${TG_DIRECTORY:-}" ]]; then
+        echo "❌ TG_DIRECTORY environment variable is not set."
+        exit 1
+    fi
+
+    artifact_prefix="$(just --justfile "{{PROJECT_DIR}}/justfile.ci" terragrunt-plan-prefix)"
+
+    mkdir -p "$TG_DIRECTORY"
+
+    aws s3 cp "s3://${BUCKET_NAME}/${artifact_prefix}/terragrunt.tfplan" "${TG_DIRECTORY}/terragrunt.tfplan"
+    aws s3 cp "s3://${BUCKET_NAME}/${artifact_prefix}/terragrunt.plan.txt" "${TG_DIRECTORY}/terragrunt.plan.txt"
+    aws s3 cp "s3://${BUCKET_NAME}/${artifact_prefix}/terragrunt.plan.meta.json" "${TG_DIRECTORY}/terragrunt.plan.meta.json"
+
+
+# Upload saved Terragrunt plan files for a stack to the shared code bucket.
+terragrunt-plan-upload:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "${BUCKET_NAME:-}" ]]; then
+        echo "❌ BUCKET_NAME environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "${ENVIRONMENT:-}" ]]; then
+        echo "❌ ENVIRONMENT environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "${RUN_ID:-}" ]]; then
+        echo "❌ RUN_ID environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "${TG_DIRECTORY:-}" ]]; then
+        echo "❌ TG_DIRECTORY environment variable is not set."
+        exit 1
+    fi
+
+    artifact_prefix="$(just --justfile "{{PROJECT_DIR}}/justfile.ci" terragrunt-plan-prefix)"
+
+    aws s3 cp "${TG_DIRECTORY}/terragrunt.tfplan" "s3://${BUCKET_NAME}/${artifact_prefix}/terragrunt.tfplan"
+    aws s3 cp "${TG_DIRECTORY}/terragrunt.plan.txt" "s3://${BUCKET_NAME}/${artifact_prefix}/terragrunt.plan.txt"
+    aws s3 cp "${TG_DIRECTORY}/terragrunt.plan.meta.json" "s3://${BUCKET_NAME}/${artifact_prefix}/terragrunt.plan.meta.json"
+
+
+# Derive the shared S3 prefix for Terragrunt plan artifacts.
+terragrunt-plan-prefix:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "${ENVIRONMENT:-}" ]]; then
+        echo "❌ ENVIRONMENT environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "${RUN_ID:-}" ]]; then
+        echo "❌ RUN_ID environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "${TG_DIRECTORY:-}" ]]; then
+        echo "❌ TG_DIRECTORY environment variable is not set."
+        exit 1
+    fi
+
+    sanitized_dir="$(echo "$TG_DIRECTORY" | tr '/.' '--')"
+    artifact_name="terragrunt-plan-${sanitized_dir}"
+    artifact_prefix="terragrunt_plan/${ENVIRONMENT}/${RUN_ID}/${artifact_name}"
+
+    echo "$artifact_prefix"
+
+
+# Upload shared infra plan metadata to the shared code bucket.
+infra-plan-metadata-upload:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "${BUCKET_NAME:-}" ]]; then
+        echo "❌ BUCKET_NAME environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "${ENVIRONMENT:-}" ]]; then
+        echo "❌ ENVIRONMENT environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "${RUN_ID:-}" ]]; then
+        echo "❌ RUN_ID environment variable is not set."
+        exit 1
+    fi
+
+    aws s3 cp "plan-metadata.json" "s3://${BUCKET_NAME}/terragrunt_plan/${ENVIRONMENT}/${RUN_ID}/infra-plan-metadata/plan-metadata.json"
+
+
+# Download shared infra plan metadata from the shared code bucket.
+infra-plan-metadata-download:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "${BUCKET_NAME:-}" ]]; then
+        echo "❌ BUCKET_NAME environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "${ENVIRONMENT:-}" ]]; then
+        echo "❌ ENVIRONMENT environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "${RUN_ID:-}" ]]; then
+        echo "❌ RUN_ID environment variable is not set."
+        exit 1
+    fi
+
+    aws s3 cp "s3://${BUCKET_NAME}/terragrunt_plan/${ENVIRONMENT}/${RUN_ID}/infra-plan-metadata/plan-metadata.json" "plan-metadata.json"
+
+
 # List ECR image tag prefixes for a published version.
 get-ecr-version-images:
     #!/usr/bin/env bash
