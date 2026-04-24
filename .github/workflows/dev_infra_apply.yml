@@ -1,4 +1,4 @@
-name: Dev Infra
+name: Dev Infra Deploy
 
 on:
   workflow_dispatch:
@@ -10,11 +10,11 @@ permissions:
 jobs:
   setup:
     name: Discover
-    uses: ./.github/workflows/get_directories.yml
+    uses: ./.github/workflows/shared_directories_get.yml
 
   code:
     name: Artifacts
-    uses: ./.github/workflows/infra_releases.yml
+    uses: ./.github/workflows/shared_infra_releases.yml
     with:
       environment: dev
       infra_version: ${{ github.sha }}
@@ -24,7 +24,7 @@ jobs:
     needs:
       - setup
       - code
-    uses: ./.github/workflows/infra.yml
+    uses: ./.github/workflows/shared_infra_apply.yml
     with:
       environment: dev
       infra_version: ${{ github.sha }}

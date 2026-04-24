@@ -18,21 +18,40 @@ Use it when you need to understand:
 ## Workflow Groups
 
 - Release and validation: `release.yml`, `pull_request.yml`
-- Shared artifact prep and build: `infra_releases.yml`, `build.yml`, `build_get.yml`
-- Infra and code rollout: `infra.yml`, `deploy.yml`
-- Entry-point wrappers: `deploy_dev_infra.yml`, `deploy_prod_infra.yml`, `deploy_dev_code.yml`, `deploy_prod_code.yml`
-- Cleanup and discovery: `destroy.yml`, `get_directories.yml`
+- Shared artifact prep and build: `shared_infra_releases.yml`, `shared_build.yml`, `shared_build_get.yml`
+- Shared infra and code rollout: `shared_infra_plan.yml`, `shared_infra_apply.yml`, `shared_infra_apply_from_plan.yml`, `shared_infra.yml`, `shared_deploy.yml`, `shared_directories_get.yml`
+- Environment entry points: `dev_infra_apply.yml`, `dev_infra_plan.yml`, `dev_infra_plan_and_apply.yml`, `dev_infra_apply_from_plan.yml`, `dev_code_deploy.yml`, `prod_infra_apply.yml`, `prod_infra_plan.yml`, `prod_infra_apply_from_plan.yml`
+- Cleanup: `destroy.yml`
 
 ## Workflow Contracts
 
 The repo vendors its internal GitHub Actions under `.github/actions`, so workflow `uses:` references point at local paths rather than external action tags. The release workflow uses a repo-local version action, and the change-detection path uses a repo-local Docker action under `.github/actions/get-changes`.
+The reusable infra, build, deploy, and destroy workflows now build `AWS_OIDC_ROLE_ARN` from two GitHub variables, `AWS_ACCOUNT_ID` and `PROJECT_NAME`, plus the workflow environment input. Runtime and deploy steps that need a region should read `AWS_REGION` from GitHub variables instead of hardcoding it in workflow YAML. In this repo the role name comes from `infra/root.hcl`:
+
+```hcl
+deploy_role_name = "${local.project_name}-${local.environment}-github-oidc-role"
+```
+
+The workflow shape is:
+
+```text
+arn:aws:iam::<AWS_ACCOUNT_ID>:role/<PROJECT_NAME>-<environment>-github-oidc-role
+```
+
+So for the current repo and environment pattern, examples are:
+
+- `aws-serverless-github-deploy-ci-github-oidc-role`
+- `aws-serverless-github-deploy-dev-github-oidc-role`
+- `aws-serverless-github-deploy-prod-github-oidc-role`
+
+If you are unsure, the live `aws/oidc` stack in the target environment is the source of truth, since Terragrunt passes `deploy_role_name` into the shared OIDC module from `infra/root.hcl`.
 
 ### Release And Validation
 
 - `release.yml`
   Creates release tags, prepares shared CI artifacts, builds release outputs, and publishes the GitHub release. Version bumps come from a repo-local action that scans commit subjects since the latest semver tag and matches configurable major/minor/patch prefixes.
 - `pull_request.yml`
-  Provides fast validation for workflow syntax, Terraform formatting/linting, changed runtime builds, and a direct execution check of the repo-local `get-next-version` Docker action. The version preview job classifies the PR title, so it reflects the version that would be implied if that PR title lands on `main`. Its `check` job runs the repo-local `get-changes` Docker action directly, using the PR base SHA for a PR-style `base...HEAD` diff. When `.github/actions/**` changed, the workflow reuses `get_directories.yml` to discover action directories with `Dockerfile`s and runs a Docker unit-test matrix for them after the GitHub formatting job. The Lambda naming check only runs when Lambda sources changed, and the ECS task/service pair check runs when container sources or Terragrunt live-stack directories changed; each is an explicit prerequisite for the corresponding build job.
+  Provides fast validation for workflow syntax, Terraform formatting/linting, changed runtime builds, and a direct execution check of the repo-local `get-next-version` Docker action. The version preview job classifies the PR title, so it reflects the version that would be implied if that PR title lands on `main`. Its `check` job runs the repo-local `get-changes` Docker action directly, using the PR base SHA for a PR-style `base...HEAD` diff. When `.github/actions/**` changed, the workflow reuses `shared_directories_get.yml` to discover action directories with `Dockerfile`s and runs a Docker unit-test matrix for them after the GitHub formatting job. The Lambda naming check only runs when Lambda sources changed, and the ECS task/service pair check runs when container sources or Terragrunt live-stack directories changed; each is an explicit prerequisite for the corresponding build job.
 
 The local version action can also be tested outside GitHub Actions, either by running the Python entrypoint directly or through its dedicated Docker image.
 
@@ -46,11 +65,11 @@ flowchart LR
 
 ### Shared Artifact Prep And Build
 
-- `infra_releases.yml`
+- `shared_infra_releases.yml`
   Prepares or reads shared CI-side artifact infrastructure such as ECR and the code bucket.
-- `build.yml`
+- `shared_build.yml`
   Builds and publishes frontend, Lambda, and ECS artifacts.
-- `build_get.yml`
+- `shared_build_get.yml`
   Resolves artifact locations and derives matrices used by downstream deploy wrappers.
 
 ```mermaid
@@ -62,9 +81,16 @@ flowchart LR
 
 ### Infra And Code Rollout
 
-- `infra.yml`
-  Applies shared stacks first, then runtime stacks, then frontend infrastructure. Shared stacks now include the CloudWatch observability dashboard.
-- `deploy.yml`
+- `shared_infra_plan.yml`
+  Plan wrapper around `shared_infra.yml`. It takes resolved workflow inputs directly, writes and uploads `infra-plan-metadata`, and then calls `shared_infra.yml` with `tg_action: plan`. After the plan completes, it prints the current workflow `github.run_id` into both the logs and the GitHub Actions step summary as `plan_artifact_run_id`, and exposes that value as a reusable-workflow output.
+- `shared_infra_apply.yml`
+  Direct-input apply wrapper around `shared_infra.yml`. It takes resolved workflow inputs directly and calls `shared_infra.yml` with `tg_action: apply`.
+- `shared_infra_apply_from_plan.yml`
+  Apply-from-plan wrapper around `shared_infra.yml`. It takes `plan_artifact_run_id` and `github_token`, downloads `infra-plan-metadata`, reads the frozen graph inputs back out, and then calls `shared_infra.yml` with `tg_action: apply_plan`.
+- `shared_infra.yml`
+  Pure ordered infra graph executor. It applies shared stacks first, then runtime stacks, then frontend infrastructure. Shared stacks now include the CloudWatch observability dashboard. It accepts `tg_action` so the same graph can run a normal apply, upload derived per-stack plan artifacts, or apply from previously uploaded plan artifacts. Its visible step labels now follow `tg_action` too, so plan and apply-from-plan runs no longer show everything as `Deploy ...`. The `security -> network` edge is a real bootstrap dependency because `network` reads security outputs like `vpc_endpoint_sg` from remote state; if those outputs do not exist yet, `network` fails with an upstream `Unsupported attribute` error rather than a networking-specific error.
+- The shared infra wrappers must forward the permissions required by the nested reusable call chain. In practice that means `id-token: write` everywhere the Terragrunt action may assume AWS OIDC, `contents: read` for checkout, and `actions: read` on wrappers that download artifacts across runs.
+- `shared_deploy.yml`
   Rolls out Lambda code, optional migrations, optional reconciliation Lambdas, ECS task and service updates, and optional frontend deploys. The reusable workflow renders its Lambda and ECS CodeDeploy AppSpec files from the shared templates under `config/deploy/`, and its mutating `just` steps should target `justfile.deploy` rather than the repo-root `justfile`.
 
 ```mermaid
@@ -80,20 +106,30 @@ flowchart LR
 
 ### Wrapper Workflows
 
-- `deploy_dev_infra.yml`
+- `dev_infra_apply.yml`
   Entry point for dev infra apply.
-- `deploy_prod_infra.yml`
+- `dev_infra_plan.yml`
+  Entry point for dev infra plan. It discovers runtime directories, prepares dev artifact references, and then runs the shared infra wrapper in direct-input `plan` mode.
+- `dev_infra_plan_and_apply.yml`
+  Entry point for dev infra plan-then-apply. It captures the current workflow `run_id` as plan context, runs the shared infra wrapper in direct-input `plan` mode so that the wrapper emits both plan artifacts and `infra-plan-metadata`, and then reruns the same ordered infra graph in metadata-backed `apply_plan` mode.
+- `prod_infra_plan.yml`
+  Entry point for prod infra plan. It resolves released artifacts from `ci` and then runs the shared infra wrapper in direct-input `plan` mode so that it emits both the reusable metadata artifact and the derived per-stack plan artifacts for that resolved input set.
+- `prod_infra_apply.yml`
   Entry point for prod infra apply using shared artifacts from `ci`.
-- `deploy_dev_code.yml`
+- `dev_infra_apply_from_plan.yml`
+  Entry point for dev infra apply-from-plan. It takes a prior `plan_artifact_run_id` from an earlier `dev_infra_plan.yml` or `dev_infra_plan_and_apply.yml` run and reruns the ordered dev infra graph through `shared_infra_apply_from_plan.yml`.
+- `prod_infra_apply_from_plan.yml`
+  Entry point for prod infra apply-from-plan. It only needs the earlier `plan_artifact_run_id`; the shared infra wrapper runs in metadata mode to recover the exact resolved infra graph inputs from that run and then downloads and applies the plan artifacts from that same run.
+- `dev_code_deploy.yml`
   Entry point for dev code build and deploy.
-- `deploy_prod_code.yml`
+- `prod_code_deploy.yml`
   Entry point for prod code deploy from released artifacts.
 
 ### Cleanup And Discovery
 
 - `destroy.yml`
   Tears down app layers before shared dependencies, including the shared observability dashboard.
-- `get_directories.yml`
+- `shared_directories_get.yml`
   Derives the directory-based matrices used by wrapper workflows and PR action-test discovery.
 
 ## Feasibility Checks
@@ -105,6 +141,12 @@ Run these checks on every CI, workflow, or deploy-contract change.
 - compare every caller `with:` block against the callee `workflow_call.inputs`
 - compare expected outputs against actual `jobs.<job>.outputs.*`
 - verify optional inputs are intentionally omitted, not accidentally missing
+- the repo-local `./.github/actions/terragrunt` action now supports `tg_action: plan` plus automatic artifact upload of the binary plan, rendered text plan, and a `terragrunt.plan.meta.json` sidecar with `exit_code` and `has_changes`; keep that contract in mind before inventing a second plan-storage mechanism
+- `./.github/actions/terragrunt` now skips `apply_plan` with a warning when the saved `terragrunt.plan.meta.json` reports `has_changes: false`, and in that no-op case it also skips `aws-actions/configure-aws-credentials`
+- `./.github/actions/terragrunt` derives its plan artifact name from `tg_directory`, so callers do not need to pass artifact naming inputs
+- if `apply_plan` is used across separate workflow runs, pass the earlier workflow `run_id` through `plan_artifact_run_id` and a token with `actions: read` so both the shared metadata artifact and the plan artifacts can be downloaded
+- if a cross-run apply should not ask the operator to re-enter versions or recompute artifact resolution, store both the input versions and the resolved reusable-workflow outputs in a metadata artifact during plan and recover them in the apply wrapper from the earlier `run_id`
+- keep `shared_infra.yml` as the pure graph executor and prefer handling metadata creation/recovery in the dedicated plan/apply wrappers
 - when using `./.github/actions/just`, check whether the caller needs the repo-root `justfile` or an explicit `justfile_path`
 - if a deploy step passes `APP_SPEC_FILE`, keep it aligned with the shared AppSpec template location under `config/deploy/`
 - keep the split `just` ownership clear:
@@ -143,9 +185,9 @@ Run these checks on every CI, workflow, or deploy-contract change.
 ### Infra Versus Code Ownership
 
 - `*_infra` wrappers should stop at infrastructure apply
-- `deploy.yml` owns feature-code rollout
+- `shared_deploy.yml` owns feature-code rollout
 - prod wrappers should continue reading shared artifact resources from `ci` while applying deploy targets in `prod`
-- do not add `infra_releases.yml` to prod deploy wrappers unless the goal is explicitly deploy-time artifact creation
+- do not add `shared_infra_releases.yml` to prod deploy wrappers unless the goal is explicitly deploy-time artifact creation
 
 ### ECS-Specific Checks
 
@@ -162,17 +204,27 @@ Run these checks on every CI, workflow, or deploy-contract change.
 
 These are the workflows most users trigger directly.
 
-- `deploy_dev_infra.yml`
+- `dev_infra_apply.yml`
   Discovers directories, prepares dev artifacts, and applies dev infrastructure.
-- `deploy_prod_infra.yml`
+- `dev_infra_plan.yml`
+  Discovers directories, prepares dev artifacts, and plans the ordered dev infra graph through `shared_infra_plan.yml`.
+- `dev_infra_plan_and_apply.yml`
+  Discovers directories, prepares dev artifacts, captures the current run as plan context, plans the ordered dev infra graph through `shared_infra_plan.yml` so that the wrapper emits both the metadata artifact and derived uploaded plan artifacts, and then reapplies the same graph through `shared_infra_apply_from_plan.yml`.
+- `dev_infra_apply_from_plan.yml`
+  Reapplies the ordered dev infra graph from plan artifacts created by an earlier dev plan run, using the shared `plan_artifact_run_id` contract end-to-end.
+- `prod_infra_plan.yml`
+  Resolves released artifacts from `ci`, then plans the ordered prod infra graph so that shared infra emits both the metadata artifact and the derived per-stack plan artifacts.
+- `prod_infra_apply.yml`
   Resolves released artifacts from `ci` and applies prod infrastructure.
-- `deploy_dev_code.yml`
+- `prod_infra_apply_from_plan.yml`
+  Reapplies the ordered prod infra graph from plan artifacts created by a prior `prod_infra_plan` run, using the shared `plan_artifact_run_id` contract end-to-end. `shared_infra_apply_from_plan.yml` reads the matching metadata artifact before delegating to `shared_infra.yml`.
+- `dev_code_deploy.yml`
   Discovers directories, builds fresh dev artifacts, resolves deploy inputs, and deploys code to dev.
-- `deploy_prod_code.yml`
+- `prod_code_deploy.yml`
   Resolves released artifacts from `ci` and deploys code to prod.
 
 ## Discovery Notes
 
-- `get_directories.yml` is the workflow-level source for directory-derived matrices
+- `shared_directories_get.yml` is the workflow-level source for directory-derived matrices
 - top-level Lambda directories under `lambdas/` are treated as deployable functions, excluding generated build output
 - top-level deployable container directories under `containers/` are treated as ECS image targets, excluding helper-only directories such as `lib` and `_shared`

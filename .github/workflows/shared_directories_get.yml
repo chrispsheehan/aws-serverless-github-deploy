@@ -1,3 +1,5 @@
+name: Shared Directories Get
+
 on:
   workflow_call:
     outputs:

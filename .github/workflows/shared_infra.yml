@@ -1,3 +1,5 @@
+name: Shared Infra
+
 on:
   workflow_call:
     inputs:
@@ -26,6 +28,21 @@ on:
         required: false
         type: string
         default: "[]"
+      tg_action:
+        description: "Terragrunt action to run across the infra graph"
+        required: false
+        type: string
+        default: "apply"
+      plan_artifact_run_id:
+        description: "Optional workflow run ID used for apply-from-plan artifact downloads"
+        required: false
+        type: string
+        default: ""
+      github_token:
+        description: "Optional GitHub token used for cross-run artifact download in apply-from-plan mode"
+        required: false
+        type: string
+        default: ""
 
 
 concurrency: # only run one instance of workflow at any one time
@@ -34,11 +51,12 @@ concurrency: # only run one instance of workflow at any one time
 
 permissions:
   id-token: write
-  contents: write
+  contents: read
 
 env:
-  AWS_OIDC_ROLE_ARN: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/aws-serverless-github-deploy-${{ inputs.environment }}-github-oidc-role
+  AWS_OIDC_ROLE_ARN: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/${{ vars.PROJECT_NAME }}-${{ inputs.environment }}-github-oidc-role
   DOMAIN_NAME: ${{ vars.DOMAIN_NAME }}
+  TG_ACTION_LABEL: ${{ inputs.tg_action == 'apply' && 'Apply' || inputs.tg_action == 'plan' && 'Plan' || inputs.tg_action == 'apply_plan' && 'Apply planned' || inputs.tg_action == 'destroy' && 'Destroy' || inputs.tg_action == 'init' && 'Init' || 'Run' }}
 
 jobs:
   oidc:
@@ -48,11 +66,14 @@ jobs:
         with:
           ref: ${{ inputs.infra_version }}
 
-      - name: Deploy oidc role infra
+      - name: ${{ env.TG_ACTION_LABEL }} oidc role infra
         uses: ./.github/actions/terragrunt
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/oidc
+          tg_action: ${{ inputs.tg_action }}
+          plan_artifact_run_id: ${{ inputs.plan_artifact_run_id }}
+          github_token: ${{ inputs.github_token }}
 
   worker_messaging:
     needs: oidc
@@ -62,11 +83,14 @@ jobs:
         with:
           ref: ${{ inputs.infra_version }}
 
-      - name: Deploy worker messaging infra
+      - name: ${{ env.TG_ACTION_LABEL }} worker messaging infra
         uses: ./.github/actions/terragrunt
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/worker_messaging
+          tg_action: ${{ inputs.tg_action }}
+          plan_artifact_run_id: ${{ inputs.plan_artifact_run_id }}
+          github_token: ${{ inputs.github_token }}
 
   observability:
     needs: oidc
@@ -76,11 +100,14 @@ jobs:
         with:
           ref: ${{ inputs.infra_version }}
 
-      - name: Deploy observability infra
+      - name: ${{ env.TG_ACTION_LABEL }} observability infra
         uses: ./.github/actions/terragrunt
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/observability
+          tg_action: ${{ inputs.tg_action }}
+          plan_artifact_run_id: ${{ inputs.plan_artifact_run_id }}
+          github_token: ${{ inputs.github_token }}
 
   cognito:
     needs: oidc
@@ -90,13 +117,16 @@ jobs:
         with:
           ref: ${{ inputs.infra_version }}
 
-      - name: Deploy cognito infra
+      - name: ${{ env.TG_ACTION_LABEL }} cognito infra
         uses: ./.github/actions/terragrunt
         env:
           TF_VAR_domain_name: ${{ env.DOMAIN_NAME }}
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/cognito
+          tg_action: ${{ inputs.tg_action }}
+          plan_artifact_run_id: ${{ inputs.plan_artifact_run_id }}
+          github_token: ${{ inputs.github_token }}
 
   frontend:
     needs:
@@ -143,7 +173,7 @@ jobs:
           echo "hosted_ui_url=$(echo "$TG_OUTPUTS" | jq -r '.hosted_ui_url.value')" >> "$GITHUB_OUTPUT"
           echo "readonly_group_name=$(echo "$TG_OUTPUTS" | jq -r '.readonly_group_name.value')" >> "$GITHUB_OUTPUT"
 
-      - name: Deploy frontend infra
+      - name: ${{ env.TG_ACTION_LABEL }} frontend infra
         uses: ./.github/actions/terragrunt
         env:
           TF_VAR_api_invoke_url: ${{ steps.get_api_vars.outputs.invoke_url }}
@@ -155,6 +185,9 @@ jobs:
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/frontend
+          tg_action: ${{ inputs.tg_action }}
+          plan_artifact_run_id: ${{ inputs.plan_artifact_run_id }}
+          github_token: ${{ inputs.github_token }}
 
   cluster:
     needs: oidc
@@ -164,11 +197,14 @@ jobs:
         with:
           ref: ${{ inputs.infra_version }}
 
-      - name: Deploy cluster infra
+      - name: ${{ env.TG_ACTION_LABEL }} cluster infra
         uses: ./.github/actions/terragrunt
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/cluster
+          tg_action: ${{ inputs.tg_action }}
+          plan_artifact_run_id: ${{ inputs.plan_artifact_run_id }}
+          github_token: ${{ inputs.github_token }}
 
   security:
     needs: oidc
@@ -180,15 +216,19 @@ jobs:
         with:
           ref: ${{ inputs.infra_version }}
 
-      - name: Deploy security infra
+      - name: ${{ env.TG_ACTION_LABEL }} security infra
         id: deploy-security
         uses: ./.github/actions/terragrunt
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/security
+          tg_action: ${{ inputs.tg_action }}
+          plan_artifact_run_id: ${{ inputs.plan_artifact_run_id }}
+          github_token: ${{ inputs.github_token }}
 
       - name: Get security outputs
         id: get_security_outputs
+        if: inputs.tg_action != 'destroy'
         env:
           TG_OUTPUTS: ${{ steps.deploy-security.outputs.tg_outputs }}
         run: |
@@ -204,13 +244,16 @@ jobs:
         with:
           ref: ${{ inputs.infra_version }}
 
-      - name: Deploy database infra
+      - name: ${{ env.TG_ACTION_LABEL }} database infra
         uses: ./.github/actions/terragrunt
         env:
           TF_VAR_database_security_group_id: ${{ needs.security.outputs.postgres_sg }}
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/database
+          tg_action: ${{ inputs.tg_action }}
+          plan_artifact_run_id: ${{ inputs.plan_artifact_run_id }}
+          github_token: ${{ inputs.github_token }}
 
   network:
     needs:
@@ -222,11 +265,14 @@ jobs:
         with:
           ref: ${{ inputs.infra_version }}
 
-      - name: Deploy network infra
+      - name: ${{ env.TG_ACTION_LABEL }} network infra
         uses: ./.github/actions/terragrunt
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/network
+          tg_action: ${{ inputs.tg_action }}
+          plan_artifact_run_id: ${{ inputs.plan_artifact_run_id }}
+          github_token: ${{ inputs.github_token }}
 
   lambdas:
     needs: 
@@ -245,11 +291,14 @@ jobs:
         with:
           ref: ${{ inputs.infra_version }}
 
-      - name: Deploy ${{ matrix.value }} infra
+      - name: ${{ env.TG_ACTION_LABEL }} ${{ matrix.value }} infra
         uses: ./.github/actions/terragrunt
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.value }}
+          tg_action: ${{ inputs.tg_action }}
+          plan_artifact_run_id: ${{ inputs.plan_artifact_run_id }}
+          github_token: ${{ inputs.github_token }}
 
   services:
     needs:
@@ -269,7 +318,7 @@ jobs:
         with:
           ref: ${{ inputs.infra_version }}
 
-      - name: Deploy ${{ matrix.value }} bootstrap service infra
+      - name: ${{ env.TG_ACTION_LABEL }} ${{ matrix.value }} bootstrap service infra
         uses: ./.github/actions/terragrunt
         env:
           TF_VAR_bootstrap: "true"
@@ -277,3 +326,6 @@ jobs:
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.value }}
+          tg_action: ${{ inputs.tg_action }}
+          plan_artifact_run_id: ${{ inputs.plan_artifact_run_id }}
+          github_token: ${{ inputs.github_token }}

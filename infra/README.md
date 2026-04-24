@@ -103,6 +103,7 @@ That `containers/lib` directory is helper code only and is not treated as a depl
 ## Dependency Notes
 
 - many modules use `data.terraform_remote_state` to read outputs from other stacks
+- prefer using `data.terraform_remote_state` only for outputs that are expected to stay stable or change rarely; avoid using it as the normal handoff for values that change as part of the same rollout, because downstream plans can then drift from the upstream state they were planned against
 - because of that, workflow ordering matters for apply, deploy, and destroy
 - `service_api` consumes the shared JWT authorizer output from `network`, so `cognito` and `network` must exist before that ECS API service stack applies, and the service must destroy before `network` is torn down
 - on destroy, `network` can tear down once downstream consumers such as `frontend`, `service_*`, `task_*`, and `database` are gone
@@ -126,6 +127,21 @@ That `containers/lib` directory is helper code only and is not treated as a depl
     - use ECS CodeDeploy for load-balanced services
     - or use native ECS rolling updates for internal services
   - ECS task rollout is not implicitly blocked on Lambda or migration jobs; add that ordering only where a caller actually needs it
+
+## Infra Deployment Use Cases
+
+These are good examples of infra changes that should normally be made in isolation, reviewed with a focused plan, and then applied before any separate feature-code rollout.
+
+- upgrade the database
+  Plan and apply the `database` stack first. If that changes outputs consumed elsewhere, such as the shared credentials secret ARN, re-plan and then apply downstream consumers like `migrations`, `task_worker`, and other stacks that read `database` remote state.
+- change a Lambda env var
+  Treat this as an infra change to the specific Lambda stack, for example `lambda_api`, `lambda_worker`, `migrations`, or `rds_reader_tagger`. Plan and apply that stack in isolation rather than bundling it into a wider environment change.
+- add an API route
+  Plan and apply only the stack that owns that route surface. For Lambda-backed routes, that is typically `lambda_api`. For ECS-backed routes, that is usually `service_api`, and possibly `network` as well if the shared routing surface or authorizer wiring must change.
+- change a security group
+  Plan and apply the `security` stack first. If downstream stacks consume the changed outputs through remote state, re-plan those consumers after the security apply rather than trusting older saved plans.
+
+For the higher-level repo entry point and workflow map, start at [the main README](../README.md). Use this infra README when the change is specifically about stack ownership, remote-state coupling, or phased infra rollout.
 
 ## Local Command Surface
 

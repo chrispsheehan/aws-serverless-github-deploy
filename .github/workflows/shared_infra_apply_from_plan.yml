@@ -1,0 +1,73 @@
+name: Shared Infra Apply From Plan
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: environment reference i.e. 'prod' or 'dev'
+        required: true
+        type: string
+      plan_artifact_run_id:
+        description: "Workflow run ID used to recover metadata and plan artifacts"
+        required: true
+        type: string
+      github_token:
+        description: "GitHub token used for cross-run artifact download"
+        required: true
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+  actions: read
+
+jobs:
+  metadata:
+    runs-on: ubuntu-latest
+    outputs:
+      infra_version: ${{ steps.read_metadata.outputs.infra_version }}
+      code_bucket: ${{ steps.read_metadata.outputs.code_bucket }}
+      lambda_matrix: ${{ steps.read_metadata.outputs.lambda_matrix }}
+      bootstrap_image_uri: ${{ steps.read_metadata.outputs.bootstrap_image_uri }}
+      service_matrix: ${{ steps.read_metadata.outputs.service_matrix }}
+    steps:
+      - name: Download plan metadata artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: infra-plan-metadata
+          path: .
+          github-token: ${{ inputs.github_token }}
+          run-id: ${{ inputs.plan_artifact_run_id }}
+
+      - name: Check plan metadata artifact
+        shell: bash
+        run: |
+          if [ ! -f plan-metadata.json ]; then
+            echo "::error title=Missing plan metadata artifact::Expected 'plan-metadata.json' from artifact 'infra-plan-metadata' in run '${{ inputs.plan_artifact_run_id }}', but it was not downloaded."
+            exit 1
+          fi
+
+      - name: Read plan metadata
+        id: read_metadata
+        shell: bash
+        run: |
+          echo "infra_version=$(jq -r '.infra_version' plan-metadata.json)" >> "$GITHUB_OUTPUT"
+          echo "code_bucket=$(jq -r '.code_bucket' plan-metadata.json)" >> "$GITHUB_OUTPUT"
+          echo "lambda_matrix=$(jq -c '.lambda_matrix' plan-metadata.json)" >> "$GITHUB_OUTPUT"
+          echo "bootstrap_image_uri=$(jq -r '.bootstrap_image_uri' plan-metadata.json)" >> "$GITHUB_OUTPUT"
+          echo "service_matrix=$(jq -c '.service_matrix' plan-metadata.json)" >> "$GITHUB_OUTPUT"
+
+  infra:
+    needs:
+      - metadata
+    uses: ./.github/workflows/shared_infra.yml
+    with:
+      environment: ${{ inputs.environment }}
+      infra_version: ${{ needs.metadata.outputs.infra_version }}
+      code_bucket: ${{ needs.metadata.outputs.code_bucket }}
+      lambda_matrix: ${{ needs.metadata.outputs.lambda_matrix }}
+      bootstrap_image_uri: ${{ needs.metadata.outputs.bootstrap_image_uri }}
+      service_matrix: ${{ needs.metadata.outputs.service_matrix }}
+      tg_action: apply_plan
+      plan_artifact_run_id: ${{ inputs.plan_artifact_run_id }}
+      github_token: ${{ inputs.github_token }}

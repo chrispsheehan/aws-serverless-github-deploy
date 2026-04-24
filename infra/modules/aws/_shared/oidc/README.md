@@ -60,6 +60,36 @@ The `ci` role is not the repo's general deploy role. If a workflow needs deploy 
 - `state_bucket`
 - `state_lock_table`
 
+In this repo, `deploy_role_name` is not set directly in each live `aws/oidc` stack. It is derived in `infra/root.hcl` and passed in through shared Terragrunt inputs:
+
+```hcl
+deploy_role_name = "${local.project_name}-${local.environment}-github-oidc-role"
+```
+
+So the current role-name pattern is:
+
+```text
+<project_name>-<environment>-github-oidc-role
+```
+
+For this repo, that means:
+
+- `aws-serverless-github-deploy-ci-github-oidc-role`
+- `aws-serverless-github-deploy-dev-github-oidc-role`
+- `aws-serverless-github-deploy-prod-github-oidc-role`
+
+When GitHub workflows build `AWS_OIDC_ROLE_ARN`, they use:
+
+- `AWS_ACCOUNT_ID`
+- `PROJECT_NAME`
+- the workflow environment such as `ci`, `dev`, or `prod`
+
+So the workflow-side ARN shape is:
+
+```text
+arn:aws:iam::<AWS_ACCOUNT_ID>:role/<PROJECT_NAME>-<environment>-github-oidc-role
+```
+
 ## Outputs Consumers Rely On
 
 - role ARN
