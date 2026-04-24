@@ -5,7 +5,7 @@ This GitHub Action sets up **Terraform** and **Terragrunt**, authenticates to AW
 ## Features
 
 - Installs pinned versions of Terraform and Terragrunt
-- Authenticates to AWS using OIDC
+- Authenticates to AWS using OIDC only when the selected action actually needs AWS access
 - Optionally passes Terragrunt variables via JSON tfvars
 - Supports `plan` mode with automatic GitHub artifact upload
 - Supports `init` mode for outputs-only reads
@@ -41,7 +41,7 @@ This GitHub Action sets up **Terraform** and **Terragrunt**, authenticates to AW
 - `plan`
   Runs `terragrunt plan -out=<absolute stack path>/terragrunt.tfplan`, renders a text view to `terragrunt.plan.txt`, and uploads both files as a GitHub artifact. The artifact name is derived from `tg_directory`.
 - `apply_plan`
-  Downloads the derived plan artifact into the working directory, fails if the artifact or binary plan file is missing, and then runs `terragrunt apply` against the downloaded absolute stack-path plan file. For separate workflow runs, pass `plan_artifact_run_id` and `github_token`.
+  Downloads the derived plan artifact into the working directory, fails if the artifact or binary plan file is missing, inspects the saved plan with `terraform show -json`, and skips both AWS authentication and apply with a GitHub Actions warning when the saved plan contains no mutating resource changes. Otherwise it configures AWS credentials and runs `terragrunt apply` against the downloaded absolute stack-path plan file. For separate workflow runs, pass `plan_artifact_run_id` and `github_token`.
 - `destroy`
   Runs `terragrunt destroy -auto-approve`
 - `init`

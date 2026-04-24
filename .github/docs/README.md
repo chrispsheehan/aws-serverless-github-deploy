@@ -137,6 +137,7 @@ Run these checks on every CI, workflow, or deploy-contract change.
 - compare expected outputs against actual `jobs.<job>.outputs.*`
 - verify optional inputs are intentionally omitted, not accidentally missing
 - the repo-local `./.github/actions/terragrunt` action now supports `tg_action: plan` plus automatic artifact upload of the binary plan and rendered text plan; keep that contract in mind before inventing a second plan-storage mechanism
+- `./.github/actions/terragrunt` now skips `apply_plan` with a warning when `terraform show -json` on the saved plan reports no mutating resource changes, and in that no-op case it also skips `aws-actions/configure-aws-credentials`
 - `./.github/actions/terragrunt` derives its plan artifact name from `tg_directory`, so callers do not need to pass artifact naming inputs
 - if `apply_plan` is used across separate workflow runs, pass the earlier workflow `run_id` through `plan_artifact_run_id` and a token with `actions: read` so both the shared metadata artifact and the plan artifacts can be downloaded
 - if a cross-run apply should not ask the operator to re-enter versions or recompute artifact resolution, store both the input versions and the resolved reusable-workflow outputs in a metadata artifact during plan and recover them in the apply wrapper from the earlier `run_id`

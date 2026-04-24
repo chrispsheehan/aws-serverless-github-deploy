@@ -39,7 +39,7 @@ inputs:
 outputs:
   tg_outputs:
     description: "All Terraform outputs in JSON format"
-    value: ${{ steps.tg_outputs.outputs.terraform_json }}
+    value: ${{ steps.tg_outputs.outputs.terraform_json || steps.tg_outputs_skip.outputs.terraform_json }}
   plan_artifact_name:
     description: "Derived GitHub artifact name for a Terragrunt plan"
     value: ${{ steps.plan_artifact.outputs.plan_artifact_name }}
@@ -57,12 +57,6 @@ runs:
       uses: autero1/action-terragrunt@v1.3.2
       with:
         terragrunt_version: ${{ inputs.tg_version }}
-
-    - name: Configure AWS OIDC Authentication
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        role-to-assume: ${{ inputs.aws_oidc_role_arn }}
-        aws-region: ${{ inputs.aws_region }}
 
     - name: Normalize and write override_tg_vars
       if: inputs.tg_action == 'apply' || inputs.tg_action == 'plan' || inputs.tg_action == 'destroy'
@@ -108,7 +102,37 @@ runs:
           exit 1
         }
 
+    - name: Check saved plan for mutating changes
+      if: inputs.tg_action == 'apply_plan'
+      id: apply_plan_guard
+      shell: bash
+      working-directory: ${{ inputs.tg_directory }}
+      run: |
+        PLAN_PATH="$(pwd)/terragrunt.tfplan"
+        PLAN_JSON_PATH="$(pwd)/terragrunt.plan.apply.json"
+
+        terraform show -json "$PLAN_PATH" > "$PLAN_JSON_PATH"
+        if jq -e '
+          [
+            .resource_changes[]?.change.actions[]?
+          ]
+          | any(. == "create" or . == "update" or . == "delete" or . == "replace")
+        ' "$PLAN_JSON_PATH" >/dev/null; then
+          echo "should_apply=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "::warning title=Empty saved plan::Saved plan '$PLAN_PATH' contains no mutating resource changes. Skipping apply."
+          echo "should_apply=false" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Configure AWS OIDC Authentication
+      if: inputs.tg_action != 'apply_plan' || steps.apply_plan_guard.outputs.should_apply == 'true'
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ inputs.aws_oidc_role_arn }}
+        aws-region: ${{ inputs.aws_region }}
+
     - name: Action Terragrunt
+      if: inputs.tg_action != 'apply_plan' || steps.apply_plan_guard.outputs.should_apply == 'true'
       id: terragrunt_action
       shell: bash
       env:
@@ -157,7 +181,7 @@ runs:
         if-no-files-found: error
 
     - name: Capture Terraform Outputs
-      if: inputs.tg_action != 'destroy'
+      if: inputs.tg_action != 'destroy' && (inputs.tg_action != 'apply_plan' || steps.apply_plan_guard.outputs.should_apply == 'true')
       id: tg_outputs
       shell: bash
       working-directory: ${{ inputs.tg_directory }}
@@ -171,3 +195,10 @@ runs:
         fi
         echo "terraform_json=$TERRAGRUNT_OUTPUTS" >> "$GITHUB_OUTPUT"
         echo "✅ Terraform outputs captured successfully."
+
+    - name: Capture Terraform Outputs For Skipped Apply Plan
+      if: inputs.tg_action == 'apply_plan' && steps.apply_plan_guard.outputs.should_apply != 'true'
+      id: tg_outputs_skip
+      shell: bash
+      run: |
+        echo "terraform_json={}" >> "$GITHUB_OUTPUT"
