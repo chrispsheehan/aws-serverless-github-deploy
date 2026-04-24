@@ -176,6 +176,7 @@ Infrastructure apply and feature-code rollout are intentionally decoupled in thi
 - `*_code` workflows deploy feature code only
 - code deploy workflows publish the real Lambda versions and ECS task revisions into that pre-created deploy surface
 - rerunning infrastructure apply does not roll out new feature code
+- for focused infra change examples such as upgrading the database, changing a Lambda env var, adding an API route, or changing a security group, see [infra/README.md](infra/README.md#infra-deployment-use-cases)
 - the shared Lambda and ECS module READMEs are the canonical source for bootstrap, rollout, and rollback details for each runtime shape
 - detailed workflow contracts, reusable-workflow inputs, repo-local action behavior, and `justfile_path` rules live in [.github/docs/README.md](.github/docs/README.md)
 - see [lambdas/README.md](lambdas/README.md) and [containers/README.md](containers/README.md) for runtime source layout, build behavior, and boilerplate patterns
