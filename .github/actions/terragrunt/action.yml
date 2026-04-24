@@ -88,6 +88,7 @@ runs:
       with:
         name: ${{ steps.plan_artifact.outputs.plan_artifact_name }}
         path: ${{ inputs.tg_directory }}
+        repository: ${{ github.repository }}
         github-token: ${{ inputs.github_token }}
         run-id: ${{ inputs.plan_artifact_run_id }}
 

@@ -145,6 +145,7 @@ Run these checks on every CI, workflow, or deploy-contract change.
 - `./.github/actions/terragrunt` now skips `apply_plan` with a warning when the saved `terragrunt.plan.meta.json` reports `has_changes: false`, and in that no-op case it also skips `aws-actions/configure-aws-credentials`
 - `./.github/actions/terragrunt` derives its plan artifact name from `tg_directory`, so callers do not need to pass artifact naming inputs
 - if `apply_plan` is used across separate workflow runs, pass the earlier workflow `run_id` through `plan_artifact_run_id` and pass the GitHub token as a reusable-workflow secret with `actions: read` so both the shared metadata artifact and the plan artifacts can be downloaded
+- for cross-run artifact recovery, scope `actions/download-artifact` explicitly to `repository: ${{ github.repository }}` rather than relying on implicit repository resolution through the reusable-workflow chain
 - if a cross-run apply should not ask the operator to re-enter versions or recompute artifact resolution, store both the input versions and the resolved reusable-workflow outputs in a metadata artifact during plan and recover them in the apply wrapper from the earlier `run_id`
 - keep `shared_infra.yml` as the pure graph executor and prefer handling metadata creation/recovery in the dedicated plan/apply wrappers
 - when using `./.github/actions/just`, check whether the caller needs the repo-root `justfile` or an explicit `justfile_path`

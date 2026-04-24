@@ -36,6 +36,7 @@ jobs:
         with:
           name: infra-plan-metadata
           path: .
+          repository: ${{ github.repository }}
           github-token: ${{ secrets.artifact_token }}
           run-id: ${{ inputs.plan_artifact_run_id }}
 
