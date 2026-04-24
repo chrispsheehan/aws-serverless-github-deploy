@@ -1,15 +1,12 @@
 name: Dev Infra Apply From Plan
 
 on:
-  # workflow_dispatch:
-  #   inputs:
-  #     plan_artifact_run_id:
-  #       description: "Workflow run ID from the earlier dev infra plan run"
-  #       required: true
-  #       type: string
-  push:
-    branches:
-      - plan-artefacts
+  workflow_dispatch:
+    inputs:
+      plan_artifact_run_id:
+        description: "Workflow run ID from the earlier dev infra plan run"
+        required: true
+        type: string
 
 permissions:
   id-token: write
@@ -22,5 +19,5 @@ jobs:
     uses: ./.github/workflows/shared_infra_apply_from_plan.yml
     with:
       environment: dev
-      plan_artifact_run_id: 24888660581
+      plan_artifact_run_id: ${{ inputs.plan_artifact_run_id }}
       github_token: ${{ github.token }}
