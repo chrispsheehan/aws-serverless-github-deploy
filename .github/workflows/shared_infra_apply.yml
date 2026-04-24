@@ -29,6 +29,10 @@ on:
         type: string
         default: "[]"
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   infra:
     uses: ./.github/workflows/shared_infra.yml

@@ -51,7 +51,7 @@ concurrency: # only run one instance of workflow at any one time
 
 permissions:
   id-token: write
-  contents: write
+  contents: read
 
 env:
   AWS_OIDC_ROLE_ARN: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/${{ vars.PROJECT_NAME }}-${{ inputs.environment }}-github-oidc-role
