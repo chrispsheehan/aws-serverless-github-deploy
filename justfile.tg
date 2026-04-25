@@ -1,0 +1,148 @@
+# Terragrunt plan artifact helpers.
+# This file is for producing, downloading, and uploading saved Terragrunt plan files.
+
+PROJECT_DIR := justfile_directory()
+
+PLAN_FILE := "terragrunt.tfplan"
+PLAN_TEXT_FILE := "terragrunt.plan.txt"
+PLAN_META_FILE := "terragrunt.plan.meta.json"
+
+
+# Render Terragrunt plan sidecars (plan text + metadata) for an existing binary plan.
+#
+# Expected environment variables:
+# - TG_DIRECTORY: directory containing the saved plan file
+# - TG_PLAN_EXIT_CODE: detailed-exitcode from `terragrunt plan` (0 or 2)
+terragrunt-plan-render:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "${TG_DIRECTORY:-}" ]]; then
+        echo "❌ TG_DIRECTORY environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "${TG_PLAN_EXIT_CODE:-}" ]]; then
+        echo "❌ TG_PLAN_EXIT_CODE environment variable is not set."
+        exit 1
+    fi
+
+    cd "$TG_DIRECTORY"
+
+    PLAN_PATH="$(pwd)/{{PLAN_FILE}}"
+    PLAN_TEXT_PATH="$(pwd)/{{PLAN_TEXT_FILE}}"
+    PLAN_META_PATH="$(pwd)/{{PLAN_META_FILE}}"
+
+    if [[ ! -f "$PLAN_PATH" ]]; then
+        echo "❌ Expected plan file '$PLAN_PATH' was not found."
+        exit 1
+    fi
+
+    terragrunt show -no-color "$PLAN_PATH" > "$PLAN_TEXT_PATH"
+
+    jq -n \
+      --arg tg_directory "$TG_DIRECTORY" \
+      --argjson exit_code "$TG_PLAN_EXIT_CODE" \
+      --argjson has_changes "$([ "$TG_PLAN_EXIT_CODE" -eq 2 ] && echo true || echo false)" \
+      '{tg_directory: $tg_directory, exit_code: $exit_code, has_changes: $has_changes}' \
+      > "$PLAN_META_PATH"
+
+    echo "Terragrunt binary plan path: $PLAN_PATH"
+    ls -l "$PLAN_PATH"
+    echo "Terragrunt rendered plan path: $PLAN_TEXT_PATH"
+    cat "$PLAN_TEXT_PATH"
+    echo "Terragrunt plan metadata path: $PLAN_META_PATH"
+    cat "$PLAN_META_PATH"
+
+
+# Derive the shared S3 prefix for Terragrunt plan artifacts.
+terragrunt-plan-prefix:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "${ENVIRONMENT:-}" ]]; then
+        echo "❌ ENVIRONMENT environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "${RUN_ID:-}" ]]; then
+        echo "❌ RUN_ID environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "${TG_DIRECTORY:-}" ]]; then
+        echo "❌ TG_DIRECTORY environment variable is not set."
+        exit 1
+    fi
+
+    sanitized_dir="$(echo "$TG_DIRECTORY" | tr '/.' '--')"
+    artifact_name="terragrunt-plan-${sanitized_dir}"
+    artifact_prefix="terragrunt_plan/${ENVIRONMENT}/${RUN_ID}/${artifact_name}"
+
+    echo "$artifact_prefix"
+
+
+# Download saved Terragrunt plan files for a stack from the shared code bucket.
+terragrunt-plan-download:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "${BUCKET_NAME:-}" ]]; then
+        echo "❌ BUCKET_NAME environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "${ENVIRONMENT:-}" ]]; then
+        echo "❌ ENVIRONMENT environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "${RUN_ID:-}" ]]; then
+        echo "❌ RUN_ID environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "${TG_DIRECTORY:-}" ]]; then
+        echo "❌ TG_DIRECTORY environment variable is not set."
+        exit 1
+    fi
+
+    artifact_prefix="$(just --justfile "{{PROJECT_DIR}}/justfile.tg" terragrunt-plan-prefix)"
+
+    mkdir -p "$TG_DIRECTORY"
+
+    aws s3 cp "s3://${BUCKET_NAME}/${artifact_prefix}/{{PLAN_FILE}}" "${TG_DIRECTORY}/{{PLAN_FILE}}"
+    aws s3 cp "s3://${BUCKET_NAME}/${artifact_prefix}/{{PLAN_TEXT_FILE}}" "${TG_DIRECTORY}/{{PLAN_TEXT_FILE}}"
+    aws s3 cp "s3://${BUCKET_NAME}/${artifact_prefix}/{{PLAN_META_FILE}}" "${TG_DIRECTORY}/{{PLAN_META_FILE}}"
+
+
+# Upload saved Terragrunt plan files for a stack to the shared code bucket.
+terragrunt-plan-upload:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "${BUCKET_NAME:-}" ]]; then
+        echo "❌ BUCKET_NAME environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "${ENVIRONMENT:-}" ]]; then
+        echo "❌ ENVIRONMENT environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "${RUN_ID:-}" ]]; then
+        echo "❌ RUN_ID environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "${TG_DIRECTORY:-}" ]]; then
+        echo "❌ TG_DIRECTORY environment variable is not set."
+        exit 1
+    fi
+
+    artifact_prefix="$(just --justfile "{{PROJECT_DIR}}/justfile.tg" terragrunt-plan-prefix)"
+
+    aws s3 cp "${TG_DIRECTORY}/{{PLAN_FILE}}" "s3://${BUCKET_NAME}/${artifact_prefix}/{{PLAN_FILE}}"
+    aws s3 cp "${TG_DIRECTORY}/{{PLAN_TEXT_FILE}}" "s3://${BUCKET_NAME}/${artifact_prefix}/{{PLAN_TEXT_FILE}}"
+    aws s3 cp "${TG_DIRECTORY}/{{PLAN_META_FILE}}" "s3://${BUCKET_NAME}/${artifact_prefix}/{{PLAN_META_FILE}}"

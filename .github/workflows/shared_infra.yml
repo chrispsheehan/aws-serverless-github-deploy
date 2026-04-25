@@ -67,28 +67,16 @@ jobs:
         with:
           ref: ${{ inputs.infra_version }}
 
-      - name: Download planned oidc artifact
-        if: inputs.tg_action == 'apply_plan'
-        uses: ./.github/actions/just
-        with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          justfile_path: justfile.ci
-          just_action: terragrunt-plan-download
-
       - name: ${{ env.TG_ACTION_LABEL }} oidc role infra
         uses: ./.github/actions/terragrunt
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          manage_plan_artifacts: "true"
+          plan_bucket_name: ${{ env.BUCKET_NAME }}
+          plan_environment: ${{ env.ENVIRONMENT }}
+          plan_run_id: ${{ env.RUN_ID }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/oidc
           tg_action: ${{ inputs.tg_action }}
-
-      - name: Upload planned oidc artifact
-        if: inputs.tg_action == 'plan'
-        uses: ./.github/actions/just
-        with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          justfile_path: justfile.ci
-          just_action: terragrunt-plan-upload
 
   worker_messaging:
     needs: oidc
@@ -103,28 +91,16 @@ jobs:
         with:
           ref: ${{ inputs.infra_version }}
 
-      - name: Download planned worker messaging artifact
-        if: inputs.tg_action == 'apply_plan'
-        uses: ./.github/actions/just
-        with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          justfile_path: justfile.ci
-          just_action: terragrunt-plan-download
-
       - name: ${{ env.TG_ACTION_LABEL }} worker messaging infra
         uses: ./.github/actions/terragrunt
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          manage_plan_artifacts: "true"
+          plan_bucket_name: ${{ env.BUCKET_NAME }}
+          plan_environment: ${{ env.ENVIRONMENT }}
+          plan_run_id: ${{ env.RUN_ID }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/worker_messaging
           tg_action: ${{ inputs.tg_action }}
-
-      - name: Upload planned worker messaging artifact
-        if: inputs.tg_action == 'plan'
-        uses: ./.github/actions/just
-        with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          justfile_path: justfile.ci
-          just_action: terragrunt-plan-upload
 
   observability:
     needs: oidc
@@ -139,28 +115,16 @@ jobs:
         with:
           ref: ${{ inputs.infra_version }}
 
-      - name: Download planned observability artifact
-        if: inputs.tg_action == 'apply_plan'
-        uses: ./.github/actions/just
-        with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          justfile_path: justfile.ci
-          just_action: terragrunt-plan-download
-
       - name: ${{ env.TG_ACTION_LABEL }} observability infra
         uses: ./.github/actions/terragrunt
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          manage_plan_artifacts: "true"
+          plan_bucket_name: ${{ env.BUCKET_NAME }}
+          plan_environment: ${{ env.ENVIRONMENT }}
+          plan_run_id: ${{ env.RUN_ID }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/observability
           tg_action: ${{ inputs.tg_action }}
-
-      - name: Upload planned observability artifact
-        if: inputs.tg_action == 'plan'
-        uses: ./.github/actions/just
-        with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          justfile_path: justfile.ci
-          just_action: terragrunt-plan-upload
 
   cognito:
     needs: oidc
@@ -175,30 +139,18 @@ jobs:
         with:
           ref: ${{ inputs.infra_version }}
 
-      - name: Download planned cognito artifact
-        if: inputs.tg_action == 'apply_plan'
-        uses: ./.github/actions/just
-        with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          justfile_path: justfile.ci
-          just_action: terragrunt-plan-download
-
       - name: ${{ env.TG_ACTION_LABEL }} cognito infra
         uses: ./.github/actions/terragrunt
         env:
           TF_VAR_domain_name: ${{ env.DOMAIN_NAME }}
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          manage_plan_artifacts: "true"
+          plan_bucket_name: ${{ env.BUCKET_NAME }}
+          plan_environment: ${{ env.ENVIRONMENT }}
+          plan_run_id: ${{ env.RUN_ID }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/cognito
           tg_action: ${{ inputs.tg_action }}
-
-      - name: Upload planned cognito artifact
-        if: inputs.tg_action == 'plan'
-        uses: ./.github/actions/just
-        with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          justfile_path: justfile.ci
-          just_action: terragrunt-plan-upload
 
   frontend:
     needs:
@@ -254,14 +206,6 @@ jobs:
           echo "hosted_ui_url=$(echo "$TG_OUTPUTS" | jq -r '.hosted_ui_url.value')" >> "$GITHUB_OUTPUT"
           echo "readonly_group_name=$(echo "$TG_OUTPUTS" | jq -r '.readonly_group_name.value')" >> "$GITHUB_OUTPUT"
 
-      - name: Download planned frontend artifact
-        if: inputs.tg_action == 'apply_plan'
-        uses: ./.github/actions/just
-        with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          justfile_path: justfile.ci
-          just_action: terragrunt-plan-download
-
       - name: ${{ env.TG_ACTION_LABEL }} frontend infra
         uses: ./.github/actions/terragrunt
         env:
@@ -273,16 +217,12 @@ jobs:
           TF_VAR_auth_readonly_group_name: ${{ inputs.tg_action == 'apply_plan' && '' || steps.get_cognito_vars.outputs.readonly_group_name }}
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          manage_plan_artifacts: "true"
+          plan_bucket_name: ${{ env.BUCKET_NAME }}
+          plan_environment: ${{ env.ENVIRONMENT }}
+          plan_run_id: ${{ env.RUN_ID }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/frontend
           tg_action: ${{ inputs.tg_action }}
-
-      - name: Upload planned frontend artifact
-        if: inputs.tg_action == 'plan'
-        uses: ./.github/actions/just
-        with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          justfile_path: justfile.ci
-          just_action: terragrunt-plan-upload
 
   cluster:
     needs: oidc
@@ -297,28 +237,16 @@ jobs:
         with:
           ref: ${{ inputs.infra_version }}
 
-      - name: Download planned cluster artifact
-        if: inputs.tg_action == 'apply_plan'
-        uses: ./.github/actions/just
-        with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          justfile_path: justfile.ci
-          just_action: terragrunt-plan-download
-
       - name: ${{ env.TG_ACTION_LABEL }} cluster infra
         uses: ./.github/actions/terragrunt
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          manage_plan_artifacts: "true"
+          plan_bucket_name: ${{ env.BUCKET_NAME }}
+          plan_environment: ${{ env.ENVIRONMENT }}
+          plan_run_id: ${{ env.RUN_ID }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/cluster
           tg_action: ${{ inputs.tg_action }}
-
-      - name: Upload planned cluster artifact
-        if: inputs.tg_action == 'plan'
-        uses: ./.github/actions/just
-        with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          justfile_path: justfile.ci
-          just_action: terragrunt-plan-upload
 
   security:
     needs: oidc
@@ -335,29 +263,17 @@ jobs:
         with:
           ref: ${{ inputs.infra_version }}
 
-      - name: Download planned security artifact
-        if: inputs.tg_action == 'apply_plan'
-        uses: ./.github/actions/just
-        with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          justfile_path: justfile.ci
-          just_action: terragrunt-plan-download
-
       - name: ${{ env.TG_ACTION_LABEL }} security infra
         id: deploy-security
         uses: ./.github/actions/terragrunt
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          manage_plan_artifacts: "true"
+          plan_bucket_name: ${{ env.BUCKET_NAME }}
+          plan_environment: ${{ env.ENVIRONMENT }}
+          plan_run_id: ${{ env.RUN_ID }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/security
           tg_action: ${{ inputs.tg_action }}
-
-      - name: Upload planned security artifact
-        if: inputs.tg_action == 'plan'
-        uses: ./.github/actions/just
-        with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          justfile_path: justfile.ci
-          just_action: terragrunt-plan-upload
 
       - name: Get security outputs
         id: get_security_outputs
@@ -382,30 +298,18 @@ jobs:
         with:
           ref: ${{ inputs.infra_version }}
 
-      - name: Download planned database artifact
-        if: inputs.tg_action == 'apply_plan'
-        uses: ./.github/actions/just
-        with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          justfile_path: justfile.ci
-          just_action: terragrunt-plan-download
-
       - name: ${{ env.TG_ACTION_LABEL }} database infra
         uses: ./.github/actions/terragrunt
         env:
           TF_VAR_database_security_group_id: ${{ needs.security.outputs.postgres_sg }}
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          manage_plan_artifacts: "true"
+          plan_bucket_name: ${{ env.BUCKET_NAME }}
+          plan_environment: ${{ env.ENVIRONMENT }}
+          plan_run_id: ${{ env.RUN_ID }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/database
           tg_action: ${{ inputs.tg_action }}
-
-      - name: Upload planned database artifact
-        if: inputs.tg_action == 'plan'
-        uses: ./.github/actions/just
-        with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          justfile_path: justfile.ci
-          just_action: terragrunt-plan-upload
 
   network:
     needs:
@@ -422,28 +326,16 @@ jobs:
         with:
           ref: ${{ inputs.infra_version }}
 
-      - name: Download planned network artifact
-        if: inputs.tg_action == 'apply_plan'
-        uses: ./.github/actions/just
-        with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          justfile_path: justfile.ci
-          just_action: terragrunt-plan-download
-
       - name: ${{ env.TG_ACTION_LABEL }} network infra
         uses: ./.github/actions/terragrunt
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          manage_plan_artifacts: "true"
+          plan_bucket_name: ${{ env.BUCKET_NAME }}
+          plan_environment: ${{ env.ENVIRONMENT }}
+          plan_run_id: ${{ env.RUN_ID }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/network
           tg_action: ${{ inputs.tg_action }}
-
-      - name: Upload planned network artifact
-        if: inputs.tg_action == 'plan'
-        uses: ./.github/actions/just
-        with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          justfile_path: justfile.ci
-          just_action: terragrunt-plan-upload
 
   lambdas:
     needs: 
@@ -467,28 +359,16 @@ jobs:
         with:
           ref: ${{ inputs.infra_version }}
 
-      - name: Download planned ${{ matrix.value }} artifact
-        if: inputs.tg_action == 'apply_plan'
-        uses: ./.github/actions/just
-        with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          justfile_path: justfile.ci
-          just_action: terragrunt-plan-download
-
       - name: ${{ env.TG_ACTION_LABEL }} ${{ matrix.value }} infra
         uses: ./.github/actions/terragrunt
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          manage_plan_artifacts: "true"
+          plan_bucket_name: ${{ env.BUCKET_NAME }}
+          plan_environment: ${{ env.ENVIRONMENT }}
+          plan_run_id: ${{ env.RUN_ID }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.value }}
           tg_action: ${{ inputs.tg_action }}
-
-      - name: Upload planned ${{ matrix.value }} artifact
-        if: inputs.tg_action == 'plan'
-        uses: ./.github/actions/just
-        with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          justfile_path: justfile.ci
-          just_action: terragrunt-plan-upload
 
   services:
     needs:
@@ -513,14 +393,6 @@ jobs:
         with:
           ref: ${{ inputs.infra_version }}
 
-      - name: Download planned ${{ matrix.value }} artifact
-        if: inputs.tg_action == 'apply_plan'
-        uses: ./.github/actions/just
-        with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          justfile_path: justfile.ci
-          just_action: terragrunt-plan-download
-
       - name: ${{ env.TG_ACTION_LABEL }} ${{ matrix.value }} bootstrap service infra
         uses: ./.github/actions/terragrunt
         env:
@@ -528,13 +400,9 @@ jobs:
           TF_VAR_bootstrap_image_uri: ${{ inputs.bootstrap_image_uri }}
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          manage_plan_artifacts: "true"
+          plan_bucket_name: ${{ env.BUCKET_NAME }}
+          plan_environment: ${{ env.ENVIRONMENT }}
+          plan_run_id: ${{ env.RUN_ID }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.value }}
           tg_action: ${{ inputs.tg_action }}
-
-      - name: Upload planned ${{ matrix.value }} artifact
-        if: inputs.tg_action == 'plan'
-        uses: ./.github/actions/just
-        with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          justfile_path: justfile.ci
-          just_action: terragrunt-plan-upload

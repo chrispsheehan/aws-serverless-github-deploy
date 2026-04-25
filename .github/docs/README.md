@@ -141,8 +141,9 @@ Run these checks on every CI, workflow, or deploy-contract change.
 - compare every caller `with:` block against the callee `workflow_call.inputs`
 - compare expected outputs against actual `jobs.<job>.outputs.*`
 - verify optional inputs are intentionally omitted, not accidentally missing
-- the repo-local `./.github/actions/terragrunt` action now supports `tg_action: plan` for producing the binary plan, rendered text plan, and `terragrunt.plan.meta.json` sidecar locally; `shared_infra.yml` is responsible for uploading those files into the shared code bucket under `terragrunt_plan/`, and `apply_plan` expects them to have been downloaded into the stack directory by the workflow first
-- `./.github/actions/terragrunt` now skips `apply_plan` with a warning when the saved `terragrunt.plan.meta.json` reports `has_changes: false`, and in that no-op case it also skips `aws-actions/configure-aws-credentials`
+- the repo-local `./.github/actions/terragrunt` action supports `tg_action: plan` for producing the binary plan locally; it renders `terragrunt.plan.txt` and writes `terragrunt.plan.meta.json` via `justfile.tg` (`terragrunt-plan-render`)
+- when `manage_plan_artifacts: true`, `./.github/actions/terragrunt` also uploads (on `plan`) and downloads (on `apply_plan`) the per-stack plan artifacts to/from the shared code bucket under `terragrunt_plan/`, so graph executors like `shared_infra.yml` do not need separate `./.github/actions/just` steps for those transfers
+- `./.github/actions/terragrunt` skips `apply_plan` with a warning when the saved `terragrunt.plan.meta.json` reports `has_changes: false`; when it does not need to download plan artifacts (`manage_plan_artifacts: false`), it also skips `aws-actions/configure-aws-credentials` in that no-op case
 - `./.github/actions/terragrunt` derives its plan artifact name from `tg_directory`, so callers do not need to pass artifact naming inputs
 - if `apply_plan` is used across separate workflow runs, pass the earlier workflow `run_id` through `plan_artifact_run_id`; the shared wrappers recover both metadata and per-stack plan files from the shared code bucket under `terragrunt_plan/<environment>/<run_id>/...`
 - if a cross-run apply should not ask the operator to re-enter versions or recompute artifact resolution, store both the input versions and the resolved reusable-workflow outputs in a metadata artifact during plan and recover them in the apply wrapper from the earlier `run_id`
@@ -152,6 +153,7 @@ Run these checks on every CI, workflow, or deploy-contract change.
 - keep the split `just` ownership clear:
   - repo-root `justfile` for local/developer commands
   - `justfile.ci` for read-only CI helpers
+  - `justfile.tg` for Terragrunt plan artifact helpers (render/upload/download)
   - `justfile.deploy` for mutating CI build and deploy steps
 
 ### Release Tagging Checks
