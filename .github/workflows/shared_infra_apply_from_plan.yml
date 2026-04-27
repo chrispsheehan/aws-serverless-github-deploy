@@ -19,9 +19,34 @@ permissions:
 
 env:
   AWS_OIDC_ROLE_ARN: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/${{ vars.PROJECT_NAME }}-${{ inputs.environment }}-github-oidc-role
+  ARTIFACT_ENVIRONMENT: ${{ inputs.environment == 'dev' && 'dev' || 'ci' }}
+  ARTIFACT_AWS_OIDC_ROLE_ARN: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/${{ vars.PROJECT_NAME }}-${{ inputs.environment == 'dev' && 'dev' || 'ci' }}-github-oidc-role
 
 jobs:
+  artifact_bucket:
+    runs-on: ubuntu-latest
+    outputs:
+      code_bucket_name: ${{ steps.get_bucket_name.outputs.bucket }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Get shared code bucket outputs
+        uses: ./.github/actions/terragrunt
+        id: code_action
+        with:
+          aws_oidc_role_arn: ${{ env.ARTIFACT_AWS_OIDC_ROLE_ARN }}
+          tg_directory: infra/live/${{ env.ARTIFACT_ENVIRONMENT }}/aws/code_bucket
+          tg_action: init
+
+      - name: Get bucket name
+        id: get_bucket_name
+        env:
+          TG_OUTPUTS: ${{ steps.code_action.outputs.tg_outputs }}
+        run: |
+          echo "bucket=$(echo "$TG_OUTPUTS" | jq -r '.bucket.value // empty')" >> "$GITHUB_OUTPUT"
+
   metadata:
+    needs: artifact_bucket
     runs-on: ubuntu-latest
     outputs:
       infra_version: ${{ steps.read_metadata.outputs.infra_version }}
@@ -35,11 +60,11 @@ jobs:
       - name: Download plan metadata from S3
         uses: ./.github/actions/just
         env:
-          BUCKET_NAME: ${{ vars.AWS_ACCOUNT_ID }}-${{ vars.AWS_REGION }}-${{ vars.PROJECT_NAME }}-${{ inputs.environment }}-code
+          BUCKET_NAME: ${{ needs.artifact_bucket.outputs.code_bucket_name }}
           ENVIRONMENT: ${{ inputs.environment }}
           RUN_ID: ${{ inputs.plan_artifact_run_id }}
         with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+          aws_oidc_role_arn: ${{ env.ARTIFACT_AWS_OIDC_ROLE_ARN }}
           justfile_path: justfile.ci
           just_action: infra-plan-metadata-download
 
@@ -47,7 +72,7 @@ jobs:
         shell: bash
         run: |
           if [ ! -f plan-metadata.json ]; then
-            echo "::error title=Missing plan metadata artifact::Expected 'plan-metadata.json' at s3://${{ vars.AWS_ACCOUNT_ID }}-${{ vars.AWS_REGION }}-${{ vars.PROJECT_NAME }}-${{ inputs.environment }}-code/terragrunt_plan/${{ inputs.environment }}/${{ inputs.plan_artifact_run_id }}/infra-plan-metadata/plan-metadata.json, but it was not downloaded."
+            echo "::error title=Missing plan metadata artifact::Expected 'plan-metadata.json' at s3://${{ needs.artifact_bucket.outputs.code_bucket_name }}/terragrunt_plan/${{ inputs.environment }}/${{ inputs.plan_artifact_run_id }}/infra-plan-metadata/plan-metadata.json, but it was not downloaded."
             exit 1
           fi
 

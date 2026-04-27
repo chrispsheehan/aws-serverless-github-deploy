@@ -263,16 +263,3 @@ jobs:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/cluster
           tg_action: destroy
-
-  infra-artifact-bucket:
-    name: Infra Artifact Bucket
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Destroy infra artifact bucket
-        uses: ./.github/actions/terragrunt
-        with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          tg_directory: infra/live/${{ inputs.environment }}/aws/infra_artifact_bucket
-          tg_action: destroy
