@@ -42,4 +42,3 @@ jobs:
     with:
       environment: dev
       plan_artifact_run_id: ${{ github.run_id }}
-      github_token: ${{ github.token }}

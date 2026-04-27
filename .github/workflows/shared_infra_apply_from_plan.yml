@@ -11,15 +11,16 @@ on:
         description: "Workflow run ID used to recover metadata and plan artifacts"
         required: true
         type: string
-      github_token:
-        description: "GitHub token used for cross-run artifact download"
-        required: true
-        type: string
 
 permissions:
   id-token: write
   contents: read
   actions: read
+
+env:
+  AWS_OIDC_ROLE_ARN: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/${{ vars.PROJECT_NAME }}-${{ inputs.environment }}-github-oidc-role
+  ARTIFACT_ENVIRONMENT: ${{ inputs.environment == 'dev' && 'dev' || 'ci' }}
+  ARTIFACT_AWS_OIDC_ROLE_ARN: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/${{ vars.PROJECT_NAME }}-${{ inputs.environment == 'dev' && 'dev' || 'ci' }}-github-oidc-role
 
 jobs:
   metadata:
@@ -29,22 +30,51 @@ jobs:
       code_bucket: ${{ steps.read_metadata.outputs.code_bucket }}
       lambda_matrix: ${{ steps.read_metadata.outputs.lambda_matrix }}
       bootstrap_image_uri: ${{ steps.read_metadata.outputs.bootstrap_image_uri }}
+      plan_artifact_s3_prefix: ${{ steps.plan_artifact_s3_prefix.outputs.just_outputs }}
       service_matrix: ${{ steps.read_metadata.outputs.service_matrix }}
     steps:
-      - name: Download plan metadata artifact
-        uses: actions/download-artifact@v8
+      - uses: actions/checkout@v6
+
+      - name: Get shared code bucket outputs
+        uses: ./.github/actions/terragrunt
+        id: code_action
         with:
-          name: infra-plan-metadata
-          path: .
-          repository: ${{ github.repository }}
-          github-token: ${{ inputs.github_token }}
-          run-id: ${{ inputs.plan_artifact_run_id }}
+          aws_oidc_role_arn: ${{ env.ARTIFACT_AWS_OIDC_ROLE_ARN }}
+          tg_directory: infra/live/${{ env.ARTIFACT_ENVIRONMENT }}/aws/code_bucket
+          tg_action: init
+
+      - name: Get bucket name
+        id: get_bucket_name
+        env:
+          TG_OUTPUTS: ${{ steps.code_action.outputs.tg_outputs }}
+        run: |
+          echo "bucket=$(echo "$TG_OUTPUTS" | jq -r '.bucket.value // empty')" >> "$GITHUB_OUTPUT"
+
+      - name: Get plan artifact S3 prefix
+        id: plan_artifact_s3_prefix
+        uses: ./.github/actions/just
+        env:
+          BUCKET_NAME: ${{ steps.get_bucket_name.outputs.bucket }}
+          ENVIRONMENT: ${{ inputs.environment }}
+          RUN_ID: ${{ inputs.plan_artifact_run_id }}
+        with:
+          justfile_path: justfile.tg
+          just_action: terragrunt-plan-base-s3-prefix
+
+      - name: Download plan metadata from S3
+        uses: ./.github/actions/just
+        env:
+          PLAN_ARTIFACT_S3_PREFIX: ${{ steps.plan_artifact_s3_prefix.outputs.just_outputs }}
+        with:
+          aws_oidc_role_arn: ${{ env.ARTIFACT_AWS_OIDC_ROLE_ARN }}
+          justfile_path: justfile.ci
+          just_action: infra-plan-metadata-download
 
       - name: Check plan metadata artifact
         shell: bash
         run: |
           if [ ! -f plan-metadata.json ]; then
-            echo "::error title=Missing plan metadata artifact::Expected 'plan-metadata.json' from artifact 'infra-plan-metadata' in run '${{ inputs.plan_artifact_run_id }}', but it was not downloaded."
+            echo "::error title=Missing plan metadata artifact::Expected 'plan-metadata.json' at ${{ steps.plan_artifact_s3_prefix.outputs.just_outputs }}/infra-plan-metadata/plan-metadata.json, but it was not downloaded."
             exit 1
           fi
 
@@ -70,5 +100,4 @@ jobs:
       bootstrap_image_uri: ${{ needs.metadata.outputs.bootstrap_image_uri }}
       service_matrix: ${{ needs.metadata.outputs.service_matrix }}
       tg_action: apply_plan
-      plan_artifact_run_id: ${{ inputs.plan_artifact_run_id }}
-      github_token: ${{ inputs.github_token }}
+      plan_artifact_s3_prefix: ${{ needs.metadata.outputs.plan_artifact_s3_prefix }}

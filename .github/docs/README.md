@@ -66,7 +66,7 @@ flowchart LR
 ### Shared Artifact Prep And Build
 
 - `shared_infra_releases.yml`
-  Prepares or reads shared CI-side artifact infrastructure such as ECR and the code bucket.
+  Prepares or reads shared artifact infrastructure such as ECR and the code bucket, and exposes those bucket/repository values as reusable-workflow outputs. The code-bucket job reads the Lambda, frontend, AppSpec, and infra-plan S3 prefix names from string-returning `justfile.ci` recipes and forwards them as `TF_VAR_*`, so the workflow does not duplicate those key names inline.
 - `shared_build.yml`
   Builds and publishes frontend, Lambda, and ECS artifacts.
 - `shared_build_get.yml`
@@ -82,14 +82,14 @@ flowchart LR
 ### Infra And Code Rollout
 
 - `shared_infra_plan.yml`
-  Plan wrapper around `shared_infra.yml`. It takes resolved workflow inputs directly, writes and uploads `infra-plan-metadata`, and then calls `shared_infra.yml` with `tg_action: plan`. After the plan completes, it prints the current workflow `github.run_id` into both the logs and the GitHub Actions step summary as `plan_artifact_run_id`, and exposes that value as a reusable-workflow output.
+  Plan wrapper around `shared_infra.yml`. It takes resolved workflow inputs directly, derives a single plan-artifact S3 prefix via `justfile.tg`, uploads one run-level metadata file under `<plan_artifact_s3_prefix>/infra-plan-metadata/plan-metadata.json` via `justfile.ci`, and then calls `shared_infra.yml` with `tg_action: plan` plus that same resolved prefix. The bucket resolution follows the same artifact split as ECR and build outputs: `dev` uses the `dev` code bucket, while non-`dev` environments reuse the `ci` code bucket. After the plan completes, it prints the current workflow `github.run_id` into both the logs and the GitHub Actions step summary as `plan_artifact_run_id`, and exposes that value as a reusable-workflow output.
 - `shared_infra_apply.yml`
   Direct-input apply wrapper around `shared_infra.yml`. It takes resolved workflow inputs directly and calls `shared_infra.yml` with `tg_action: apply`.
 - `shared_infra_apply_from_plan.yml`
-  Apply-from-plan wrapper around `shared_infra.yml`. It takes `plan_artifact_run_id` plus a `github_token` input, downloads `infra-plan-metadata`, reads the frozen graph inputs back out, and then calls `shared_infra.yml` with `tg_action: apply_plan`.
+  Apply-from-plan wrapper around `shared_infra.yml`. It takes `plan_artifact_run_id`, resolves the same artifact bucket split used by release artifacts (`dev` stays on `dev`, non-`dev` uses `ci`) inside its `metadata` job, derives the matching plan-artifact S3 prefix via `justfile.tg`, downloads `infra-plan-metadata` from that location via `justfile.ci`, reads the frozen graph inputs back out, and then calls `shared_infra.yml` with `tg_action: apply_plan` plus that same resolved prefix.
 - `shared_infra.yml`
-  Pure ordered infra graph executor. It applies shared stacks first, then runtime stacks, then frontend infrastructure. Shared stacks now include the CloudWatch observability dashboard. It accepts `tg_action` so the same graph can run a normal apply, upload derived per-stack plan artifacts, or apply from previously uploaded plan artifacts. Its visible step labels now follow `tg_action` too, so plan and apply-from-plan runs no longer show everything as `Deploy ...`. The `security -> network` edge is a real bootstrap dependency because `network` reads security outputs like `vpc_endpoint_sg` from remote state; if those outputs do not exist yet, `network` fails with an upstream `Unsupported attribute` error rather than a networking-specific error.
-- The shared infra wrappers must forward the permissions required by the nested reusable call chain. In practice that means `id-token: write` everywhere the Terragrunt action may assume AWS OIDC, `contents: read` for checkout, and `actions: read` anywhere cross-run artifact recovery can happen. That includes `shared_infra_apply_from_plan.yml` and the nested `shared_infra.yml` jobs, because both the shared metadata recovery and the per-stack `apply_plan` downloads use artifact actions across workflow runs in that chain.
+  Pure ordered infra graph executor. It applies shared stacks first, then runtime stacks, then frontend infrastructure. Shared stacks now include the CloudWatch observability dashboard. It accepts `tg_action` so the same graph can run a normal apply, upload derived per-stack plan artifacts to the resolved code bucket under `terragrunt_plan/`, or apply from previously uploaded plan artifacts. The wrapper workflows resolve one `plan_artifact_s3_prefix` and set it in the workflow env once; the Terragrunt action reads that env directly and appends the stack-specific suffix from `tg_directory`, so `shared_infra.yml` does not need to rebuild the bucket or env/run-id tuple in every job. That means each infra run has one shared `plan-metadata.json` file for the whole graph and one separate saved plan bundle per Terragrunt stack or module. In `apply_plan` mode, each stack job first downloads its own saved plan files via `justfile.tg` through the Terragrunt action, then the Terragrunt action validates and applies those local files. Its visible step labels now follow `tg_action` too, so plan and apply-from-plan runs no longer show everything as `Deploy ...`. The `security -> network` edge is a real bootstrap dependency because `network` reads security outputs like `vpc_endpoint_sg` from remote state; if those outputs do not exist yet, `network` fails with an upstream `Unsupported attribute` error rather than a networking-specific error.
+- The shared infra wrappers must forward the permissions required by the nested reusable call chain. In practice that means `id-token: write` everywhere the Terragrunt action may assume AWS OIDC and `contents: read` for checkout. The shared plan/apply wrappers now rely on AWS access to the shared code bucket rather than GitHub artifact permissions for cross-run recovery.
 - `shared_deploy.yml`
   Rolls out Lambda code, optional migrations, optional reconciliation Lambdas, ECS task and service updates, and optional frontend deploys. The reusable workflow renders its Lambda and ECS CodeDeploy AppSpec files from the shared templates under `config/deploy/`, and its mutating `just` steps should target `justfile.deploy` rather than the repo-root `justfile`.
 
@@ -128,7 +128,7 @@ flowchart LR
 ### Cleanup And Discovery
 
 - `destroy.yml`
-  Tears down app layers before shared dependencies, including the shared observability dashboard.
+  Tears down app layers before shared dependencies, including the shared observability dashboard and any environment-owned shared artifact stacks such as the `dev` code bucket.
 - `shared_directories_get.yml`
   Derives the directory-based matrices used by wrapper workflows and PR action-test discovery.
 
@@ -141,11 +141,15 @@ Run these checks on every CI, workflow, or deploy-contract change.
 - compare every caller `with:` block against the callee `workflow_call.inputs`
 - compare expected outputs against actual `jobs.<job>.outputs.*`
 - verify optional inputs are intentionally omitted, not accidentally missing
-- the repo-local `./.github/actions/terragrunt` action now supports `tg_action: plan` plus automatic artifact upload of the binary plan, rendered text plan, and a `terragrunt.plan.meta.json` sidecar with `exit_code` and `has_changes`; keep that contract in mind before inventing a second plan-storage mechanism
-- `./.github/actions/terragrunt` now skips `apply_plan` with a warning when the saved `terragrunt.plan.meta.json` reports `has_changes: false`, and in that no-op case it also skips `aws-actions/configure-aws-credentials`
+- the repo-local `./.github/actions/terragrunt` action supports `tg_action: plan` for producing the binary plan locally; it renders `terragrunt.plan.txt` and writes `terragrunt.plan.meta.json` via `justfile.tg` (`terragrunt-plan-render`)
+- `./.github/actions/terragrunt` always uploads per-stack plan artifacts on `plan` and always downloads them on `apply_plan`, using the caller-provided `PLAN_ARTIFACT_S3_PREFIX` environment variable, so graph executors like `shared_infra.yml` do not need separate `./.github/actions/just` steps for those transfers
+- saved infra-plan storage is intentionally split into two levels:
+  - one run-level metadata file at `<plan_artifact_s3_prefix>/infra-plan-metadata/plan-metadata.json`
+  - one per-stack plan bundle under `<plan_artifact_s3_prefix>/terragrunt-plan-<sanitized-tg-directory>/`
+- plan artifact storage follows the same artifact environment split as ECR and build outputs: `dev` uses the `dev` code bucket, while non-`dev` environments read and write `terragrunt_plan/` in the shared `ci` code bucket
+- `./.github/actions/terragrunt` skips `apply_plan` with a warning when the saved `terragrunt.plan.meta.json` reports `has_changes: false`
 - `./.github/actions/terragrunt` derives its plan artifact name from `tg_directory`, so callers do not need to pass artifact naming inputs
-- if `apply_plan` is used across separate workflow runs, pass the earlier workflow `run_id` through `plan_artifact_run_id` and pass the GitHub token as a reusable-workflow secret with `actions: read` so both the shared metadata artifact and the plan artifacts can be downloaded
-- for cross-run artifact recovery, scope `actions/download-artifact` explicitly to `repository: ${{ github.repository }}` rather than relying on implicit repository resolution through the reusable-workflow chain
+- if `apply_plan` is used across separate workflow runs, pass the earlier workflow `run_id` through `plan_artifact_run_id`; the shared wrappers recover both metadata and per-stack plan files by deriving the matching `plan_artifact_s3_prefix` and reading from the shared code bucket under `terragrunt_plan/<environment>/<run_id>/...`
 - if a cross-run apply should not ask the operator to re-enter versions or recompute artifact resolution, store both the input versions and the resolved reusable-workflow outputs in a metadata artifact during plan and recover them in the apply wrapper from the earlier `run_id`
 - keep `shared_infra.yml` as the pure graph executor and prefer handling metadata creation/recovery in the dedicated plan/apply wrappers
 - when using `./.github/actions/just`, check whether the caller needs the repo-root `justfile` or an explicit `justfile_path`
@@ -153,6 +157,7 @@ Run these checks on every CI, workflow, or deploy-contract change.
 - keep the split `just` ownership clear:
   - repo-root `justfile` for local/developer commands
   - `justfile.ci` for read-only CI helpers
+  - `justfile.tg` for Terragrunt plan artifact helpers (render/upload/download)
   - `justfile.deploy` for mutating CI build and deploy steps
 
 ### Release Tagging Checks

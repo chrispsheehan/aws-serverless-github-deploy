@@ -2,11 +2,14 @@
 # This file is for discovery, validation, artifact existence checks, and matrix shaping.
 # Do not put AWS-mutating rollout or deploy commands here.
 
-PROJECT_DIR := justfile_directory()
-LAMBDA_DIR := "lambdas"
-CONTAINERS_DIR := "containers"
-EXTRA_CONTAINER_DIRECTORIES := "[\"debug\",\"otel_collector\"]"
-NON_SERVICE_CONTAINER_DIRECTORIES := "[\"lib\",\"_shared\"]"
+PROJECT_DIR := `just --justfile justfile --evaluate PROJECT_DIR`
+LAMBDA_DIR := `just --justfile justfile --evaluate LAMBDA_DIR`
+FRONTEND_DIR := `just --justfile justfile --evaluate FRONTEND_DIR`
+APPSPEC_DIR := `just --justfile justfile --evaluate APPSPEC_DIR`
+CONTAINERS_DIR := `just --justfile justfile --evaluate CONTAINERS_DIR`
+INFRA_PLAN_DIR := `just --justfile justfile --evaluate INFRA_PLAN_DIR`
+EXTRA_CONTAINER_DIRECTORIES := `just --justfile justfile --evaluate EXTRA_CONTAINER_DIRECTORIES`
+NON_SERVICE_CONTAINER_DIRECTORIES := `just --justfile justfile --evaluate NON_SERVICE_CONTAINER_DIRECTORIES`
 
 
 # Run `tflint` across Terraform module directories.
@@ -103,6 +106,56 @@ get-version-file-keys:
       | grep -v 'appspec' \
       | jq -R . \
       | jq -s -c .
+
+
+# Upload shared infra plan metadata to the shared code bucket.
+infra-plan-metadata-upload:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "${PLAN_ARTIFACT_S3_PREFIX:-}" ]]; then
+        echo "❌ PLAN_ARTIFACT_S3_PREFIX environment variable is not set."
+        exit 1
+    fi
+
+    artifact_s3_prefix="$(just --justfile "{{PROJECT_DIR}}/justfile.tg" terragrunt-plan-base-s3-prefix)"
+
+    aws s3 cp "plan-metadata.json" "${artifact_s3_prefix}/infra-plan-metadata/plan-metadata.json"
+
+
+# Download shared infra plan metadata from the shared code bucket.
+infra-plan-metadata-download:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "${PLAN_ARTIFACT_S3_PREFIX:-}" ]]; then
+        echo "❌ PLAN_ARTIFACT_S3_PREFIX environment variable is not set."
+        exit 1
+    fi
+
+    artifact_s3_prefix="$(just --justfile "{{PROJECT_DIR}}/justfile.tg" terragrunt-plan-base-s3-prefix)"
+
+    aws s3 cp "${artifact_s3_prefix}/infra-plan-metadata/plan-metadata.json" "plan-metadata.json"
+
+
+# Return the Lambda artifact directory name from the repo-root justfile.
+code-bucket-get-lambda-artifact-dir:
+    @just --justfile "{{PROJECT_DIR}}/justfile" code-bucket-get-lambda-artifact-dir
+
+
+# Return the frontend artifact directory name from the repo-root justfile.
+code-bucket-get-frontend-artifact-dir:
+    @just --justfile "{{PROJECT_DIR}}/justfile" code-bucket-get-frontend-artifact-dir
+
+
+# Return the infra plan artifact directory name from the repo-root justfile.
+code-bucket-get-infra-plan-dir:
+    @just --justfile "{{PROJECT_DIR}}/justfile" code-bucket-get-infra-plan-dir
+
+
+# Return the AppSpec artifact directory name from the repo-root justfile.
+code-bucket-get-appspec-artifact-dir:
+    @just --justfile "{{PROJECT_DIR}}/justfile" code-bucket-get-appspec-artifact-dir
 
 
 # List ECR image tag prefixes for a published version.

@@ -20,4 +20,3 @@ jobs:
     with:
       environment: prod
       plan_artifact_run_id: ${{ inputs.plan_artifact_run_id }}
-      github_token: ${{ github.token }}

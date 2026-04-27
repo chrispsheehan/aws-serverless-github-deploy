@@ -151,7 +151,7 @@ jobs:
     timeout-minutes: 2
     steps:
       - uses: actions/checkout@v6
-      - uses: hashicorp/setup-terraform@v3
+      - uses: hashicorp/setup-terraform@v4
       - uses: autero1/action-terragrunt@v3.0.2
         with:
           terragrunt-version: 0.45.10

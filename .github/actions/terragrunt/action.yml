@@ -17,14 +17,6 @@ inputs:
     description: "Override or additional Terragrunt variables in JSON format"
     required: false
     default: "{}"
-  plan_artifact_run_id:
-    description: "Optional workflow run ID to download a plan artifact from when using `apply_plan` across separate workflow runs"
-    required: false
-    default: ""
-  github_token:
-    description: "GitHub token used for cross-run plan artifact downloads"
-    required: false
-    default: ""
   aws_oidc_role_arn:
     description: "AWS iam role arn"
     required: true
@@ -40,21 +32,18 @@ outputs:
   tg_outputs:
     description: "All Terraform outputs in JSON format"
     value: ${{ steps.tg_outputs.outputs.terraform_json || steps.tg_outputs_skip.outputs.terraform_json }}
-  plan_artifact_name:
-    description: "Derived GitHub artifact name for a Terragrunt plan"
-    value: ${{ steps.plan_artifact.outputs.plan_artifact_name }}
 
 runs:
   using: "composite"
   steps:
     - name: Install Terraform
-      uses: hashicorp/setup-terraform@v3
+      uses: hashicorp/setup-terraform@v4
       with:
         terraform_version: ${{ inputs.tf_version }}
         terraform_wrapper: false
 
     - name: Install Terragrunt
-      uses: autero1/action-terragrunt@v1.3.2
+      uses: autero1/action-terragrunt@v3.0.2
       with:
         terragrunt_version: ${{ inputs.tg_version }}
 
@@ -66,42 +55,27 @@ runs:
       run: |
         echo "$OVERRIDE_TG_VARS" | jq -c . > ${{ inputs.tg_directory }}/override_tg_vars.tfvars.json
 
-    - name: Resolve plan artifact name
-      if: inputs.tg_action == 'plan' || inputs.tg_action == 'apply_plan'
-      id: plan_artifact
-      shell: bash
-      run: |
-        sanitized_dir="$(echo "${{ inputs.tg_directory }}" | tr '/.' '--')"
-        artifact_name="terragrunt-plan-${sanitized_dir}"
-        echo "plan_artifact_name=$artifact_name" >> "$GITHUB_OUTPUT"
-
-    - name: Download plan artifact from current run
-      if: inputs.tg_action == 'apply_plan' && inputs.plan_artifact_run_id == ''
-      uses: actions/download-artifact@v8
+    - name: Download saved plan artifacts
+      if: inputs.tg_action == 'apply_plan'
+      uses: ./.github/actions/just
+      env:
+        TG_DIRECTORY: ${{ inputs.tg_directory }}
       with:
-        name: ${{ steps.plan_artifact.outputs.plan_artifact_name }}
-        path: ${{ inputs.tg_directory }}
-
-    - name: Download plan artifact from prior run
-      if: inputs.tg_action == 'apply_plan' && inputs.plan_artifact_run_id != ''
-      uses: actions/download-artifact@v8
-      with:
-        name: ${{ steps.plan_artifact.outputs.plan_artifact_name }}
-        path: ${{ inputs.tg_directory }}
-        repository: ${{ github.repository }}
-        github-token: ${{ inputs.github_token }}
-        run-id: ${{ inputs.plan_artifact_run_id }}
+        aws_oidc_role_arn: ${{ inputs.aws_oidc_role_arn }}
+        aws_region: ${{ inputs.aws_region }}
+        justfile_path: justfile.tg
+        just_action: terragrunt-plan-download
 
     - name: Verify plan artifact files exist
       if: inputs.tg_action == 'apply_plan'
       shell: bash
       run: |
         test -f "${{ inputs.tg_directory }}/terragrunt.tfplan" || {
-          echo "Expected plan file '${{ inputs.tg_directory }}/terragrunt.tfplan' was not found after artifact download." >&2
+          echo "Expected plan file '${{ inputs.tg_directory }}/terragrunt.tfplan' was not found before apply_plan." >&2
           exit 1
         }
         test -f "${{ inputs.tg_directory }}/terragrunt.plan.meta.json" || {
-          echo "Expected plan metadata file '${{ inputs.tg_directory }}/terragrunt.plan.meta.json' was not found after artifact download." >&2
+          echo "Expected plan metadata file '${{ inputs.tg_directory }}/terragrunt.plan.meta.json' was not found before apply_plan." >&2
           exit 1
         }
 
@@ -123,7 +97,7 @@ runs:
 
     - name: Configure AWS OIDC Authentication
       if: inputs.tg_action != 'apply_plan' || steps.apply_plan_guard.outputs.should_apply == 'true'
-      uses: aws-actions/configure-aws-credentials@v4
+      uses: aws-actions/configure-aws-credentials@v5
       with:
         role-to-assume: ${{ inputs.aws_oidc_role_arn }}
         aws-region: ${{ inputs.aws_region }}
@@ -137,8 +111,6 @@ runs:
       working-directory: ${{ inputs.tg_directory }}
       run: |
         PLAN_PATH="$(pwd)/terragrunt.tfplan"
-        PLAN_TEXT_PATH="$(pwd)/terragrunt.plan.txt"
-        PLAN_META_PATH="$(pwd)/terragrunt.plan.meta.json"
 
         case "${{ inputs.tg_action }}" in
           apply)
@@ -154,19 +126,10 @@ runs:
               exit 1
             fi
 
-            terragrunt show -no-color "$PLAN_PATH" > "$PLAN_TEXT_PATH"
-            jq -n \
-              --arg tg_directory "${{ inputs.tg_directory }}" \
-              --argjson exit_code "$plan_exit_code" \
-              --argjson has_changes "$([ "$plan_exit_code" -eq 2 ] && echo true || echo false)" \
-              '{tg_directory: $tg_directory, exit_code: $exit_code, has_changes: $has_changes}' \
-              > "$PLAN_META_PATH"
+            echo "plan_exit_code=$plan_exit_code" >> "$GITHUB_OUTPUT"
             echo "Terragrunt binary plan path: $PLAN_PATH"
             ls -l "$PLAN_PATH"
-            echo "Terragrunt rendered plan path: $PLAN_TEXT_PATH"
-            cat "$PLAN_TEXT_PATH"
-            echo "Terragrunt plan metadata path: $PLAN_META_PATH"
-            cat "$PLAN_META_PATH"
+
             ;;
           apply_plan)
             terragrunt apply -auto-approve -compact-warnings "$PLAN_PATH"
@@ -184,16 +147,26 @@ runs:
             ;;
         esac
 
-    - name: Upload plan artifact
+    - name: Render plan sidecar artifacts
       if: inputs.tg_action == 'plan'
-      uses: actions/upload-artifact@v7
+      uses: ./.github/actions/just
+      env:
+        TG_DIRECTORY: ${{ inputs.tg_directory }}
+        TG_PLAN_EXIT_CODE: ${{ steps.terragrunt_action.outputs.plan_exit_code }}
       with:
-        name: ${{ steps.plan_artifact.outputs.plan_artifact_name }}
-        path: |
-          ${{ inputs.tg_directory }}/terragrunt.tfplan
-          ${{ inputs.tg_directory }}/terragrunt.plan.txt
-          ${{ inputs.tg_directory }}/terragrunt.plan.meta.json
-        if-no-files-found: error
+        justfile_path: justfile.tg
+        just_action: terragrunt-plan-render
+
+    - name: Upload saved plan artifacts
+      if: inputs.tg_action == 'plan'
+      uses: ./.github/actions/just
+      env:
+        TG_DIRECTORY: ${{ inputs.tg_directory }}
+      with:
+        aws_oidc_role_arn: ${{ inputs.aws_oidc_role_arn }}
+        aws_region: ${{ inputs.aws_region }}
+        justfile_path: justfile.tg
+        just_action: terragrunt-plan-upload
 
     - name: Capture Terraform Outputs
       if: inputs.tg_action != 'destroy' && (inputs.tg_action != 'apply_plan' || steps.apply_plan_guard.outputs.should_apply == 'true')

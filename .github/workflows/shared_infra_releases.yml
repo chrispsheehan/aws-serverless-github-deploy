@@ -84,9 +84,42 @@ jobs:
         with:
           ref: ${{ inputs.infra_version }}
 
+      - name: Read Lambda artifact dir
+        id: lambda_artifact_dir
+        uses: ./.github/actions/just
+        with:
+          justfile_path: justfile.ci
+          just_action: code-bucket-get-lambda-artifact-dir
+
+      - name: Read frontend artifact dir
+        id: frontend_artifact_dir
+        uses: ./.github/actions/just
+        with:
+          justfile_path: justfile.ci
+          just_action: code-bucket-get-frontend-artifact-dir
+
+      - name: Read AppSpec artifact dir
+        id: appspec_artifact_dir
+        uses: ./.github/actions/just
+        with:
+          justfile_path: justfile.ci
+          just_action: code-bucket-get-appspec-artifact-dir
+
+      - name: Read infra plan dir
+        id: infra_plan_dir
+        uses: ./.github/actions/just
+        with:
+          justfile_path: justfile.ci
+          just_action: code-bucket-get-infra-plan-dir
+
       - name: Deploy build artifact bucket
         id: deploy_bucket
         uses: ./.github/actions/terragrunt
+        env:
+          TF_VAR_lambda_artifact_dir: ${{ steps.lambda_artifact_dir.outputs.just_outputs }}
+          TF_VAR_frontend_artifact_dir: ${{ steps.frontend_artifact_dir.outputs.just_outputs }}
+          TF_VAR_appspec_artifact_dir: ${{ steps.appspec_artifact_dir.outputs.just_outputs }}
+          TF_VAR_infra_plan_dir: ${{ steps.infra_plan_dir.outputs.just_outputs }}
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/code_bucket

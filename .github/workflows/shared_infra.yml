@@ -33,13 +33,8 @@ on:
         required: false
         type: string
         default: "apply"
-      plan_artifact_run_id:
-        description: "Optional workflow run ID used for apply-from-plan artifact downloads"
-        required: false
-        type: string
-        default: ""
-      github_token:
-        description: "Optional GitHub token used for cross-run artifact download in apply-from-plan mode"
+      plan_artifact_s3_prefix:
+        description: "Optional resolved S3 prefix used for saved plan artifacts"
         required: false
         type: string
         default: ""
@@ -57,6 +52,7 @@ permissions:
 env:
   AWS_OIDC_ROLE_ARN: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/${{ vars.PROJECT_NAME }}-${{ inputs.environment }}-github-oidc-role
   DOMAIN_NAME: ${{ vars.DOMAIN_NAME }}
+  PLAN_ARTIFACT_S3_PREFIX: ${{ inputs.plan_artifact_s3_prefix }}
   TG_ACTION_LABEL: ${{ inputs.tg_action == 'apply' && 'Apply' || inputs.tg_action == 'plan' && 'Plan' || inputs.tg_action == 'apply_plan' && 'Apply planned' || inputs.tg_action == 'destroy' && 'Destroy' || inputs.tg_action == 'init' && 'Init' || 'Run' }}
 
 jobs:
@@ -73,8 +69,6 @@ jobs:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/oidc
           tg_action: ${{ inputs.tg_action }}
-          plan_artifact_run_id: ${{ inputs.plan_artifact_run_id }}
-          github_token: ${{ inputs.github_token }}
 
   worker_messaging:
     needs: oidc
@@ -90,243 +84,227 @@ jobs:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/worker_messaging
           tg_action: ${{ inputs.tg_action }}
-          plan_artifact_run_id: ${{ inputs.plan_artifact_run_id }}
-          github_token: ${{ inputs.github_token }}
 
-  observability:
-    needs: oidc
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ inputs.infra_version }}
+  # observability:
+  #   needs: oidc
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v6
+  #       with:
+  #         ref: ${{ inputs.infra_version }}
 
-      - name: ${{ env.TG_ACTION_LABEL }} observability infra
-        uses: ./.github/actions/terragrunt
-        with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          tg_directory: infra/live/${{ inputs.environment }}/aws/observability
-          tg_action: ${{ inputs.tg_action }}
-          plan_artifact_run_id: ${{ inputs.plan_artifact_run_id }}
-          github_token: ${{ inputs.github_token }}
+  #     - name: ${{ env.TG_ACTION_LABEL }} observability infra
+  #       uses: ./.github/actions/terragrunt
+  #       with:
+  #         aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+  #         tg_directory: infra/live/${{ inputs.environment }}/aws/observability
+  #         tg_action: ${{ inputs.tg_action }}
 
-  cognito:
-    needs: oidc
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ inputs.infra_version }}
+  # cognito:
+  #   needs: oidc
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v6
+  #       with:
+  #         ref: ${{ inputs.infra_version }}
 
-      - name: ${{ env.TG_ACTION_LABEL }} cognito infra
-        uses: ./.github/actions/terragrunt
-        env:
-          TF_VAR_domain_name: ${{ env.DOMAIN_NAME }}
-        with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          tg_directory: infra/live/${{ inputs.environment }}/aws/cognito
-          tg_action: ${{ inputs.tg_action }}
-          plan_artifact_run_id: ${{ inputs.plan_artifact_run_id }}
-          github_token: ${{ inputs.github_token }}
+  #     - name: ${{ env.TG_ACTION_LABEL }} cognito infra
+  #       uses: ./.github/actions/terragrunt
+  #       env:
+  #         TF_VAR_domain_name: ${{ env.DOMAIN_NAME }}
+  #       with:
+  #         aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+  #         tg_directory: infra/live/${{ inputs.environment }}/aws/cognito
+  #         tg_action: ${{ inputs.tg_action }}
 
-  frontend:
-    needs:
-      - network
-      - cognito
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ inputs.infra_version }}
+  # frontend:
+  #   needs:
+  #     - network
+  #     - cognito
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v6
+  #       with:
+  #         ref: ${{ inputs.infra_version }}
 
-      - name: Get network infra
-        uses: ./.github/actions/terragrunt
-        id: get-network
-        with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          tg_directory: infra/live/${{ inputs.environment }}/aws/network
-          tg_action: init
+  #     - name: Get network infra
+  #       if: inputs.tg_action != 'apply_plan'
+  #       uses: ./.github/actions/terragrunt
+  #       id: get-network
+  #       with:
+  #         aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+  #         tg_directory: infra/live/${{ inputs.environment }}/aws/network
+  #         tg_action: init
 
-      - name: Get cognito infra
-        uses: ./.github/actions/terragrunt
-        id: get-cognito
-        env:
-          TF_VAR_domain_name: ${{ env.DOMAIN_NAME }}
-        with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          tg_directory: infra/live/${{ inputs.environment }}/aws/cognito
-          tg_action: init
+  #     - name: Get cognito infra
+  #       if: inputs.tg_action != 'apply_plan'
+  #       uses: ./.github/actions/terragrunt
+  #       id: get-cognito
+  #       env:
+  #         TF_VAR_domain_name: ${{ env.DOMAIN_NAME }}
+  #       with:
+  #         aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+  #         tg_directory: infra/live/${{ inputs.environment }}/aws/cognito
+  #         tg_action: init
 
-      - name: Get api invoke url
-        id: get_api_vars
-        env:
-          TG_OUTPUTS: ${{ steps.get-network.outputs.tg_outputs }}
-        run: |
-          echo "invoke_url=$(echo $TG_OUTPUTS | jq -r '.api_invoke_url.value')" >> $GITHUB_OUTPUT
+  #     - name: Get api invoke url
+  #       if: inputs.tg_action != 'apply_plan'
+  #       id: get_api_vars
+  #       env:
+  #         TG_OUTPUTS: ${{ steps.get-network.outputs.tg_outputs }}
+  #       run: |
+  #         echo "invoke_url=$(echo $TG_OUTPUTS | jq -r '.api_invoke_url.value')" >> $GITHUB_OUTPUT
 
-      - name: Get cognito values
-        id: get_cognito_vars
-        env:
-          TG_OUTPUTS: ${{ steps.get-cognito.outputs.tg_outputs }}
-        run: |
-          echo "user_pool_id=$(echo "$TG_OUTPUTS" | jq -r '.user_pool_id.value')" >> "$GITHUB_OUTPUT"
-          echo "user_pool_client_id=$(echo "$TG_OUTPUTS" | jq -r '.user_pool_client_id.value')" >> "$GITHUB_OUTPUT"
-          echo "hosted_ui_url=$(echo "$TG_OUTPUTS" | jq -r '.hosted_ui_url.value')" >> "$GITHUB_OUTPUT"
-          echo "readonly_group_name=$(echo "$TG_OUTPUTS" | jq -r '.readonly_group_name.value')" >> "$GITHUB_OUTPUT"
+  #     - name: Get cognito values
+  #       if: inputs.tg_action != 'apply_plan'
+  #       id: get_cognito_vars
+  #       env:
+  #         TG_OUTPUTS: ${{ steps.get-cognito.outputs.tg_outputs }}
+  #       run: |
+  #         echo "user_pool_id=$(echo "$TG_OUTPUTS" | jq -r '.user_pool_id.value')" >> "$GITHUB_OUTPUT"
+  #         echo "user_pool_client_id=$(echo "$TG_OUTPUTS" | jq -r '.user_pool_client_id.value')" >> "$GITHUB_OUTPUT"
+  #         echo "hosted_ui_url=$(echo "$TG_OUTPUTS" | jq -r '.hosted_ui_url.value')" >> "$GITHUB_OUTPUT"
+  #         echo "readonly_group_name=$(echo "$TG_OUTPUTS" | jq -r '.readonly_group_name.value')" >> "$GITHUB_OUTPUT"
 
-      - name: ${{ env.TG_ACTION_LABEL }} frontend infra
-        uses: ./.github/actions/terragrunt
-        env:
-          TF_VAR_api_invoke_url: ${{ steps.get_api_vars.outputs.invoke_url }}
-          TF_VAR_domain_name: ${{ env.DOMAIN_NAME }}
-          TF_VAR_auth_user_pool_id: ${{ steps.get_cognito_vars.outputs.user_pool_id }}
-          TF_VAR_auth_user_pool_client_id: ${{ steps.get_cognito_vars.outputs.user_pool_client_id }}
-          TF_VAR_auth_hosted_ui_url: ${{ steps.get_cognito_vars.outputs.hosted_ui_url }}
-          TF_VAR_auth_readonly_group_name: ${{ steps.get_cognito_vars.outputs.readonly_group_name }}
-        with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          tg_directory: infra/live/${{ inputs.environment }}/aws/frontend
-          tg_action: ${{ inputs.tg_action }}
-          plan_artifact_run_id: ${{ inputs.plan_artifact_run_id }}
-          github_token: ${{ inputs.github_token }}
+  #     - name: ${{ env.TG_ACTION_LABEL }} frontend infra
+  #       uses: ./.github/actions/terragrunt
+  #       env:
+  #         TF_VAR_api_invoke_url: ${{ inputs.tg_action == 'apply_plan' && '' || steps.get_api_vars.outputs.invoke_url }}
+  #         TF_VAR_domain_name: ${{ env.DOMAIN_NAME }}
+  #         TF_VAR_auth_user_pool_id: ${{ inputs.tg_action == 'apply_plan' && '' || steps.get_cognito_vars.outputs.user_pool_id }}
+  #         TF_VAR_auth_user_pool_client_id: ${{ inputs.tg_action == 'apply_plan' && '' || steps.get_cognito_vars.outputs.user_pool_client_id }}
+  #         TF_VAR_auth_hosted_ui_url: ${{ inputs.tg_action == 'apply_plan' && '' || steps.get_cognito_vars.outputs.hosted_ui_url }}
+  #         TF_VAR_auth_readonly_group_name: ${{ inputs.tg_action == 'apply_plan' && '' || steps.get_cognito_vars.outputs.readonly_group_name }}
+  #       with:
+  #         aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+  #         tg_directory: infra/live/${{ inputs.environment }}/aws/frontend
+  #         tg_action: ${{ inputs.tg_action }}
 
-  cluster:
-    needs: oidc
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ inputs.infra_version }}
+  # cluster:
+  #   needs: oidc
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v6
+  #       with:
+  #         ref: ${{ inputs.infra_version }}
 
-      - name: ${{ env.TG_ACTION_LABEL }} cluster infra
-        uses: ./.github/actions/terragrunt
-        with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          tg_directory: infra/live/${{ inputs.environment }}/aws/cluster
-          tg_action: ${{ inputs.tg_action }}
-          plan_artifact_run_id: ${{ inputs.plan_artifact_run_id }}
-          github_token: ${{ inputs.github_token }}
+  #     - name: ${{ env.TG_ACTION_LABEL }} cluster infra
+  #       uses: ./.github/actions/terragrunt
+  #       with:
+  #         aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+  #         tg_directory: infra/live/${{ inputs.environment }}/aws/cluster
+  #         tg_action: ${{ inputs.tg_action }}
 
-  security:
-    needs: oidc
-    runs-on: ubuntu-latest
-    outputs:
-      postgres_sg: ${{ steps.get_security_outputs.outputs.postgres_sg }}
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ inputs.infra_version }}
+  # security:
+  #   needs: oidc
+  #   runs-on: ubuntu-latest
+  #   outputs:
+  #     postgres_sg: ${{ steps.get_security_outputs.outputs.postgres_sg }}
+  #   steps:
+  #     - uses: actions/checkout@v6
+  #       with:
+  #         ref: ${{ inputs.infra_version }}
 
-      - name: ${{ env.TG_ACTION_LABEL }} security infra
-        id: deploy-security
-        uses: ./.github/actions/terragrunt
-        with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          tg_directory: infra/live/${{ inputs.environment }}/aws/security
-          tg_action: ${{ inputs.tg_action }}
-          plan_artifact_run_id: ${{ inputs.plan_artifact_run_id }}
-          github_token: ${{ inputs.github_token }}
+  #     - name: ${{ env.TG_ACTION_LABEL }} security infra
+  #       id: deploy-security
+  #       uses: ./.github/actions/terragrunt
+  #       with:
+  #         aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+  #         tg_directory: infra/live/${{ inputs.environment }}/aws/security
+  #         tg_action: ${{ inputs.tg_action }}
 
-      - name: Get security outputs
-        id: get_security_outputs
-        if: inputs.tg_action != 'destroy'
-        env:
-          TG_OUTPUTS: ${{ steps.deploy-security.outputs.tg_outputs }}
-        run: |
-          echo "postgres_sg=$(echo "$TG_OUTPUTS" | jq -r '.postgres_sg.value')" >> "$GITHUB_OUTPUT"
+  #     - name: Get security outputs
+  #       id: get_security_outputs
+  #       if: inputs.tg_action != 'destroy'
+  #       env:
+  #         TG_OUTPUTS: ${{ steps.deploy-security.outputs.tg_outputs }}
+  #       run: |
+  #         echo "postgres_sg=$(echo "$TG_OUTPUTS" | jq -r '.postgres_sg.value')" >> "$GITHUB_OUTPUT"
 
-  database:
-    needs:
-      - oidc
-      - security
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ inputs.infra_version }}
+  # database:
+  #   needs:
+  #     - oidc
+  #     - security
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v6
+  #       with:
+  #         ref: ${{ inputs.infra_version }}
 
-      - name: ${{ env.TG_ACTION_LABEL }} database infra
-        uses: ./.github/actions/terragrunt
-        env:
-          TF_VAR_database_security_group_id: ${{ needs.security.outputs.postgres_sg }}
-        with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          tg_directory: infra/live/${{ inputs.environment }}/aws/database
-          tg_action: ${{ inputs.tg_action }}
-          plan_artifact_run_id: ${{ inputs.plan_artifact_run_id }}
-          github_token: ${{ inputs.github_token }}
+  #     - name: ${{ env.TG_ACTION_LABEL }} database infra
+  #       uses: ./.github/actions/terragrunt
+  #       env:
+  #         TF_VAR_database_security_group_id: ${{ needs.security.outputs.postgres_sg }}
+  #       with:
+  #         aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+  #         tg_directory: infra/live/${{ inputs.environment }}/aws/database
+  #         tg_action: ${{ inputs.tg_action }}
 
-  network:
-    needs:
-      - security
-      - cognito
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ inputs.infra_version }}
+  # network:
+  #   needs:
+  #     - security
+  #     - cognito
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v6
+  #       with:
+  #         ref: ${{ inputs.infra_version }}
 
-      - name: ${{ env.TG_ACTION_LABEL }} network infra
-        uses: ./.github/actions/terragrunt
-        with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          tg_directory: infra/live/${{ inputs.environment }}/aws/network
-          tg_action: ${{ inputs.tg_action }}
-          plan_artifact_run_id: ${{ inputs.plan_artifact_run_id }}
-          github_token: ${{ inputs.github_token }}
+  #     - name: ${{ env.TG_ACTION_LABEL }} network infra
+  #       uses: ./.github/actions/terragrunt
+  #       with:
+  #         aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+  #         tg_directory: infra/live/${{ inputs.environment }}/aws/network
+  #         tg_action: ${{ inputs.tg_action }}
 
-  lambdas:
-    needs: 
-      - oidc
-      - security
-      - network
-      - database
-      - worker_messaging
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false # this is to prevent terraform lock issues
-      matrix:
-        value: ${{ fromJson(inputs.lambda_matrix) }}
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ inputs.infra_version }}
+  # lambdas:
+  #   needs: 
+  #     - oidc
+  #     - security
+  #     - network
+  #     - database
+  #     - worker_messaging
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     fail-fast: false # this is to prevent terraform lock issues
+  #     matrix:
+  #       value: ${{ fromJson(inputs.lambda_matrix) }}
+  #   steps:
+  #     - uses: actions/checkout@v6
+  #       with:
+  #         ref: ${{ inputs.infra_version }}
 
-      - name: ${{ env.TG_ACTION_LABEL }} ${{ matrix.value }} infra
-        uses: ./.github/actions/terragrunt
-        with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.value }}
-          tg_action: ${{ inputs.tg_action }}
-          plan_artifact_run_id: ${{ inputs.plan_artifact_run_id }}
-          github_token: ${{ inputs.github_token }}
+  #     - name: ${{ env.TG_ACTION_LABEL }} ${{ matrix.value }} infra
+  #       uses: ./.github/actions/terragrunt
+  #       with:
+  #         aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+  #         tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.value }}
+  #         tg_action: ${{ inputs.tg_action }}
 
-  services:
-    needs:
-      - oidc
-      - security
-      - cluster
-      - network
-      - database
-      - worker_messaging
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        value: ${{ fromJson(inputs.service_matrix) }}
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ inputs.infra_version }}
+  # services:
+  #   needs:
+  #     - oidc
+  #     - security
+  #     - cluster
+  #     - network
+  #     - database
+  #     - worker_messaging
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       value: ${{ fromJson(inputs.service_matrix) }}
+  #   steps:
+  #     - uses: actions/checkout@v6
+  #       with:
+  #         ref: ${{ inputs.infra_version }}
 
-      - name: ${{ env.TG_ACTION_LABEL }} ${{ matrix.value }} bootstrap service infra
-        uses: ./.github/actions/terragrunt
-        env:
-          TF_VAR_bootstrap: "true"
-          TF_VAR_bootstrap_image_uri: ${{ inputs.bootstrap_image_uri }}
-        with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
-          tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.value }}
-          tg_action: ${{ inputs.tg_action }}
-          plan_artifact_run_id: ${{ inputs.plan_artifact_run_id }}
-          github_token: ${{ inputs.github_token }}
+  #     - name: ${{ env.TG_ACTION_LABEL }} ${{ matrix.value }} bootstrap service infra
+  #       uses: ./.github/actions/terragrunt
+  #       env:
+  #         TF_VAR_bootstrap: "true"
+  #         TF_VAR_bootstrap_image_uri: ${{ inputs.bootstrap_image_uri }}
+  #       with:
+  #         aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
+  #         tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.value }}
+  #         tg_action: ${{ inputs.tg_action }}

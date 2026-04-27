@@ -1,6 +1,4 @@
 locals {
-  github_token = get_env("GITHUB_TOKEN", "not_set")
-
   git_remote                   = run_cmd("--terragrunt-quiet", "git", "remote", "get-url", "origin")
   github_repo                  = regex("[/:]([-0-9_A-Za-z]*/[-0-9_A-Za-z]*)[^/]*$", local.git_remote)[0]
   repo_owner                   = split("/", local.github_repo)[0]
@@ -24,7 +22,6 @@ locals {
   state_bucket     = "${local.base_reference}-tfstate"
   state_key        = "${local.environment}/${local.provider}/${local.module}/terraform.tfstate"
   state_lock_table = "${local.project_name}-tf-lockid"
-
   # separate shared artifact resources when dev, otherwise ci
   artifact_base       = local.environment == "dev" ? "${local.base_reference}-${local.environment}" : "${local.base_reference}-ci"
   code_bucket         = "${local.artifact_base}-code"
