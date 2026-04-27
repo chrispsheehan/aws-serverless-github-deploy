@@ -17,7 +17,7 @@ This GitHub Action sets up [`just`](https://github.com/casey/just), authenticate
 
 | Name               | Description                                      | Required | Default      |
 |--------------------|--------------------------------------------------|----------|--------------|
-| `just_version`     | Version of `just` to install                     | ❌        | `1.0.0`      |
+| `just_version`     | Version of `just` to install                     | ❌        | `1.49.0`     |
 | `aws_region`       | AWS region                                       | ❌        | `eu-west-2`  |
 | `aws_oidc_role_arn`| ARN of the IAM role to assume via OIDC (optional when AWS credentials are already configured in the job) | ❌ | `""` |
 | `just_action`      | The `just` recipe to execute                     | ✅        | —            |

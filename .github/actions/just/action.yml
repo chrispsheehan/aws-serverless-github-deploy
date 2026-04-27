@@ -5,7 +5,7 @@ inputs:
   just_version:
     description: "Version of Just to install"
     required: false
-    default: "1.0.0"
+    default: "1.49.0"
   aws_region:
     description: "AWS Region"
     default: "eu-west-2"
