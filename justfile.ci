@@ -2,12 +2,14 @@
 # This file is for discovery, validation, artifact existence checks, and matrix shaping.
 # Do not put AWS-mutating rollout or deploy commands here.
 
-PROJECT_DIR := justfile_directory()
-LAMBDA_DIR := "lambdas"
-CONTAINERS_DIR := "containers"
-INFRA_PLAN_DIR := "terragrunt_plan"
-EXTRA_CONTAINER_DIRECTORIES := "[\"debug\",\"otel_collector\"]"
-NON_SERVICE_CONTAINER_DIRECTORIES := "[\"lib\",\"_shared\"]"
+PROJECT_DIR := `just --justfile justfile --evaluate PROJECT_DIR`
+LAMBDA_DIR := `just --justfile justfile --evaluate LAMBDA_DIR`
+FRONTEND_DIR := `just --justfile justfile --evaluate FRONTEND_DIR`
+APPSPEC_DIR := `just --justfile justfile --evaluate APPSPEC_DIR`
+CONTAINERS_DIR := `just --justfile justfile --evaluate CONTAINERS_DIR`
+INFRA_PLAN_DIR := `just --justfile justfile --evaluate INFRA_PLAN_DIR`
+EXTRA_CONTAINER_DIRECTORIES := `just --justfile justfile --evaluate EXTRA_CONTAINER_DIRECTORIES`
+NON_SERVICE_CONTAINER_DIRECTORIES := `just --justfile justfile --evaluate NON_SERVICE_CONTAINER_DIRECTORIES`
 
 
 # Run `tflint` across Terraform module directories.
@@ -154,6 +156,26 @@ infra-plan-metadata-download:
     artifact_prefix="$(just --justfile "{{PROJECT_DIR}}/justfile.tg" terragrunt-plan-base-prefix)"
 
     aws s3 cp "s3://${BUCKET_NAME}/${artifact_prefix}/infra-plan-metadata/plan-metadata.json" "plan-metadata.json"
+
+
+# Return the Lambda artifact directory name from the repo-root justfile.
+code-bucket-get-lambda-artifact-dir:
+    @just --justfile "{{PROJECT_DIR}}/justfile" code-bucket-get-lambda-artifact-dir
+
+
+# Return the frontend artifact directory name from the repo-root justfile.
+code-bucket-get-frontend-artifact-dir:
+    @just --justfile "{{PROJECT_DIR}}/justfile" code-bucket-get-frontend-artifact-dir
+
+
+# Return the infra plan artifact directory name from the repo-root justfile.
+code-bucket-get-infra-plan-dir:
+    @just --justfile "{{PROJECT_DIR}}/justfile" code-bucket-get-infra-plan-dir
+
+
+# Return the AppSpec artifact directory name from the repo-root justfile.
+code-bucket-get-appspec-artifact-dir:
+    @just --justfile "{{PROJECT_DIR}}/justfile" code-bucket-get-appspec-artifact-dir
 
 
 # List ECR image tag prefixes for a published version.

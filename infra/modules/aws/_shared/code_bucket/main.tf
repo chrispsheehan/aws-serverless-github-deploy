@@ -15,19 +15,19 @@ locals {
   lifecycle_rules = {
     code_artifacts_lambdas = {
       days   = var.code_artifact_expiration_days
-      prefix = "lambdas/"
+      prefix = "${var.lambda_artifact_dir}/"
     }
     code_artifacts_frontend = {
       days   = var.code_artifact_expiration_days
-      prefix = "frontend/"
+      prefix = "${var.frontend_artifact_dir}/"
     }
     code_artifacts_appspec = {
       days   = var.code_artifact_expiration_days
-      prefix = "appspec/"
+      prefix = "${var.appspec_artifact_dir}/"
     }
     terragrunt_plans = {
       days   = var.infra_plan_artifact_expiration_days
-      prefix = "terragrunt_plan/"
+      prefix = "${var.infra_plan_dir}/"
     }
   }
 }

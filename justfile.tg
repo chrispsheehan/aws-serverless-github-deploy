@@ -1,8 +1,8 @@
 # Terragrunt plan artifact helpers.
 # This file is for producing, downloading, and uploading saved Terragrunt plan files.
 
-PROJECT_DIR := justfile_directory()
-INFRA_PLAN_DIR := "terragrunt_plan"
+PROJECT_DIR := `just --justfile justfile --evaluate PROJECT_DIR`
+INFRA_PLAN_DIR := `just --justfile justfile --evaluate INFRA_PLAN_DIR`
 
 PLAN_FILE := "terragrunt.tfplan"
 PLAN_TEXT_FILE := "terragrunt.plan.txt"
@@ -71,7 +71,9 @@ terragrunt-plan-base-prefix:
         exit 1
     fi
 
-    echo "{{INFRA_PLAN_DIR}}/${ENVIRONMENT}/${RUN_ID}"
+    infra_plan_dir="${TF_VAR_infra_plan_dir:-{{INFRA_PLAN_DIR}}}"
+
+    echo "${infra_plan_dir}/${ENVIRONMENT}/${RUN_ID}"
 
 
 # Derive the shared S3 prefix for Terragrunt plan artifacts.

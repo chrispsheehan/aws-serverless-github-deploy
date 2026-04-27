@@ -66,7 +66,7 @@ flowchart LR
 ### Shared Artifact Prep And Build
 
 - `shared_infra_releases.yml`
-  Prepares or reads shared artifact infrastructure such as ECR and the code bucket, and exposes those bucket/repository values as reusable-workflow outputs.
+  Prepares or reads shared artifact infrastructure such as ECR and the code bucket, and exposes those bucket/repository values as reusable-workflow outputs. The code-bucket job reads the Lambda, frontend, AppSpec, and infra-plan S3 prefix names from string-returning `justfile.ci` recipes and forwards them as `TF_VAR_*`, so the workflow does not duplicate those key names inline.
 - `shared_build.yml`
   Builds and publishes frontend, Lambda, and ECS artifacts.
 - `shared_build_get.yml`

@@ -12,7 +12,31 @@ _default:
 PROJECT_DIR := justfile_directory()
 LAMBDA_DIR := "lambdas"
 FRONTEND_DIR := "frontend"
+CONTAINERS_DIR := "containers"
+APPSPEC_DIR := "appspec"
 INFRA_PLAN_DIR := "terragrunt_plan"
+EXTRA_CONTAINER_DIRECTORIES := "[\"debug\",\"otel_collector\"]"
+NON_SERVICE_CONTAINER_DIRECTORIES := "[\"lib\",\"_shared\"]"
+
+
+# Return the Lambda artifact directory name.
+code-bucket-get-lambda-artifact-dir:
+    @echo {{LAMBDA_DIR}}
+
+
+# Return the frontend artifact directory name.
+code-bucket-get-frontend-artifact-dir:
+    @echo {{FRONTEND_DIR}}
+
+
+# Return the infra plan artifact directory name.
+code-bucket-get-infra-plan-dir:
+    @echo {{INFRA_PLAN_DIR}}
+
+
+# Return the AppSpec artifact directory name.
+code-bucket-get-appspec-artifact-dir:
+    @echo {{APPSPEC_DIR}}
 
 
 # Delete local git branches whose upstream refs have gone away.
@@ -60,12 +84,20 @@ format:
 # Run a Terragrunt operation for one environment/module pair.
 tg env module op:
     #!/usr/bin/env bash
+    export TF_VAR_lambda_artifact_dir="{{LAMBDA_DIR}}"
+    export TF_VAR_frontend_artifact_dir="{{FRONTEND_DIR}}"
+    export TF_VAR_appspec_artifact_dir="{{APPSPEC_DIR}}"
+    export TF_VAR_infra_plan_dir="{{INFRA_PLAN_DIR}}"
     cd {{justfile_directory()}}/infra/live/{{env}}/{{module}} ; terragrunt {{op}}
 
 
 # Run a Terragrunt operation across all live stacks.
 tg-all op:
     #!/usr/bin/env bash
+    export TF_VAR_lambda_artifact_dir="{{LAMBDA_DIR}}"
+    export TF_VAR_frontend_artifact_dir="{{FRONTEND_DIR}}"
+    export TF_VAR_appspec_artifact_dir="{{APPSPEC_DIR}}"
+    export TF_VAR_infra_plan_dir="{{INFRA_PLAN_DIR}}"
     cd {{justfile_directory()}}/infra/live
     terragrunt run-all {{op}}
 
