@@ -23,10 +23,15 @@ env:
   ARTIFACT_AWS_OIDC_ROLE_ARN: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/${{ vars.PROJECT_NAME }}-${{ inputs.environment == 'dev' && 'dev' || 'ci' }}-github-oidc-role
 
 jobs:
-  artifact_bucket:
+  metadata:
     runs-on: ubuntu-latest
     outputs:
-      code_bucket_name: ${{ steps.get_bucket_name.outputs.bucket }}
+      infra_version: ${{ steps.read_metadata.outputs.infra_version }}
+      code_bucket: ${{ steps.read_metadata.outputs.code_bucket }}
+      lambda_matrix: ${{ steps.read_metadata.outputs.lambda_matrix }}
+      bootstrap_image_uri: ${{ steps.read_metadata.outputs.bootstrap_image_uri }}
+      plan_artifact_s3_prefix: ${{ steps.plan_artifact_s3_prefix.outputs.just_outputs }}
+      service_matrix: ${{ steps.read_metadata.outputs.service_matrix }}
     steps:
       - uses: actions/checkout@v6
 
@@ -45,24 +50,11 @@ jobs:
         run: |
           echo "bucket=$(echo "$TG_OUTPUTS" | jq -r '.bucket.value // empty')" >> "$GITHUB_OUTPUT"
 
-  metadata:
-    needs: artifact_bucket
-    runs-on: ubuntu-latest
-    outputs:
-      infra_version: ${{ steps.read_metadata.outputs.infra_version }}
-      code_bucket: ${{ steps.read_metadata.outputs.code_bucket }}
-      lambda_matrix: ${{ steps.read_metadata.outputs.lambda_matrix }}
-      bootstrap_image_uri: ${{ steps.read_metadata.outputs.bootstrap_image_uri }}
-      plan_artifact_s3_prefix: ${{ steps.plan_artifact_s3_prefix.outputs.just_outputs }}
-      service_matrix: ${{ steps.read_metadata.outputs.service_matrix }}
-    steps:
-      - uses: actions/checkout@v6
-
       - name: Get plan artifact S3 prefix
         id: plan_artifact_s3_prefix
         uses: ./.github/actions/just
         env:
-          BUCKET_NAME: ${{ needs.artifact_bucket.outputs.code_bucket_name }}
+          BUCKET_NAME: ${{ steps.get_bucket_name.outputs.bucket }}
           ENVIRONMENT: ${{ inputs.environment }}
           RUN_ID: ${{ inputs.plan_artifact_run_id }}
         with:
