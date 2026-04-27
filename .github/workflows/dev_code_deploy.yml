@@ -3,6 +3,9 @@ name: Dev Code Deploy
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - s3-plan-artifacts
 
 permissions:
   id-token: write
