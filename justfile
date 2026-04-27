@@ -84,20 +84,12 @@ format:
 # Run a Terragrunt operation for one environment/module pair.
 tg env module op:
     #!/usr/bin/env bash
-    export TF_VAR_lambda_artifact_dir="{{LAMBDA_DIR}}"
-    export TF_VAR_frontend_artifact_dir="{{FRONTEND_DIR}}"
-    export TF_VAR_appspec_artifact_dir="{{APPSPEC_DIR}}"
-    export TF_VAR_infra_plan_dir="{{INFRA_PLAN_DIR}}"
     cd {{justfile_directory()}}/infra/live/{{env}}/{{module}} ; terragrunt {{op}}
 
 
 # Run a Terragrunt operation across all live stacks.
 tg-all op:
     #!/usr/bin/env bash
-    export TF_VAR_lambda_artifact_dir="{{LAMBDA_DIR}}"
-    export TF_VAR_frontend_artifact_dir="{{FRONTEND_DIR}}"
-    export TF_VAR_appspec_artifact_dir="{{APPSPEC_DIR}}"
-    export TF_VAR_infra_plan_dir="{{INFRA_PLAN_DIR}}"
     cd {{justfile_directory()}}/infra/live
     terragrunt run-all {{op}}
 
