@@ -2,6 +2,7 @@
 # This file is for producing, downloading, and uploading saved Terragrunt plan files.
 
 PROJECT_DIR := justfile_directory()
+INFRA_PLAN_DIR := "terragrunt_plan"
 
 PLAN_FILE := "terragrunt.tfplan"
 PLAN_TEXT_FILE := "terragrunt.plan.txt"
@@ -55,8 +56,8 @@ terragrunt-plan-render:
     cat "$PLAN_META_PATH"
 
 
-# Derive the shared S3 prefix for Terragrunt plan artifacts.
-terragrunt-plan-prefix:
+# Derive the shared S3 base prefix for Terragrunt plan artifacts.
+terragrunt-plan-base-prefix:
     #!/usr/bin/env bash
     set -euo pipefail
 
@@ -70,14 +71,23 @@ terragrunt-plan-prefix:
         exit 1
     fi
 
+    echo "{{INFRA_PLAN_DIR}}/${ENVIRONMENT}/${RUN_ID}"
+
+
+# Derive the shared S3 prefix for Terragrunt plan artifacts.
+terragrunt-plan-prefix:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
     if [[ -z "${TG_DIRECTORY:-}" ]]; then
         echo "❌ TG_DIRECTORY environment variable is not set."
         exit 1
     fi
 
+    artifact_base_prefix="$(just --justfile "{{PROJECT_DIR}}/justfile.tg" terragrunt-plan-base-prefix)"
     sanitized_dir="$(echo "$TG_DIRECTORY" | tr '/.' '--')"
     artifact_name="terragrunt-plan-${sanitized_dir}"
-    artifact_prefix="terragrunt_plan/${ENVIRONMENT}/${RUN_ID}/${artifact_name}"
+    artifact_prefix="${artifact_base_prefix}/${artifact_name}"
 
     echo "$artifact_prefix"
 

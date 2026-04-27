@@ -5,6 +5,7 @@
 PROJECT_DIR := justfile_directory()
 LAMBDA_DIR := "lambdas"
 CONTAINERS_DIR := "containers"
+INFRA_PLAN_DIR := "terragrunt_plan"
 EXTRA_CONTAINER_DIRECTORIES := "[\"debug\",\"otel_collector\"]"
 NON_SERVICE_CONTAINER_DIRECTORIES := "[\"lib\",\"_shared\"]"
 
@@ -125,7 +126,9 @@ infra-plan-metadata-upload:
         exit 1
     fi
 
-    aws s3 cp "plan-metadata.json" "s3://${BUCKET_NAME}/terragrunt_plan/${ENVIRONMENT}/${RUN_ID}/infra-plan-metadata/plan-metadata.json"
+    artifact_prefix="$(just --justfile "{{PROJECT_DIR}}/justfile.tg" terragrunt-plan-base-prefix)"
+
+    aws s3 cp "plan-metadata.json" "s3://${BUCKET_NAME}/${artifact_prefix}/infra-plan-metadata/plan-metadata.json"
 
 
 # Download shared infra plan metadata from the shared code bucket.
@@ -148,7 +151,9 @@ infra-plan-metadata-download:
         exit 1
     fi
 
-    aws s3 cp "s3://${BUCKET_NAME}/terragrunt_plan/${ENVIRONMENT}/${RUN_ID}/infra-plan-metadata/plan-metadata.json" "plan-metadata.json"
+    artifact_prefix="$(just --justfile "{{PROJECT_DIR}}/justfile.tg" terragrunt-plan-base-prefix)"
+
+    aws s3 cp "s3://${BUCKET_NAME}/${artifact_prefix}/infra-plan-metadata/plan-metadata.json" "plan-metadata.json"
 
 
 # List ECR image tag prefixes for a published version.

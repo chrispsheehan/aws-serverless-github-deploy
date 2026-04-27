@@ -180,6 +180,7 @@ Infrastructure apply and feature-code rollout are intentionally decoupled in thi
 - `*_code` workflows deploy feature code only
 - code deploy workflows publish the real Lambda versions and ECS task revisions into that pre-created deploy surface
 - saved infra plans are stored in the shared S3 code bucket under `terragrunt_plan/<environment>/<run_id>/...`, using the same artifact split as build outputs: `dev` writes to the `dev` code bucket and non-`dev` environments reuse the `ci` code bucket
+- Code artifact retention and infra-plan retention are configured separately in the shared code bucket module
 - rerunning infrastructure apply does not roll out new feature code
 - the shared Lambda and ECS module READMEs are the canonical source for bootstrap, rollout, and rollback details for each runtime shape
 - detailed workflow contracts, reusable-workflow inputs, repo-local action behavior, and `justfile_path` rules live in [.github/docs/README.md](.github/docs/README.md)

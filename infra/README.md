@@ -34,6 +34,7 @@ Shared artifact names also follow environment-aware conventions from `infra/root
 - code bucket: `<artifact_base>-code`
 - ECS ECR repository: `<artifact_base>-ecr`
 - saved Terragrunt plan artifacts: `s3://<code_bucket>/terragrunt_plan/<environment>/<run_id>/...`
+- code-bucket lifecycle inputs: `code_artifact_expiration_days` for deployable code artifacts and `infra_plan_artifact_expiration_days` for `terragrunt_plan/`
 
 So a stack at:
 

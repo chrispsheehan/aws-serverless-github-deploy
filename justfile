@@ -12,6 +12,7 @@ _default:
 PROJECT_DIR := justfile_directory()
 LAMBDA_DIR := "lambdas"
 FRONTEND_DIR := "frontend"
+INFRA_PLAN_DIR := "terragrunt_plan"
 
 
 # Delete local git branches whose upstream refs have gone away.

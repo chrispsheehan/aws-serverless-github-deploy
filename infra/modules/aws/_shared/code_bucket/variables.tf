@@ -5,8 +5,14 @@ variable "code_bucket" {
 }
 ### end of static vars set in root.hcl ###
 
-variable "s3_expiration_days" {
-  description = "Number of days before objects are deleted (set to 0 to disable)"
+variable "code_artifact_expiration_days" {
+  description = "Number of days before deployable code artifacts under lambdas/, frontend/, and appspec/ are deleted (set to 0 to disable)"
+  type        = number
+  default     = 0
+}
+
+variable "infra_plan_artifact_expiration_days" {
+  description = "Number of days before saved Terragrunt plan artifacts under terragrunt_plan/ are deleted (set to 0 to disable)"
   type        = number
   default     = 0
 }

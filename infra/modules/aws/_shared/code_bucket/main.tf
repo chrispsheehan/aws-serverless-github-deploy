@@ -11,17 +11,52 @@ resource "aws_s3_bucket_ownership_controls" "code" {
   }
 }
 
-resource "aws_s3_bucket_lifecycle_configuration" "delete_old_files" {
-  count = var.s3_expiration_days > 0 ? 1 : 0
+locals {
+  lifecycle_rules = {
+    code_artifacts_lambdas = {
+      days   = var.code_artifact_expiration_days
+      prefix = "lambdas/"
+    }
+    code_artifacts_frontend = {
+      days   = var.code_artifact_expiration_days
+      prefix = "frontend/"
+    }
+    code_artifacts_appspec = {
+      days   = var.code_artifact_expiration_days
+      prefix = "appspec/"
+    }
+    terragrunt_plans = {
+      days   = var.infra_plan_artifact_expiration_days
+      prefix = "terragrunt_plan/"
+    }
+  }
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "managed_artifact_retention" {
+  count = length({
+    for name, rule in local.lifecycle_rules : name => rule
+    if rule.days > 0
+  }) > 0 ? 1 : 0
 
   bucket = aws_s3_bucket.code.id
 
-  rule {
-    id     = "delete-expired-objects"
-    status = "Enabled"
+  dynamic "rule" {
+    for_each = {
+      for name, lifecycle_rule in local.lifecycle_rules : name => lifecycle_rule
+      if lifecycle_rule.days > 0
+    }
 
-    expiration {
-      days = var.s3_expiration_days
+    content {
+      id     = "delete-${rule.key}"
+      status = "Enabled"
+
+      filter {
+        prefix = rule.value.prefix
+      }
+
+      expiration {
+        days = rule.value.days
+      }
     }
   }
 }
