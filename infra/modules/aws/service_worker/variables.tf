@@ -26,7 +26,8 @@ variable "vpc_name" {
 }
 
 variable "container_port" {
-  type = number
+  type    = number
+  default = 80
 }
 
 variable "root_path" {

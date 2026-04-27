@@ -21,7 +21,8 @@ variable "ecr_repository_name" {
 ### end of static vars set in root.hcl ###
 
 variable "container_port" {
-  type = number
+  type    = number
+  default = 80
 }
 
 variable "cpu" {
