@@ -33,8 +33,8 @@ on:
         required: false
         type: string
         default: "apply"
-      plan_artifact_run_id:
-        description: "Optional workflow run ID used for apply-from-plan artifact downloads"
+      plan_artifact_s3_prefix:
+        description: "Optional resolved S3 prefix used for saved plan artifacts"
         required: false
         type: string
         default: ""
@@ -52,16 +52,12 @@ permissions:
 env:
   AWS_OIDC_ROLE_ARN: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/${{ vars.PROJECT_NAME }}-${{ inputs.environment }}-github-oidc-role
   DOMAIN_NAME: ${{ vars.DOMAIN_NAME }}
+  PLAN_ARTIFACT_S3_PREFIX: ${{ inputs.plan_artifact_s3_prefix }}
   TG_ACTION_LABEL: ${{ inputs.tg_action == 'apply' && 'Apply' || inputs.tg_action == 'plan' && 'Plan' || inputs.tg_action == 'apply_plan' && 'Apply planned' || inputs.tg_action == 'destroy' && 'Destroy' || inputs.tg_action == 'init' && 'Init' || 'Run' }}
 
 jobs:
   oidc:
     runs-on: ubuntu-latest
-    env:
-      BUCKET_NAME: ${{ inputs.code_bucket }}
-      ENVIRONMENT: ${{ inputs.environment }}
-      RUN_ID: ${{ inputs.tg_action == 'apply_plan' && (inputs.plan_artifact_run_id != '' && inputs.plan_artifact_run_id || github.run_id) || github.run_id }}
-      TG_DIRECTORY: infra/live/${{ inputs.environment }}/aws/oidc
     steps:
       - uses: actions/checkout@v6
         with:
@@ -72,20 +68,12 @@ jobs:
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           manage_plan_artifacts: "true"
-          plan_bucket_name: ${{ env.BUCKET_NAME }}
-          plan_environment: ${{ env.ENVIRONMENT }}
-          plan_run_id: ${{ env.RUN_ID }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/oidc
           tg_action: ${{ inputs.tg_action }}
 
   worker_messaging:
     needs: oidc
     runs-on: ubuntu-latest
-    env:
-      BUCKET_NAME: ${{ inputs.code_bucket }}
-      ENVIRONMENT: ${{ inputs.environment }}
-      RUN_ID: ${{ inputs.tg_action == 'apply_plan' && (inputs.plan_artifact_run_id != '' && inputs.plan_artifact_run_id || github.run_id) || github.run_id }}
-      TG_DIRECTORY: infra/live/${{ inputs.environment }}/aws/worker_messaging
     steps:
       - uses: actions/checkout@v6
         with:
@@ -96,20 +84,12 @@ jobs:
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           manage_plan_artifacts: "true"
-          plan_bucket_name: ${{ env.BUCKET_NAME }}
-          plan_environment: ${{ env.ENVIRONMENT }}
-          plan_run_id: ${{ env.RUN_ID }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/worker_messaging
           tg_action: ${{ inputs.tg_action }}
 
   observability:
     needs: oidc
     runs-on: ubuntu-latest
-    env:
-      BUCKET_NAME: ${{ inputs.code_bucket }}
-      ENVIRONMENT: ${{ inputs.environment }}
-      RUN_ID: ${{ inputs.tg_action == 'apply_plan' && (inputs.plan_artifact_run_id != '' && inputs.plan_artifact_run_id || github.run_id) || github.run_id }}
-      TG_DIRECTORY: infra/live/${{ inputs.environment }}/aws/observability
     steps:
       - uses: actions/checkout@v6
         with:
@@ -120,20 +100,12 @@ jobs:
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           manage_plan_artifacts: "true"
-          plan_bucket_name: ${{ env.BUCKET_NAME }}
-          plan_environment: ${{ env.ENVIRONMENT }}
-          plan_run_id: ${{ env.RUN_ID }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/observability
           tg_action: ${{ inputs.tg_action }}
 
   cognito:
     needs: oidc
     runs-on: ubuntu-latest
-    env:
-      BUCKET_NAME: ${{ inputs.code_bucket }}
-      ENVIRONMENT: ${{ inputs.environment }}
-      RUN_ID: ${{ inputs.tg_action == 'apply_plan' && (inputs.plan_artifact_run_id != '' && inputs.plan_artifact_run_id || github.run_id) || github.run_id }}
-      TG_DIRECTORY: infra/live/${{ inputs.environment }}/aws/cognito
     steps:
       - uses: actions/checkout@v6
         with:
@@ -146,9 +118,6 @@ jobs:
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           manage_plan_artifacts: "true"
-          plan_bucket_name: ${{ env.BUCKET_NAME }}
-          plan_environment: ${{ env.ENVIRONMENT }}
-          plan_run_id: ${{ env.RUN_ID }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/cognito
           tg_action: ${{ inputs.tg_action }}
 
@@ -157,11 +126,6 @@ jobs:
       - network
       - cognito
     runs-on: ubuntu-latest
-    env:
-      BUCKET_NAME: ${{ inputs.code_bucket }}
-      ENVIRONMENT: ${{ inputs.environment }}
-      RUN_ID: ${{ inputs.tg_action == 'apply_plan' && (inputs.plan_artifact_run_id != '' && inputs.plan_artifact_run_id || github.run_id) || github.run_id }}
-      TG_DIRECTORY: infra/live/${{ inputs.environment }}/aws/frontend
     steps:
       - uses: actions/checkout@v6
         with:
@@ -218,20 +182,12 @@ jobs:
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           manage_plan_artifacts: "true"
-          plan_bucket_name: ${{ env.BUCKET_NAME }}
-          plan_environment: ${{ env.ENVIRONMENT }}
-          plan_run_id: ${{ env.RUN_ID }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/frontend
           tg_action: ${{ inputs.tg_action }}
 
   cluster:
     needs: oidc
     runs-on: ubuntu-latest
-    env:
-      BUCKET_NAME: ${{ inputs.code_bucket }}
-      ENVIRONMENT: ${{ inputs.environment }}
-      RUN_ID: ${{ inputs.tg_action == 'apply_plan' && (inputs.plan_artifact_run_id != '' && inputs.plan_artifact_run_id || github.run_id) || github.run_id }}
-      TG_DIRECTORY: infra/live/${{ inputs.environment }}/aws/cluster
     steps:
       - uses: actions/checkout@v6
         with:
@@ -242,20 +198,12 @@ jobs:
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           manage_plan_artifacts: "true"
-          plan_bucket_name: ${{ env.BUCKET_NAME }}
-          plan_environment: ${{ env.ENVIRONMENT }}
-          plan_run_id: ${{ env.RUN_ID }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/cluster
           tg_action: ${{ inputs.tg_action }}
 
   security:
     needs: oidc
     runs-on: ubuntu-latest
-    env:
-      BUCKET_NAME: ${{ inputs.code_bucket }}
-      ENVIRONMENT: ${{ inputs.environment }}
-      RUN_ID: ${{ inputs.tg_action == 'apply_plan' && (inputs.plan_artifact_run_id != '' && inputs.plan_artifact_run_id || github.run_id) || github.run_id }}
-      TG_DIRECTORY: infra/live/${{ inputs.environment }}/aws/security
     outputs:
       postgres_sg: ${{ steps.get_security_outputs.outputs.postgres_sg }}
     steps:
@@ -269,9 +217,6 @@ jobs:
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           manage_plan_artifacts: "true"
-          plan_bucket_name: ${{ env.BUCKET_NAME }}
-          plan_environment: ${{ env.ENVIRONMENT }}
-          plan_run_id: ${{ env.RUN_ID }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/security
           tg_action: ${{ inputs.tg_action }}
 
@@ -288,11 +233,6 @@ jobs:
       - oidc
       - security
     runs-on: ubuntu-latest
-    env:
-      BUCKET_NAME: ${{ inputs.code_bucket }}
-      ENVIRONMENT: ${{ inputs.environment }}
-      RUN_ID: ${{ inputs.tg_action == 'apply_plan' && (inputs.plan_artifact_run_id != '' && inputs.plan_artifact_run_id || github.run_id) || github.run_id }}
-      TG_DIRECTORY: infra/live/${{ inputs.environment }}/aws/database
     steps:
       - uses: actions/checkout@v6
         with:
@@ -305,9 +245,6 @@ jobs:
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           manage_plan_artifacts: "true"
-          plan_bucket_name: ${{ env.BUCKET_NAME }}
-          plan_environment: ${{ env.ENVIRONMENT }}
-          plan_run_id: ${{ env.RUN_ID }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/database
           tg_action: ${{ inputs.tg_action }}
 
@@ -316,11 +253,6 @@ jobs:
       - security
       - cognito
     runs-on: ubuntu-latest
-    env:
-      BUCKET_NAME: ${{ inputs.code_bucket }}
-      ENVIRONMENT: ${{ inputs.environment }}
-      RUN_ID: ${{ inputs.tg_action == 'apply_plan' && (inputs.plan_artifact_run_id != '' && inputs.plan_artifact_run_id || github.run_id) || github.run_id }}
-      TG_DIRECTORY: infra/live/${{ inputs.environment }}/aws/network
     steps:
       - uses: actions/checkout@v6
         with:
@@ -331,9 +263,6 @@ jobs:
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           manage_plan_artifacts: "true"
-          plan_bucket_name: ${{ env.BUCKET_NAME }}
-          plan_environment: ${{ env.ENVIRONMENT }}
-          plan_run_id: ${{ env.RUN_ID }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/network
           tg_action: ${{ inputs.tg_action }}
 
@@ -349,11 +278,6 @@ jobs:
       fail-fast: false # this is to prevent terraform lock issues
       matrix:
         value: ${{ fromJson(inputs.lambda_matrix) }}
-    env:
-      BUCKET_NAME: ${{ inputs.code_bucket }}
-      ENVIRONMENT: ${{ inputs.environment }}
-      RUN_ID: ${{ inputs.tg_action == 'apply_plan' && (inputs.plan_artifact_run_id != '' && inputs.plan_artifact_run_id || github.run_id) || github.run_id }}
-      TG_DIRECTORY: infra/live/${{ inputs.environment }}/aws/${{ matrix.value }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -364,9 +288,6 @@ jobs:
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           manage_plan_artifacts: "true"
-          plan_bucket_name: ${{ env.BUCKET_NAME }}
-          plan_environment: ${{ env.ENVIRONMENT }}
-          plan_run_id: ${{ env.RUN_ID }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.value }}
           tg_action: ${{ inputs.tg_action }}
 
@@ -383,11 +304,6 @@ jobs:
       fail-fast: false
       matrix:
         value: ${{ fromJson(inputs.service_matrix) }}
-    env:
-      BUCKET_NAME: ${{ inputs.code_bucket }}
-      ENVIRONMENT: ${{ inputs.environment }}
-      RUN_ID: ${{ inputs.tg_action == 'apply_plan' && (inputs.plan_artifact_run_id != '' && inputs.plan_artifact_run_id || github.run_id) || github.run_id }}
-      TG_DIRECTORY: infra/live/${{ inputs.environment }}/aws/${{ matrix.value }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -401,8 +317,5 @@ jobs:
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           manage_plan_artifacts: "true"
-          plan_bucket_name: ${{ env.BUCKET_NAME }}
-          plan_environment: ${{ env.ENVIRONMENT }}
-          plan_run_id: ${{ env.RUN_ID }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.value }}
           tg_action: ${{ inputs.tg_action }}

@@ -53,16 +53,26 @@ jobs:
       code_bucket: ${{ steps.read_metadata.outputs.code_bucket }}
       lambda_matrix: ${{ steps.read_metadata.outputs.lambda_matrix }}
       bootstrap_image_uri: ${{ steps.read_metadata.outputs.bootstrap_image_uri }}
+      plan_artifact_s3_prefix: ${{ steps.plan_artifact_s3_prefix.outputs.just_outputs }}
       service_matrix: ${{ steps.read_metadata.outputs.service_matrix }}
     steps:
       - uses: actions/checkout@v6
 
-      - name: Download plan metadata from S3
+      - name: Get plan artifact S3 prefix
+        id: plan_artifact_s3_prefix
         uses: ./.github/actions/just
         env:
           BUCKET_NAME: ${{ needs.artifact_bucket.outputs.code_bucket_name }}
           ENVIRONMENT: ${{ inputs.environment }}
           RUN_ID: ${{ inputs.plan_artifact_run_id }}
+        with:
+          justfile_path: justfile.tg
+          just_action: terragrunt-plan-base-s3-prefix
+
+      - name: Download plan metadata from S3
+        uses: ./.github/actions/just
+        env:
+          PLAN_ARTIFACT_S3_PREFIX: ${{ steps.plan_artifact_s3_prefix.outputs.just_outputs }}
         with:
           aws_oidc_role_arn: ${{ env.ARTIFACT_AWS_OIDC_ROLE_ARN }}
           justfile_path: justfile.ci
@@ -72,7 +82,7 @@ jobs:
         shell: bash
         run: |
           if [ ! -f plan-metadata.json ]; then
-            echo "::error title=Missing plan metadata artifact::Expected 'plan-metadata.json' at s3://${{ needs.artifact_bucket.outputs.code_bucket_name }}/terragrunt_plan/${{ inputs.environment }}/${{ inputs.plan_artifact_run_id }}/infra-plan-metadata/plan-metadata.json, but it was not downloaded."
+            echo "::error title=Missing plan metadata artifact::Expected 'plan-metadata.json' at ${{ steps.plan_artifact_s3_prefix.outputs.just_outputs }}/infra-plan-metadata/plan-metadata.json, but it was not downloaded."
             exit 1
           fi
 
@@ -98,4 +108,4 @@ jobs:
       bootstrap_image_uri: ${{ needs.metadata.outputs.bootstrap_image_uri }}
       service_matrix: ${{ needs.metadata.outputs.service_matrix }}
       tg_action: apply_plan
-      plan_artifact_run_id: ${{ inputs.plan_artifact_run_id }}
+      plan_artifact_s3_prefix: ${{ needs.metadata.outputs.plan_artifact_s3_prefix }}

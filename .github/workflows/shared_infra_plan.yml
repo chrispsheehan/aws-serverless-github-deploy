@@ -44,10 +44,23 @@ env:
 jobs:
   metadata:
     runs-on: ubuntu-latest
+    outputs:
+      plan_artifact_s3_prefix: ${{ steps.plan_artifact_s3_prefix.outputs.just_outputs }}
     steps:
       - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.infra_version }}
+
+      - name: Get plan artifact S3 prefix
+        id: plan_artifact_s3_prefix
+        uses: ./.github/actions/just
+        env:
+          BUCKET_NAME: ${{ inputs.code_bucket }}
+          ENVIRONMENT: ${{ inputs.environment }}
+          RUN_ID: ${{ github.run_id }}
+        with:
+          justfile_path: justfile.tg
+          just_action: terragrunt-plan-base-s3-prefix
 
       - name: Write plan metadata from workflow inputs
         shell: bash
@@ -65,9 +78,7 @@ jobs:
       - name: Upload plan metadata to S3
         uses: ./.github/actions/just
         env:
-          BUCKET_NAME: ${{ inputs.code_bucket }}
-          ENVIRONMENT: ${{ inputs.environment }}
-          RUN_ID: ${{ github.run_id }}
+          PLAN_ARTIFACT_S3_PREFIX: ${{ steps.plan_artifact_s3_prefix.outputs.just_outputs }}
         with:
           aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           justfile_path: justfile.ci
@@ -85,6 +96,7 @@ jobs:
       bootstrap_image_uri: ${{ inputs.bootstrap_image_uri }}
       service_matrix: ${{ inputs.service_matrix }}
       tg_action: plan
+      plan_artifact_s3_prefix: ${{ needs.metadata.outputs.plan_artifact_s3_prefix }}
 
   plan_context:
     name: Plan Context

@@ -21,9 +21,6 @@ This GitHub Action sets up **Terraform** and **Terragrunt**, authenticates to AW
 | `override_tg_vars` | Terragrunt variables in JSON, written to `override_tg_vars.tfvars.json` | No | `{}` |
 | `aws_oidc_role_arn` | IAM role ARN to assume via OIDC | Yes | — |
 | `manage_plan_artifacts` | When `true`, downloads saved plan artifacts for `apply_plan` and uploads plan artifacts for `plan` via `justfile.tg` | No | `false` |
-| `plan_bucket_name` | S3 bucket used for saved plan artifacts (required when `manage_plan_artifacts: true`) | No | `""` |
-| `plan_environment` | Environment name used in the plan artifact prefix (required when `manage_plan_artifacts: true`) | No | `""` |
-| `plan_run_id` | Run ID used in the plan artifact prefix (required when `manage_plan_artifacts: true`) | No | `""` |
 | `tg_directory` | Directory containing the Terragrunt config | Yes | — |
 | `tg_action` | Terragrunt action: `apply`, `plan`, `apply_plan`, `destroy`, or `init` | Yes | `apply` |
 
@@ -41,7 +38,7 @@ This GitHub Action sets up **Terraform** and **Terragrunt**, authenticates to AW
 - `plan`
   Runs `terragrunt plan -detailed-exitcode -out=<absolute stack path>/terragrunt.tfplan`, then renders `terragrunt.plan.txt` and writes `terragrunt.plan.meta.json` via the repo `justfile.tg` recipe `terragrunt-plan-render`. If `manage_plan_artifacts: true`, it also uploads those files to S3 via `justfile.tg`.
 - `apply_plan`
-  If `manage_plan_artifacts: true`, downloads the saved plan files into `tg_directory` via `justfile.tg`. Otherwise it expects the saved plan files to already exist in `tg_directory`. In both cases it fails if the binary plan file or `terragrunt.plan.meta.json` is missing, reads `has_changes` from the saved metadata file, and skips apply with a GitHub Actions warning when the saved plan contains no mutating resource changes. Otherwise it runs `terragrunt apply` against the absolute stack-path plan file.
+  If `manage_plan_artifacts: true`, downloads the saved plan files into `tg_directory` via `justfile.tg` using the caller-provided `PLAN_ARTIFACT_S3_PREFIX` environment variable plus the stack-derived suffix from `tg_directory`. Otherwise it expects the saved plan files to already exist in `tg_directory`. In both cases it fails if the binary plan file or `terragrunt.plan.meta.json` is missing, reads `has_changes` from the saved metadata file, and skips apply with a GitHub Actions warning when the saved plan contains no mutating resource changes. Otherwise it runs `terragrunt apply` against the absolute stack-path plan file.
 - `destroy`
   Runs `terragrunt destroy -auto-approve`
 - `init`

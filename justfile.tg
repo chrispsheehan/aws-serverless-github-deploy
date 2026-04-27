@@ -61,6 +61,11 @@ terragrunt-plan-base-prefix:
     #!/usr/bin/env bash
     set -euo pipefail
 
+    if [[ -n "${PLAN_ARTIFACT_S3_PREFIX:-}" ]]; then
+        echo "${PLAN_ARTIFACT_S3_PREFIX#s3://*/}"
+        exit 0
+    fi
+
     if [[ -z "${ENVIRONMENT:-}" ]]; then
         echo "❌ ENVIRONMENT environment variable is not set."
         exit 1
@@ -74,6 +79,26 @@ terragrunt-plan-base-prefix:
     infra_plan_dir="${TF_VAR_infra_plan_dir:-{{INFRA_PLAN_DIR}}}"
 
     echo "${infra_plan_dir}/${ENVIRONMENT}/${RUN_ID}"
+
+
+# Derive the shared S3 URI prefix for Terragrunt plan artifacts.
+terragrunt-plan-base-s3-prefix:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -n "${PLAN_ARTIFACT_S3_PREFIX:-}" ]]; then
+        echo "${PLAN_ARTIFACT_S3_PREFIX}"
+        exit 0
+    fi
+
+    if [[ -z "${BUCKET_NAME:-}" ]]; then
+        echo "❌ BUCKET_NAME environment variable is not set."
+        exit 1
+    fi
+
+    artifact_base_prefix="$(just --justfile "{{PROJECT_DIR}}/justfile.tg" terragrunt-plan-base-prefix)"
+
+    echo "s3://${BUCKET_NAME}/${artifact_base_prefix}"
 
 
 # Derive the shared S3 prefix for Terragrunt plan artifacts.
@@ -99,18 +124,8 @@ terragrunt-plan-download:
     #!/usr/bin/env bash
     set -euo pipefail
 
-    if [[ -z "${BUCKET_NAME:-}" ]]; then
-        echo "❌ BUCKET_NAME environment variable is not set."
-        exit 1
-    fi
-
-    if [[ -z "${ENVIRONMENT:-}" ]]; then
-        echo "❌ ENVIRONMENT environment variable is not set."
-        exit 1
-    fi
-
-    if [[ -z "${RUN_ID:-}" ]]; then
-        echo "❌ RUN_ID environment variable is not set."
+    if [[ -z "${PLAN_ARTIFACT_S3_PREFIX:-}" && -z "${BUCKET_NAME:-}" ]]; then
+        echo "❌ PLAN_ARTIFACT_S3_PREFIX or BUCKET_NAME environment variable is required."
         exit 1
     fi
 
@@ -119,13 +134,14 @@ terragrunt-plan-download:
         exit 1
     fi
 
+    artifact_s3_base_prefix="$(just --justfile "{{PROJECT_DIR}}/justfile.tg" terragrunt-plan-base-s3-prefix)"
     artifact_prefix="$(just --justfile "{{PROJECT_DIR}}/justfile.tg" terragrunt-plan-prefix)"
 
     mkdir -p "$TG_DIRECTORY"
 
-    aws s3 cp "s3://${BUCKET_NAME}/${artifact_prefix}/{{PLAN_FILE}}" "${TG_DIRECTORY}/{{PLAN_FILE}}"
-    aws s3 cp "s3://${BUCKET_NAME}/${artifact_prefix}/{{PLAN_TEXT_FILE}}" "${TG_DIRECTORY}/{{PLAN_TEXT_FILE}}"
-    aws s3 cp "s3://${BUCKET_NAME}/${artifact_prefix}/{{PLAN_META_FILE}}" "${TG_DIRECTORY}/{{PLAN_META_FILE}}"
+    aws s3 cp "${artifact_s3_base_prefix}/${artifact_prefix##*/}/{{PLAN_FILE}}" "${TG_DIRECTORY}/{{PLAN_FILE}}"
+    aws s3 cp "${artifact_s3_base_prefix}/${artifact_prefix##*/}/{{PLAN_TEXT_FILE}}" "${TG_DIRECTORY}/{{PLAN_TEXT_FILE}}"
+    aws s3 cp "${artifact_s3_base_prefix}/${artifact_prefix##*/}/{{PLAN_META_FILE}}" "${TG_DIRECTORY}/{{PLAN_META_FILE}}"
 
 
 # Upload saved Terragrunt plan files for a stack to the shared code bucket.
@@ -133,18 +149,8 @@ terragrunt-plan-upload:
     #!/usr/bin/env bash
     set -euo pipefail
 
-    if [[ -z "${BUCKET_NAME:-}" ]]; then
-        echo "❌ BUCKET_NAME environment variable is not set."
-        exit 1
-    fi
-
-    if [[ -z "${ENVIRONMENT:-}" ]]; then
-        echo "❌ ENVIRONMENT environment variable is not set."
-        exit 1
-    fi
-
-    if [[ -z "${RUN_ID:-}" ]]; then
-        echo "❌ RUN_ID environment variable is not set."
+    if [[ -z "${PLAN_ARTIFACT_S3_PREFIX:-}" && -z "${BUCKET_NAME:-}" ]]; then
+        echo "❌ PLAN_ARTIFACT_S3_PREFIX or BUCKET_NAME environment variable is required."
         exit 1
     fi
 
@@ -153,8 +159,9 @@ terragrunt-plan-upload:
         exit 1
     fi
 
+    artifact_s3_base_prefix="$(just --justfile "{{PROJECT_DIR}}/justfile.tg" terragrunt-plan-base-s3-prefix)"
     artifact_prefix="$(just --justfile "{{PROJECT_DIR}}/justfile.tg" terragrunt-plan-prefix)"
 
-    aws s3 cp "${TG_DIRECTORY}/{{PLAN_FILE}}" "s3://${BUCKET_NAME}/${artifact_prefix}/{{PLAN_FILE}}"
-    aws s3 cp "${TG_DIRECTORY}/{{PLAN_TEXT_FILE}}" "s3://${BUCKET_NAME}/${artifact_prefix}/{{PLAN_TEXT_FILE}}"
-    aws s3 cp "${TG_DIRECTORY}/{{PLAN_META_FILE}}" "s3://${BUCKET_NAME}/${artifact_prefix}/{{PLAN_META_FILE}}"
+    aws s3 cp "${TG_DIRECTORY}/{{PLAN_FILE}}" "${artifact_s3_base_prefix}/${artifact_prefix##*/}/{{PLAN_FILE}}"
+    aws s3 cp "${TG_DIRECTORY}/{{PLAN_TEXT_FILE}}" "${artifact_s3_base_prefix}/${artifact_prefix##*/}/{{PLAN_TEXT_FILE}}"
+    aws s3 cp "${TG_DIRECTORY}/{{PLAN_META_FILE}}" "${artifact_s3_base_prefix}/${artifact_prefix##*/}/{{PLAN_META_FILE}}"

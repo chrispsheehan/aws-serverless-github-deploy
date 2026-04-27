@@ -113,24 +113,14 @@ infra-plan-metadata-upload:
     #!/usr/bin/env bash
     set -euo pipefail
 
-    if [[ -z "${BUCKET_NAME:-}" ]]; then
-        echo "❌ BUCKET_NAME environment variable is not set."
+    if [[ -z "${PLAN_ARTIFACT_S3_PREFIX:-}" ]]; then
+        echo "❌ PLAN_ARTIFACT_S3_PREFIX environment variable is not set."
         exit 1
     fi
 
-    if [[ -z "${ENVIRONMENT:-}" ]]; then
-        echo "❌ ENVIRONMENT environment variable is not set."
-        exit 1
-    fi
+    artifact_s3_prefix="$(just --justfile "{{PROJECT_DIR}}/justfile.tg" terragrunt-plan-base-s3-prefix)"
 
-    if [[ -z "${RUN_ID:-}" ]]; then
-        echo "❌ RUN_ID environment variable is not set."
-        exit 1
-    fi
-
-    artifact_prefix="$(just --justfile "{{PROJECT_DIR}}/justfile.tg" terragrunt-plan-base-prefix)"
-
-    aws s3 cp "plan-metadata.json" "s3://${BUCKET_NAME}/${artifact_prefix}/infra-plan-metadata/plan-metadata.json"
+    aws s3 cp "plan-metadata.json" "${artifact_s3_prefix}/infra-plan-metadata/plan-metadata.json"
 
 
 # Download shared infra plan metadata from the shared code bucket.
@@ -138,24 +128,14 @@ infra-plan-metadata-download:
     #!/usr/bin/env bash
     set -euo pipefail
 
-    if [[ -z "${BUCKET_NAME:-}" ]]; then
-        echo "❌ BUCKET_NAME environment variable is not set."
+    if [[ -z "${PLAN_ARTIFACT_S3_PREFIX:-}" ]]; then
+        echo "❌ PLAN_ARTIFACT_S3_PREFIX environment variable is not set."
         exit 1
     fi
 
-    if [[ -z "${ENVIRONMENT:-}" ]]; then
-        echo "❌ ENVIRONMENT environment variable is not set."
-        exit 1
-    fi
+    artifact_s3_prefix="$(just --justfile "{{PROJECT_DIR}}/justfile.tg" terragrunt-plan-base-s3-prefix)"
 
-    if [[ -z "${RUN_ID:-}" ]]; then
-        echo "❌ RUN_ID environment variable is not set."
-        exit 1
-    fi
-
-    artifact_prefix="$(just --justfile "{{PROJECT_DIR}}/justfile.tg" terragrunt-plan-base-prefix)"
-
-    aws s3 cp "s3://${BUCKET_NAME}/${artifact_prefix}/infra-plan-metadata/plan-metadata.json" "plan-metadata.json"
+    aws s3 cp "${artifact_s3_prefix}/infra-plan-metadata/plan-metadata.json" "plan-metadata.json"
 
 
 # Return the Lambda artifact directory name from the repo-root justfile.
