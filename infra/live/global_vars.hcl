@@ -32,9 +32,9 @@ locals {
 }
 
 inputs = {
-  vpc_name                           = local.vpc_name
-  aws_region                         = local.aws_region
-  allowed_role_actions               = local.allowed_role_actions
+  vpc_name                            = local.vpc_name
+  aws_region                          = local.aws_region
+  allowed_role_actions                = local.allowed_role_actions
   code_artifact_expiration_days       = local.code_artifact_expiration_days
   infra_plan_artifact_expiration_days = local.infra_plan_artifact_expiration_days
 }
