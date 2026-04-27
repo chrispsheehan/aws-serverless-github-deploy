@@ -44,6 +44,15 @@ This GitHub Action sets up **Terraform** and **Terragrunt**, authenticates to AW
 - `init`
   Runs `terragrunt init -input=false -reconfigure` and then captures outputs
 
+## Saved Plan Layout
+
+- One run-level metadata file is stored separately by the shared infra wrapper at:
+  - `<plan_artifact_s3_prefix>/infra-plan-metadata/plan-metadata.json`
+- Each Terragrunt stack or module stores its own plan bundle at:
+  - `<plan_artifact_s3_prefix>/terragrunt-plan-<sanitized-tg-directory>/terragrunt.tfplan`
+  - `<plan_artifact_s3_prefix>/terragrunt-plan-<sanitized-tg-directory>/terragrunt.plan.txt`
+  - `<plan_artifact_s3_prefix>/terragrunt-plan-<sanitized-tg-directory>/terragrunt.plan.meta.json`
+
 ## Usage
 
 ### Minimal Apply
