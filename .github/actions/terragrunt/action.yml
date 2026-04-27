@@ -37,13 +37,13 @@ runs:
   using: "composite"
   steps:
     - name: Install Terraform
-      uses: hashicorp/setup-terraform@v3
+      uses: hashicorp/setup-terraform@v4
       with:
         terraform_version: ${{ inputs.tf_version }}
         terraform_wrapper: false
 
     - name: Install Terragrunt
-      uses: autero1/action-terragrunt@v1.3.2
+      uses: autero1/action-terragrunt@v3.0.2
       with:
         terragrunt_version: ${{ inputs.tg_version }}
 
@@ -97,7 +97,7 @@ runs:
 
     - name: Configure AWS OIDC Authentication
       if: inputs.tg_action != 'apply_plan' || steps.apply_plan_guard.outputs.should_apply == 'true'
-      uses: aws-actions/configure-aws-credentials@v4
+      uses: aws-actions/configure-aws-credentials@v5
       with:
         role-to-assume: ${{ inputs.aws_oidc_role_arn }}
         aws-region: ${{ inputs.aws_region }}

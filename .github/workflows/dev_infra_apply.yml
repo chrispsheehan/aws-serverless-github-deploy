@@ -2,9 +2,6 @@ name: Dev Infra Apply (no plan)
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - s3-plan-artifacts
 
 permissions:
   id-token: write
