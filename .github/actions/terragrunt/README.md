@@ -9,6 +9,7 @@ This GitHub Action sets up **Terraform** and **Terragrunt**, authenticates to AW
 - Optionally passes Terragrunt variables via JSON tfvars
 - Supports `plan` mode for producing local saved plan files
 - Supports `init` mode for outputs-only reads
+- Uses the repo-local `./.github/actions/just` action with OIDC for saved plan artifact upload and download
 - Exports Terragrunt outputs as compact JSON when state exists
 
 ## Inputs
@@ -20,7 +21,6 @@ This GitHub Action sets up **Terraform** and **Terragrunt**, authenticates to AW
 | `aws_region` | AWS region to use | No | `eu-west-2` |
 | `override_tg_vars` | Terragrunt variables in JSON, written to `override_tg_vars.tfvars.json` | No | `{}` |
 | `aws_oidc_role_arn` | IAM role ARN to assume via OIDC | Yes | — |
-| `manage_plan_artifacts` | When `true`, downloads saved plan artifacts for `apply_plan` and uploads plan artifacts for `plan` via `justfile.tg` | No | `false` |
 | `tg_directory` | Directory containing the Terragrunt config | Yes | — |
 | `tg_action` | Terragrunt action: `apply`, `plan`, `apply_plan`, `destroy`, or `init` | Yes | `apply` |
 
@@ -36,9 +36,9 @@ This GitHub Action sets up **Terraform** and **Terragrunt**, authenticates to AW
 - `apply`
   Runs `terragrunt apply -auto-approve`
 - `plan`
-  Runs `terragrunt plan -detailed-exitcode -out=<absolute stack path>/terragrunt.tfplan`, then renders `terragrunt.plan.txt` and writes `terragrunt.plan.meta.json` via the repo `justfile.tg` recipe `terragrunt-plan-render`. If `manage_plan_artifacts: true`, it also uploads those files to S3 via `justfile.tg`.
+  Runs `terragrunt plan -detailed-exitcode -out=<absolute stack path>/terragrunt.tfplan`, then renders `terragrunt.plan.txt` and writes `terragrunt.plan.meta.json` via the repo `justfile.tg` recipe `terragrunt-plan-render`. It then uploads those files to S3 through the repo-local `./.github/actions/just` action using the same OIDC role.
 - `apply_plan`
-  If `manage_plan_artifacts: true`, downloads the saved plan files into `tg_directory` via `justfile.tg` using the caller-provided `PLAN_ARTIFACT_S3_PREFIX` environment variable plus the stack-derived suffix from `tg_directory`. Otherwise it expects the saved plan files to already exist in `tg_directory`. In both cases it fails if the binary plan file or `terragrunt.plan.meta.json` is missing, reads `has_changes` from the saved metadata file, and skips apply with a GitHub Actions warning when the saved plan contains no mutating resource changes. Otherwise it runs `terragrunt apply` against the absolute stack-path plan file.
+  Downloads the saved plan files into `tg_directory` via the repo-local `./.github/actions/just` action and `justfile.tg`, using the caller-provided `PLAN_ARTIFACT_S3_PREFIX` environment variable plus the stack-derived suffix from `tg_directory`. It then fails if the binary plan file or `terragrunt.plan.meta.json` is missing, reads `has_changes` from the saved metadata file, and skips apply with a GitHub Actions warning when the saved plan contains no mutating resource changes. Otherwise it runs `terragrunt apply` against the absolute stack-path plan file.
 - `destroy`
   Runs `terragrunt destroy -auto-approve`
 - `init`

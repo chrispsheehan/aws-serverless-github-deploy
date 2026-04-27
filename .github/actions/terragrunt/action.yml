@@ -20,10 +20,6 @@ inputs:
   aws_oidc_role_arn:
     description: "AWS iam role arn"
     required: true
-  manage_plan_artifacts:
-    description: "When true, downloads saved plan artifacts for apply_plan and uploads plan artifacts for plan"
-    required: false
-    default: "false"
   tg_directory:
     description: "Module directory to perform action upon"
     required: true
@@ -59,19 +55,14 @@ runs:
       run: |
         echo "$OVERRIDE_TG_VARS" | jq -c . > ${{ inputs.tg_directory }}/override_tg_vars.tfvars.json
 
-    - name: Configure AWS OIDC Authentication (plan artifacts)
-      if: inputs.tg_action == 'apply_plan' && inputs.manage_plan_artifacts == 'true'
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        role-to-assume: ${{ inputs.aws_oidc_role_arn }}
-        aws-region: ${{ inputs.aws_region }}
-
     - name: Download saved plan artifacts
-      if: inputs.tg_action == 'apply_plan' && inputs.manage_plan_artifacts == 'true'
+      if: inputs.tg_action == 'apply_plan'
       uses: ./.github/actions/just
       env:
         TG_DIRECTORY: ${{ inputs.tg_directory }}
       with:
+        aws_oidc_role_arn: ${{ inputs.aws_oidc_role_arn }}
+        aws_region: ${{ inputs.aws_region }}
         justfile_path: justfile.tg
         just_action: terragrunt-plan-download
 
@@ -105,7 +96,7 @@ runs:
         fi
 
     - name: Configure AWS OIDC Authentication
-      if: inputs.tg_action != 'apply_plan' || (inputs.manage_plan_artifacts != 'true' && steps.apply_plan_guard.outputs.should_apply == 'true')
+      if: inputs.tg_action != 'apply_plan' || steps.apply_plan_guard.outputs.should_apply == 'true'
       uses: aws-actions/configure-aws-credentials@v4
       with:
         role-to-assume: ${{ inputs.aws_oidc_role_arn }}
@@ -167,11 +158,13 @@ runs:
         just_action: terragrunt-plan-render
 
     - name: Upload saved plan artifacts
-      if: inputs.tg_action == 'plan' && inputs.manage_plan_artifacts == 'true'
+      if: inputs.tg_action == 'plan'
       uses: ./.github/actions/just
       env:
         TG_DIRECTORY: ${{ inputs.tg_directory }}
       with:
+        aws_oidc_role_arn: ${{ inputs.aws_oidc_role_arn }}
+        aws_region: ${{ inputs.aws_region }}
         justfile_path: justfile.tg
         just_action: terragrunt-plan-upload
 
