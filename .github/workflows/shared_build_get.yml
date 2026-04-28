@@ -60,6 +60,7 @@ permissions:
 
 env:
   AWS_OIDC_ROLE_ARN: "arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/${{ vars.PROJECT_NAME }}-${{ inputs.environment }}-github-oidc-role"
+  AWS_REGION: ${{ vars.AWS_REGION }}
 
 jobs:
   bucket:
@@ -71,11 +72,15 @@ jobs:
         with:
           ref: ${{ inputs.lambda_version }}
 
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
       - name: Get code bucket outputs
         uses: ./.github/actions/terragrunt
         id: code_action
         with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/code_bucket
           tg_action: init
 
@@ -106,11 +111,15 @@ jobs:
         with:
           ref: ${{ inputs.lambda_version }}
 
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
       - name: Get ECR infra
         id: get-ecr
         uses: ./.github/actions/terragrunt
         with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/ecr
           tg_action: init
 
@@ -145,6 +154,11 @@ jobs:
         with:
           ref: ${{ inputs.lambda_version }}
 
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
       - name: Get ECR version images
         id: get_version_images
         uses: ./.github/actions/just
@@ -152,7 +166,6 @@ jobs:
           REPOSITORY_URL: ${{ needs.ecr.outputs.repository_url }}
           VERSION: ${{ inputs.ecs_version != '' && inputs.ecs_version || inputs.lambda_version }}
         with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           justfile_path: justfile.ci
           just_action: get-ecr-version-images
 
@@ -186,7 +199,6 @@ jobs:
           REPOSITORY_URL: ${{ needs.ecr.outputs.repository_url }}
           VERSION: ${{ inputs.ecs_version != '' && inputs.ecs_version || inputs.lambda_version }}
         with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           justfile_path: justfile.ci
           just_action: get-ecr-version-tasks
 
@@ -207,13 +219,17 @@ jobs:
         with:
           ref: ${{ inputs.lambda_version }}
 
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
       - name: Check frontend version exists
         uses: ./.github/actions/just
         env:
           BUCKET_NAME: ${{ needs.bucket.outputs.code_bucket_name }}
           VERSION: ${{ inputs.frontend_version != '' && inputs.frontend_version || inputs.lambda_version }}
         with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           justfile_path: justfile.ci
           just_action: frontend-check-version
 
@@ -229,13 +245,17 @@ jobs:
         with:
           ref: ${{ inputs.lambda_version }}
 
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
       - name: Check Lambda version exists
         uses: ./.github/actions/just
         env:
           BUCKET_NAME: ${{ needs.bucket.outputs.code_bucket_name }}
           VERSION: ${{ inputs.lambda_version }}
         with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           justfile_path: justfile.ci
           just_action: lambda-check-version
 
@@ -246,7 +266,6 @@ jobs:
           BUCKET_NAME: ${{ needs.bucket.outputs.code_bucket_name }}
           VERSION: ${{ inputs.lambda_version }}
         with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           justfile_path: justfile.ci
           just_action: get-version-files
 
@@ -257,6 +276,5 @@ jobs:
           BUCKET_NAME: ${{ needs.bucket.outputs.code_bucket_name }}
           VERSION: ${{ inputs.lambda_version }}
         with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           justfile_path: justfile.ci
           just_action: get-version-file-keys

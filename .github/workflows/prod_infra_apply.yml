@@ -14,9 +14,9 @@ jobs:
     uses: ./.github/workflows/shared_build_get.yml
     with:
       environment: ci
-      lambda_version: 0.9.4
-      frontend_version: 0.9.4
-      ecs_version: 0.9.4
+      lambda_version: 0.19.13
+      frontend_version: 0.19.13
+      ecs_version: 0.19.13
 
   infra:
     name: Apply
@@ -25,7 +25,7 @@ jobs:
     uses: ./.github/workflows/shared_infra_apply.yml
     with:
       environment: prod
-      infra_version: 0.9.4
+      infra_version: 0.19.13
       code_bucket: ${{ needs.get_build.outputs.code_bucket }}
       lambda_matrix: ${{ needs.get_build.outputs.lambda_version_files }}
       bootstrap_image_uri: ${{ needs.get_build.outputs.bootstrap_image_uri }}

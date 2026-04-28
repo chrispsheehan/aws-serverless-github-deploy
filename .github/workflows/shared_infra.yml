@@ -51,6 +51,7 @@ permissions:
 
 env:
   AWS_OIDC_ROLE_ARN: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/${{ vars.PROJECT_NAME }}-${{ inputs.environment }}-github-oidc-role
+  AWS_REGION: ${{ vars.AWS_REGION }}
   DOMAIN_NAME: ${{ vars.DOMAIN_NAME }}
   PLAN_ARTIFACT_S3_PREFIX: ${{ inputs.plan_artifact_s3_prefix }}
   TG_ACTION_LABEL: ${{ (inputs.tg_action == 'apply' || inputs.tg_action == 'apply_plan') && 'Apply' || inputs.tg_action == 'plan' && 'Plan' || inputs.tg_action == 'destroy' && 'Destroy' || inputs.tg_action == 'init' && 'Init' || 'Run' }}
@@ -63,10 +64,14 @@ jobs:
         with:
           ref: ${{ inputs.infra_version }}
 
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
       - name: ${{ env.TG_ACTION_LABEL }} oidc role infra
         uses: ./.github/actions/terragrunt
         with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/oidc
           tg_action: ${{ inputs.tg_action }}
 
@@ -78,10 +83,14 @@ jobs:
         with:
           ref: ${{ inputs.infra_version }}
 
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
       - name: ${{ env.TG_ACTION_LABEL }} worker messaging infra
         uses: ./.github/actions/terragrunt
         with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/worker_messaging
           tg_action: ${{ inputs.tg_action }}
 
@@ -93,10 +102,14 @@ jobs:
         with:
           ref: ${{ inputs.infra_version }}
 
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
       - name: ${{ env.TG_ACTION_LABEL }} observability infra
         uses: ./.github/actions/terragrunt
         with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/observability
           tg_action: ${{ inputs.tg_action }}
 
@@ -108,12 +121,16 @@ jobs:
         with:
           ref: ${{ inputs.infra_version }}
 
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
       - name: ${{ env.TG_ACTION_LABEL }} cognito infra
         uses: ./.github/actions/terragrunt
         env:
           TF_VAR_domain_name: ${{ env.DOMAIN_NAME }}
         with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/cognito
           tg_action: ${{ inputs.tg_action }}
 
@@ -127,12 +144,16 @@ jobs:
         with:
           ref: ${{ inputs.infra_version }}
 
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
       - name: Get network infra
         if: inputs.tg_action != 'apply_plan'
         uses: ./.github/actions/terragrunt
         id: get-network
         with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/network
           tg_action: init
 
@@ -143,7 +164,6 @@ jobs:
         env:
           TF_VAR_domain_name: ${{ env.DOMAIN_NAME }}
         with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/cognito
           tg_action: init
 
@@ -176,7 +196,6 @@ jobs:
           TF_VAR_auth_hosted_ui_url: ${{ inputs.tg_action == 'apply_plan' && '' || steps.get_cognito_vars.outputs.hosted_ui_url }}
           TF_VAR_auth_readonly_group_name: ${{ inputs.tg_action == 'apply_plan' && '' || steps.get_cognito_vars.outputs.readonly_group_name }}
         with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/frontend
           tg_action: ${{ inputs.tg_action }}
 
@@ -188,10 +207,14 @@ jobs:
         with:
           ref: ${{ inputs.infra_version }}
 
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
       - name: ${{ env.TG_ACTION_LABEL }} cluster infra
         uses: ./.github/actions/terragrunt
         with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/cluster
           tg_action: ${{ inputs.tg_action }}
 
@@ -205,11 +228,15 @@ jobs:
         with:
           ref: ${{ inputs.infra_version }}
 
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
       - name: ${{ env.TG_ACTION_LABEL }} security infra
         id: deploy-security
         uses: ./.github/actions/terragrunt
         with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/security
           tg_action: ${{ inputs.tg_action }}
 
@@ -231,12 +258,16 @@ jobs:
         with:
           ref: ${{ inputs.infra_version }}
 
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
       - name: ${{ env.TG_ACTION_LABEL }} database infra
         uses: ./.github/actions/terragrunt
         env:
           TF_VAR_database_security_group_id: ${{ needs.security.outputs.postgres_sg }}
         with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/database
           tg_action: ${{ inputs.tg_action }}
 
@@ -250,10 +281,14 @@ jobs:
         with:
           ref: ${{ inputs.infra_version }}
 
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
       - name: ${{ env.TG_ACTION_LABEL }} network infra
         uses: ./.github/actions/terragrunt
         with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/network
           tg_action: ${{ inputs.tg_action }}
 
@@ -274,10 +309,14 @@ jobs:
         with:
           ref: ${{ inputs.infra_version }}
 
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
       - name: ${{ env.TG_ACTION_LABEL }} ${{ matrix.value }} infra
         uses: ./.github/actions/terragrunt
         with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.value }}
           tg_action: ${{ inputs.tg_action }}
 
@@ -299,12 +338,16 @@ jobs:
         with:
           ref: ${{ inputs.infra_version }}
 
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
       - name: ${{ env.TG_ACTION_LABEL }} ${{ matrix.value }} bootstrap service infra
         uses: ./.github/actions/terragrunt
         env:
           TF_VAR_bootstrap: "true"
           TF_VAR_bootstrap_image_uri: ${{ inputs.bootstrap_image_uri }}
         with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.value }}
           tg_action: ${{ inputs.tg_action }}

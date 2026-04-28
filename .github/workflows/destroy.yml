@@ -22,6 +22,7 @@ permissions:
 env:
   TF_VAR_lambda_version: this
   AWS_OIDC_ROLE_ARN: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/${{ vars.PROJECT_NAME }}-${{ inputs.environment }}-github-oidc-role
+  AWS_REGION: ${{ vars.AWS_REGION }}
   DOMAIN_NAME: ${{ vars.DOMAIN_NAME }}
 
 jobs:
@@ -35,10 +36,14 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
       - name: Destroy observability infra
         uses: ./.github/actions/terragrunt
         with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/observability
           tg_action: destroy
 
@@ -55,10 +60,14 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
       - name: Deploy ${{ matrix.value }} infra
         uses: ./.github/actions/terragrunt
         with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.value }}
           tg_action: destroy
 
@@ -67,6 +76,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: Destroy frontend infra
         uses: ./.github/actions/terragrunt
@@ -78,7 +92,6 @@ jobs:
           TF_VAR_auth_hosted_ui_url: "https://destroy-placeholder"
           TF_VAR_auth_readonly_group_name: "readonly"
         with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/frontend
           tg_action: destroy
 
@@ -91,12 +104,16 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
       - name: Destroy cognito infra
         uses: ./.github/actions/terragrunt
         env:
           TF_VAR_domain_name: ${{ env.DOMAIN_NAME }}
         with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/cognito
           tg_action: destroy
 
@@ -111,13 +128,17 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
       - name: Destroy ${{ matrix.value }} infra
         uses: ./.github/actions/terragrunt
         env:
           TF_VAR_bootstrap: "true"
           TF_VAR_bootstrap_image_uri: "destroy-placeholder"
         with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.value }}
           tg_action: destroy
 
@@ -134,6 +155,11 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
       - name: Destroy ${{ matrix.value }} infra
         uses: ./.github/actions/terragrunt
         env:
@@ -141,7 +167,6 @@ jobs:
           TF_VAR_debug_image_uri: "destroy-placeholder"
           TF_VAR_aws_otel_collector_image_uri: "destroy-placeholder"
         with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.value }}
           tg_action: destroy
 
@@ -155,10 +180,14 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
       - name: Destroy worker messaging infra
         uses: ./.github/actions/terragrunt
         with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/worker_messaging
           tg_action: destroy
 
@@ -172,12 +201,16 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
       - name: Destroy database infra
         uses: ./.github/actions/terragrunt
         env:
           TF_VAR_database_security_group_id: "destroy-placeholder"
         with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/database
           tg_action: destroy
 
@@ -192,10 +225,14 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
       - name: Destroy network infra
         uses: ./.github/actions/terragrunt
         with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/network
           tg_action: destroy
 
@@ -208,10 +245,14 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
       - name: Destroy security infra
         uses: ./.github/actions/terragrunt
         with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/security
           tg_action: destroy
 
@@ -224,10 +265,14 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
       - name: Destroy code
         uses: ./.github/actions/terragrunt
         with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/code_bucket
           tg_action: destroy
 
@@ -240,10 +285,14 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
       - name: Destroy code
         uses: ./.github/actions/terragrunt
         with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/ecr
           tg_action: destroy
 
@@ -257,9 +306,13 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
       - name: Destroy cluster infra
         uses: ./.github/actions/terragrunt
         with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/cluster
           tg_action: destroy

@@ -11,17 +11,17 @@ on:
       lambda_version:
         description: "Release version to plan"
         required: true
-        default: "0.9.4"
+        default: "0.19.13"
         type: string
       frontend_version:
         description: "Frontend version to plan"
         required: true
-        default: "0.9.4"
+        default: "0.19.13"
         type: string
       ecs_version:
         description: "ECS version to plan"
         required: true
-        default: "0.9.4"
+        default: "0.19.13"
         type: string
 
 permissions:

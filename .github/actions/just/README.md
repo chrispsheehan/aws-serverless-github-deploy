@@ -1,13 +1,13 @@
-# Execute Just Command with AWS OIDC
+# Execute Just Command
 
-This GitHub Action sets up [`just`](https://github.com/casey/just), authenticates to AWS via OIDC, and runs a specified **just recipe** — useful for clean, repeatable, script-based workflows in infrastructure, DevOps, and CI/CD pipelines.
+This GitHub Action sets up [`just`](https://github.com/casey/just) and runs a specified **just recipe**. When the recipe needs AWS, the workflow job should configure credentials first.
 
 ---
 
 ## 🚀 Features
 
 - Installs a specific version of [`just`](https://github.com/casey/just)
-- Configures AWS credentials using GitHub OIDC
+- Uses AWS credentials already configured earlier in the same job when needed
 - Executes any `just` command (recipe)
 - Captures and returns the final line of output as an action output
 
@@ -19,7 +19,6 @@ This GitHub Action sets up [`just`](https://github.com/casey/just), authenticate
 |--------------------|--------------------------------------------------|----------|--------------|
 | `just_version`     | Version of `just` to install                     | ❌        | `1.49.0`     |
 | `aws_region`       | AWS region                                       | ❌        | `eu-west-2`  |
-| `aws_oidc_role_arn`| ARN of the IAM role to assume via OIDC (optional when AWS credentials are already configured in the job) | ❌ | `""` |
 | `just_action`      | The `just` recipe to execute                     | ✅        | —            |
 | `mask_result`      | Use to mask value in CI                          | ❌        | `false`      |
 
@@ -34,6 +33,32 @@ This GitHub Action sets up [`just`](https://github.com/casey/just), authenticate
 ---
 
 ## 🛠 Example Usage
+
+### Reuse AWS credentials already configured in the job
+
+```yaml
+jobs:
+  run-just:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials once
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          aws-region: ${{ vars.AWS_REGION }}
+          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
+
+      - name: Run just with ambient AWS session
+        uses: ./.github/actions/just
+        with:
+          justfile_path: justfile.ci
+          just_action: some-aws-recipe
+```
 
 ```just
 lambda-get-version:
@@ -54,6 +79,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Configure AWS credentials once
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          aws-region: ${{ vars.AWS_REGION }}
+          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
+
       - name: get lambda version
         id: lambda-get-version
         uses: ./.github/actions/just
@@ -61,7 +92,6 @@ jobs:
           FUNCTION_NAME: dev-lambda-function
           ALIAS_NAME: dev
         with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           just_action: lambda-get-version
 
       - name: read output from script
@@ -88,11 +118,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Configure AWS credentials once
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          aws-region: ${{ vars.AWS_REGION }}
+          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
+
       - name: get secret
         id: get-secret
         uses: ./.github/actions/just
         with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           just_action: get-secret
 
       - name: read output from script

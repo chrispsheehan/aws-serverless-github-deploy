@@ -1,5 +1,5 @@
-name: "Execute Terraform & Terragrunt with AWS OIDC"
-description: "Sets up Terraform, Terragrunt, configures AWS OIDC authentication and runs terragrunt action"
+name: "Execute Terraform & Terragrunt"
+description: "Sets up Terraform and Terragrunt and runs a terragrunt action using AWS credentials already configured in the job when needed"
 
 inputs:
   tf_version:
@@ -17,9 +17,6 @@ inputs:
     description: "Override or additional Terragrunt variables in JSON format"
     required: false
     default: "{}"
-  aws_oidc_role_arn:
-    description: "AWS iam role arn"
-    required: true
   tg_directory:
     description: "Module directory to perform action upon"
     required: true
@@ -61,7 +58,6 @@ runs:
       env:
         TG_DIRECTORY: ${{ inputs.tg_directory }}
       with:
-        aws_oidc_role_arn: ${{ inputs.aws_oidc_role_arn }}
         aws_region: ${{ inputs.aws_region }}
         justfile_path: justfile.tg
         just_action: terragrunt-plan-download
@@ -94,13 +90,6 @@ runs:
         else
           echo "should_apply=true" >> "$GITHUB_OUTPUT"
         fi
-
-    - name: Configure AWS OIDC Authentication
-      if: inputs.tg_action != 'apply_plan' || steps.apply_plan_guard.outputs.should_apply == 'true'
-      uses: aws-actions/configure-aws-credentials@v5
-      with:
-        role-to-assume: ${{ inputs.aws_oidc_role_arn }}
-        aws-region: ${{ inputs.aws_region }}
 
     - name: Action Terragrunt
       if: inputs.tg_action != 'apply_plan' || steps.apply_plan_guard.outputs.should_apply == 'true'
@@ -163,7 +152,6 @@ runs:
       env:
         TG_DIRECTORY: ${{ inputs.tg_directory }}
       with:
-        aws_oidc_role_arn: ${{ inputs.aws_oidc_role_arn }}
         aws_region: ${{ inputs.aws_region }}
         justfile_path: justfile.tg
         just_action: terragrunt-plan-upload
