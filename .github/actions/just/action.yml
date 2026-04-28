@@ -1,5 +1,5 @@
-name: "Execute Just command with AWS OIDC"
-description: "Sets up Just, configures AWS OIDC authentication and runs just action"
+name: "Execute Just command"
+description: "Sets up Just and runs a just action using AWS credentials already configured in the job when needed"
 
 inputs:
   just_version:
@@ -9,9 +9,6 @@ inputs:
   aws_region:
     description: "AWS Region"
     default: "eu-west-2"
-  aws_oidc_role_arn:
-    description: "AWS iam role arn"
-    default: ""
   just_action:
     description: "Just command (recipe) to execute"
     required: true
@@ -36,13 +33,6 @@ runs:
       uses: extractions/setup-just@v4
       with:
         just-version: ${{ inputs.just_version }}
-
-    - name: Configure AWS OIDC Authentication
-      if: ${{ inputs.aws_oidc_role_arn != '' }}
-      uses: aws-actions/configure-aws-credentials@v5
-      with:
-        role-to-assume: ${{ inputs.aws_oidc_role_arn }}
-        aws-region: ${{ inputs.aws_region }}
 
     - name: Run just action (try/catch + capture)
       id: capture

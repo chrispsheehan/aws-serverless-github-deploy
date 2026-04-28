@@ -60,6 +60,12 @@ jobs:
         value: ${{ fromJson(inputs.lambda_matrix) }}
     steps:
       - uses: actions/checkout@v6
+
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
       - name: Set AppSpec paths
         id: appspec
         shell: bash
@@ -73,7 +79,6 @@ jobs:
         uses: ./.github/actions/terragrunt
         id: get-infra
         with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.value }}
           tg_action: init
 
@@ -93,7 +98,6 @@ jobs:
           FUNCTION_NAME: ${{ steps.get_infra_detail.outputs.lambda_function_name }}
           LAMBDA_ZIP_KEY: ${{ steps.appspec.outputs.lambda_zip_key }}
         with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           justfile_path: justfile.deploy
           just_action: lambda-create-version
 
@@ -104,7 +108,6 @@ jobs:
           FUNCTION_NAME: ${{ steps.get_infra_detail.outputs.lambda_function_name }}
           ALIAS_NAME: ${{ steps.get_infra_detail.outputs.lambda_alias_name }}
         with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           justfile_path: justfile.deploy
           just_action: lambda-get-version
 
@@ -120,7 +123,6 @@ jobs:
           APP_SPEC_FILE: ${{ github.workspace }}/config/deploy/appspec-lambda.rendered.yml
           APP_SPEC_KEY: ${{ steps.appspec.outputs.lambda_appspec_key }}
         with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           justfile_path: justfile.deploy
           just_action: lambda-upload-bundle lambda-set-code-deploy-alarms lambda-deploy lambda-prune
 
@@ -129,6 +131,12 @@ jobs:
     needs: lambdas
     steps:
       - uses: actions/checkout@v6
+
+      - uses: aws-actions/configure-aws-credentials@v6
+        if: ${{ contains(fromJson(inputs.lambda_matrix), 'migrations') }}
+        with:
+          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: Skip when migrations is not in the lambda matrix
         if: ${{ !contains(fromJson(inputs.lambda_matrix), 'migrations') }}
@@ -139,7 +147,6 @@ jobs:
         uses: ./.github/actions/terragrunt
         id: get-infra
         with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/migrations
           tg_action: init
 
@@ -157,7 +164,6 @@ jobs:
         env:
           LAMBDA_NAME: ${{ steps.get_infra_detail.outputs.lambda_function_name }}
         with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           justfile_path: justfile.deploy
           just_action: lambda-invoke
 
@@ -166,6 +172,12 @@ jobs:
     needs: lambdas
     steps:
       - uses: actions/checkout@v6
+
+      - uses: aws-actions/configure-aws-credentials@v6
+        if: ${{ contains(fromJson(inputs.lambda_matrix), 'rds_reader_tagger') }}
+        with:
+          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: Skip when rds_reader_tagger is not in the lambda matrix
         if: ${{ !contains(fromJson(inputs.lambda_matrix), 'rds_reader_tagger') }}
@@ -176,7 +188,6 @@ jobs:
         uses: ./.github/actions/terragrunt
         id: get-infra
         with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/rds_reader_tagger
           tg_action: init
 
@@ -194,7 +205,6 @@ jobs:
         env:
           LAMBDA_NAME: ${{ steps.get_infra_detail.outputs.lambda_function_name }}
         with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           justfile_path: justfile.deploy
           just_action: lambda-invoke
 
@@ -207,11 +217,15 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
       - name: Get frontend infra
         uses: ./.github/actions/terragrunt
         id: get-infra
         with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/frontend
           tg_action: init
 
@@ -231,7 +245,6 @@ jobs:
           WEBSITE_BUCKET: ${{ steps.get_infra_detail.outputs.website_bucket }}
           DISTRIBUTION_ID: ${{ steps.get_infra_detail.outputs.distribution_id }}
         with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           justfile_path: justfile.deploy
           just_action: frontend-deploy frontend-invalidate
 
@@ -243,6 +256,11 @@ jobs:
         value: ${{ fromJson(inputs.task_matrix) }}
     steps:
       - uses: actions/checkout@v6
+
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: Resolve image URIs
         id: image_uris
@@ -270,7 +288,6 @@ jobs:
           TF_VAR_debug_image_uri: ${{ steps.task_inputs.outputs.debug_image_uri }}
           TF_VAR_aws_otel_collector_image_uri: ${{ steps.task_inputs.outputs.otel_image_uri }}
         with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/task_${{ matrix.value }}
 
   ecs:
@@ -283,11 +300,15 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
       - name: Get ${{ matrix.value }} task infra
         uses: ./.github/actions/terragrunt
         id: get-task-infra
         with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/task_${{ matrix.value }}
           tg_action: init
 
@@ -303,7 +324,6 @@ jobs:
         uses: ./.github/actions/terragrunt
         id: get-service-infra
         with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           tg_directory: infra/live/${{ inputs.environment }}/aws/service_${{ matrix.value }}
           tg_action: init
 
@@ -342,7 +362,6 @@ jobs:
           CONTAINER_NAME: ${{ steps.get-task-outputs.outputs.container_name }}
           CONTAINER_PORT: ${{ steps.get-service-outputs.outputs.container_port }}
         with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           justfile_path: justfile.deploy
           just_action: ecs-upload-bundle
 
@@ -355,7 +374,6 @@ jobs:
           CODE_DEPLOY_APP_NAME: ${{ steps.get-service-outputs.outputs.codedeploy_app_name }}
           CODE_DEPLOY_GROUP_NAME: ${{ steps.get-service-outputs.outputs.codedeploy_group_name }}
         with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           justfile_path: justfile.deploy
           just_action: ecs-deploy
 
@@ -367,6 +385,5 @@ jobs:
           SERVICE_NAME: ${{ steps.get-service-outputs.outputs.service_name }}
           TASK_DEFINITION_ARN: ${{ steps.get-task-outputs.outputs.task_definition_arn }}
         with:
-          aws_oidc_role_arn: ${{ env.AWS_OIDC_ROLE_ARN }}
           justfile_path: justfile.deploy
           just_action: ecs-rolling-deploy
