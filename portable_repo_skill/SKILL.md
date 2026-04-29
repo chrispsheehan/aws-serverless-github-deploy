@@ -111,9 +111,9 @@ The warning must:
 1. Name the file or boundary being changed
 2. List the likely blast radius (downstream modules, callers, remote-state consumers, destroy paths, docs, validation commands)
 3. State whether the change is additive (low risk) or destructive/renaming (breaking until callers are updated)
-4. Ask for explicit confirmation before proceeding, unless the user has already pre-authorized the scope
+4. Follow the repo's local operating model: if the repo requires confirmation, ask for it; if the repo requires a warning-but-continue model, warn clearly and proceed
 
-Do not proceed past a high-signal boundary warning silently. If operating autonomously, note the warning in your response and continue only if the change is strictly additive.
+Do not proceed past a high-signal boundary warning silently. If operating autonomously, follow the repo-local contract rather than imposing a generic stop rule.
 
 ## Contradiction Warnings
 
@@ -161,7 +161,7 @@ Before making a change, classify it:
 
 **Behavior-preserving restructure** — moving logic without changing inputs or outputs. Medium risk. Verify callers and destroy paths still work.
 
-When in doubt, prefer additive changes. If the request requires a destructive change, say so before proceeding and confirm scope.
+When in doubt, prefer additive changes. If the request requires a destructive change, say so before proceeding and follow the repo-local confirmation or warning contract for shared boundaries.
 
 ## Editing Heuristics
 
@@ -213,4 +213,3 @@ At the start of each task, quickly map these repo-specific equivalents:
 Once mapped, follow the same workflow without assuming the original repo's tooling or cloud provider.
 
 If the repo provides a companion `SKILL_MAPPING.md`, read it before starting. It concretizes these equivalents for that specific repo so you do not need to re-infer them.
-

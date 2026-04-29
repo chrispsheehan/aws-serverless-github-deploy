@@ -13,7 +13,7 @@ Companion to `portable_repo_skill/SKILL.md`. Concretizes the skill's abstract ca
 - Root: `README.md`, `AGENTS.md`
 - Workflows: `.github/docs/README.md`
 - Shared Terraform/Terragrunt modules: `infra/modules/aws/_shared/**/README.md`
-- Concrete modules: per-module `README.md` alongside `terragrunt.hcl`
+- Concrete modules: `infra/modules/**/README.md` for module contracts; treat live `terragrunt.hcl` directories as stack wrappers, not the canonical source for shared module behavior
 
 ## Shared-Contract Directories
 
