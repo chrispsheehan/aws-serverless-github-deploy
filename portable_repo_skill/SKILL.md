@@ -97,7 +97,7 @@ Prefer deriving shared data once in the reusable layer and exposing it as an exp
 
 ## High-Signal Edit Warnings
 
-Before editing a high-signal boundary, emit a conspicuous terminal warning in commentary immediately before the edit.
+Before editing a high-signal boundary, emit a conspicuous warning in your response immediately before the edit — not after.
 
 High-signal boundaries usually include:
 
@@ -106,7 +106,14 @@ High-signal boundaries usually include:
 - reusable workflows
 - global policy or permission definitions
 
-The warning should name the likely blast radius, such as downstream modules, callers, remote-state consumers, destroy paths, docs, or validation commands.
+The warning must:
+
+1. Name the file or boundary being changed
+2. List the likely blast radius (downstream modules, callers, remote-state consumers, destroy paths, docs, validation commands)
+3. State whether the change is additive (low risk) or destructive/renaming (breaking until callers are updated)
+4. Ask for explicit confirmation before proceeding, unless the user has already pre-authorized the scope
+
+Do not proceed past a high-signal boundary warning silently. If operating autonomously, note the warning in your response and continue only if the change is strictly additive.
 
 ## Contradiction Warnings
 
@@ -130,15 +137,31 @@ In that warning:
 
 ## Validation Strategy
 
-Run the smallest relevant validation surface for the change.
+Decide which validation tier applies before running anything:
 
-Examples:
+1. **Attempt validation** when credentials, network, and environment are available and the scope is narrow enough to run without risk.
+2. **State the command** when validation is blocked by credentials, permissions, network, or environment limits — name the exact command that must be run manually, and in which environment.
+3. **Skip and warn** when no narrow validation surface exists for the affected area — say so explicitly rather than running a broad sweep that would produce noise or side effects.
+
+Do not default to option 1 in CI or infrastructure contexts without confirming that ambient credentials are available and scoped correctly. Do not default to option 3 without first checking whether a targeted command exists.
+
+Examples of targeted validation:
 
 - targeted tests instead of full-suite runs
 - the narrowest affected plan instead of a full multi-stack run
 - only the callers and workflows affected by a reusable workflow change
 
-If validation is blocked by credentials, permissions, network, or environment limits, say so explicitly in the final response and name the exact command that should be run manually.
+## Change Classification
+
+Before making a change, classify it:
+
+**Additive** — new optional input, new output, new module, new workflow step that existing callers can ignore. Low risk. Proceed with standard checks.
+
+**Destructive or renaming** — removing or renaming an output, input, variable, or module that is referenced downstream. Treat as breaking until all callers are updated in the same patch. Do not make a destructive change in a shared boundary without updating every consumer in the same change, or explicitly handing off that follow-on work to the user.
+
+**Behavior-preserving restructure** — moving logic without changing inputs or outputs. Medium risk. Verify callers and destroy paths still work.
+
+When in doubt, prefer additive changes. If the request requires a destructive change, say so before proceeding and confirm scope.
 
 ## Editing Heuristics
 
@@ -188,3 +211,6 @@ At the start of each task, quickly map these repo-specific equivalents:
 - protected or high-blast-radius files
 
 Once mapped, follow the same workflow without assuming the original repo's tooling or cloud provider.
+
+If the repo provides a companion `SKILL_MAPPING.md`, read it before starting. It concretizes these equivalents for that specific repo so you do not need to re-infer them.
+
