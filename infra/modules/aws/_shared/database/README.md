@@ -29,7 +29,8 @@ Shared Aurora PostgreSQL Serverless v2 module.
 - `publicly_accessible`
 - `database_port`
 - `engine_version`
-- `backup_retention_period`
+- `recovery_class`
+- `restore_drill`
 - `rds_min_capacity`
 - `rds_max_capacity`
 - `rds_max_reader_count`
@@ -45,6 +46,15 @@ Shared Aurora PostgreSQL Serverless v2 module.
 - `database_port`
 - `readonly_endpoint`
 - `readwrite_endpoint`
+- `recovery_class`
+- `restore_drill_cadence`
+- `target_rpo_minutes`
+- `target_rto_minutes`
+- `restore_drill_enabled`
+- `restore_drill_mode`
+- `restore_drill_schedule_expression`
+- `restore_drill_state_machine_arn`
+- `restore_drill_state_machine_name`
 
 This module is intentionally Aurora PostgreSQL Serverless v2 specific. It does not currently support provisioned RDS instances or non-Postgres engines.
 In this repo the concrete `database` wrapper resolves the VPC and public or private subnet ids, while the shared infra workflow injects `database_security_group_id` from the `security` stack via `TF_VAR_database_security_group_id`.
@@ -52,3 +62,71 @@ By default the module tracks the latest matching Aurora PostgreSQL 16.x engine v
 SSM parameter paths are rooted at `/<environment>/<project>/<database>/...` so they do not collide with AWS-reserved `/aws` prefixes.
 The runtime contract for database credentials is the Aurora-managed master secret exposed from the cluster. Terraform reads the managed secret ARN directly from the cluster resource rather than doing a separate Secrets Manager lookup during the same apply, because AWS may not populate that managed-secret reference early enough for an immediate data read.
 If you need new scale-out readers to inherit cluster tags, keep that automation in a separate stack such as `rds_reader_tagger` rather than pushing event-driven behavior into this shared database module.
+
+## Recovery Classes
+
+The shared module derives backup retention, deletion protection, final-snapshot behavior, minimum reader count, and recovery metadata from a single `recovery_class` input.
+
+### `dev`
+
+- 1 day of automated backup retention
+- deletion protection disabled
+- no final snapshot on destroy
+- no required reader instances
+- `restore_drill_cadence = "never"`
+
+### `standard`
+
+- 7 days of automated backup retention
+- deletion protection enabled
+- final snapshot required on destroy
+- at least 1 reader instance when multiple subnet AZs are available
+- `restore_drill_cadence = "monthly"`
+
+### `critical`
+
+- 35 days of automated backup retention
+- deletion protection enabled
+- final snapshot required on destroy
+- at least 2 reader instances when enough subnet AZs are available
+- `restore_drill_cadence = "weekly"`
+
+The module publishes `RecoveryClass`, `RestoreDrillCadence`, `TargetRPOMinutes`, and `TargetRTOMinutes` as cluster tags so operators can see the intended recovery posture directly on the Aurora cluster.
+
+## Restore Drill
+
+The shared module can also provision an opt-in restore-drill skeleton inside the same database module. When enabled, it creates:
+
+- a Step Functions state machine for manual restore-drill execution
+- an optional EventBridge Scheduler schedule when the mode includes scheduled runs
+- the IAM roles needed for the scheduler to start the state machine and for Step Functions to call RDS APIs
+
+Example:
+
+```hcl
+recovery_class = "standard"
+
+restore_drill = {
+  enabled      = true
+  mode         = "manual_and_scheduled"
+  use_pitr     = true
+  retain_hours = 4
+}
+```
+
+The schedule expression is derived from `recovery_class`:
+
+- `dev`: no automatic schedule
+- `standard`: `rate(30 days)`
+- `critical`: `rate(7 days)`
+
+The current Step Functions skeleton:
+
+1. restores a temporary Aurora cluster from PITR
+2. waits for the scratch cluster to become available
+3. creates one temporary writer instance
+4. waits for the instance to become available
+5. holds the restored environment for the configured retention window
+6. deletes the temporary instance and cluster
+
+This first version does not yet run application-level validation against the restored database. It proves restore orchestration and cleanup only. Add a dedicated validation Lambda or ECS task later once the restore path itself is stable.

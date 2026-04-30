@@ -18,6 +18,8 @@ Update documentation in the same change:
 - keep `.github/docs/README.md` as the source of truth for workflow contracts and CI feasibility checks
 - prefer Mermaid diagrams in `.github/docs/README.md` that show jobs, `needs`, and reusable-workflow relationships rather than trying to reproduce the exact GitHub Actions UI
 - when adding a new AWS infra type or service family, check whether the deploy role in `infra/live/global_vars.hcl` needs additional `allowed_role_actions` and update it in the same change if required
+- when changing Terraform in a way that introduces any new AWS service surface area or API family, even inside an existing module, review `infra/live/global_vars.hcl` for required `allowed_role_actions` updates in the same change; do not limit this check only to obviously new top-level stack types
+- before closing any infra change that adds AWS resources, IAM principals, or orchestration services, explicitly verify whether it introduced new permissions for deploy-time creation or mutation and update `infra/live/global_vars.hcl` if needed
 - when changing the set of deployable Lambda or ECS runtimes, check whether the shared `observability` dashboard still reflects the current runtime surface and update it in the same change if needed
 
 ### Documentation Architecture

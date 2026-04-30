@@ -4,7 +4,7 @@ include "root" {
 
 inputs = {
   database_name                         = "app"
-  backup_retention_period               = 7
+  recovery_class                        = "standard" # "critical" for production workloads, "standard" for non-production workloads
   rds_min_capacity                      = 0.5
   rds_max_capacity                      = 2.0
   rds_max_reader_count                  = 1
