@@ -667,3 +667,86 @@ ecs-rolling-deploy:
         --services "$SERVICE_NAME"
 
     echo "✅ ECS rolling deployment completed for $SERVICE_NAME"
+
+
+# Sweep remaining tagged dev resources that Terraform destroy may leave behind.
+cleanup-dev-tagged-resources:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "${PROJECT_NAME:-}" ]]; then
+        echo "❌ PROJECT_NAME environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "${ENVIRONMENT:-}" ]]; then
+        echo "❌ ENVIRONMENT environment variable is not set."
+        exit 1
+    fi
+
+    if [[ "$ENVIRONMENT" == "prod" ]]; then
+        echo "Refusing to run dev tagged-resource cleanup against prod."
+        exit 1
+    fi
+
+    mapfile -t resource_arns < <(
+        aws resourcegroupstaggingapi get-resources \
+          --tag-filters "Key=Project,Values=${PROJECT_NAME}" "Key=Environment,Values=${ENVIRONMENT}" \
+          --query 'ResourceTagMappingList[].ResourceARN' \
+          --output text \
+        | tr '\t' '\n' \
+        | sed '/^$/d' \
+        | sort -u
+    )
+
+    if [[ ${#resource_arns[@]} -eq 0 ]]; then
+        echo "No tagged ${ENVIRONMENT} resources remain."
+        exit 0
+    fi
+
+    unsupported=()
+
+    for arn in "${resource_arns[@]}"; do
+        case "$arn" in
+            arn:aws:cognito-idp:*:userpool/*)
+                user_pool_id="${arn##*/}"
+                echo "Deleting Cognito user pool $user_pool_id"
+                aws cognito-idp delete-user-pool --user-pool-id "$user_pool_id"
+                ;;
+            arn:aws:ecs:*:task-definition/*)
+                task_definition_arn="${arn#arn:aws:ecs:}"
+                task_definition_arn="arn:aws:ecs:${task_definition_arn}"
+                echo "Deregistering ECS task definition $task_definition_arn"
+                aws ecs deregister-task-definition --task-definition "$task_definition_arn" >/dev/null
+                ;;
+            *)
+                unsupported+=("$arn")
+                ;;
+        esac
+    done
+
+    if [[ ${#unsupported[@]} -gt 0 ]]; then
+        echo "Unsupported tagged resources remain after cleanup attempt:"
+        printf '%s\n' "${unsupported[@]}"
+        exit 1
+    fi
+
+    sleep 10
+
+    mapfile -t remaining_arns < <(
+        aws resourcegroupstaggingapi get-resources \
+          --tag-filters "Key=Project,Values=${PROJECT_NAME}" "Key=Environment,Values=${ENVIRONMENT}" \
+          --query 'ResourceTagMappingList[].ResourceARN' \
+          --output text \
+        | tr '\t' '\n' \
+        | sed '/^$/d' \
+        | sort -u
+    )
+
+    if [[ ${#remaining_arns[@]} -gt 0 ]]; then
+        echo "Tagged resources still remain after cleanup:"
+        printf '%s\n' "${remaining_arns[@]}"
+        exit 1
+    fi
+
+    echo "✅ Tagged ${ENVIRONMENT} resources were fully cleaned up."

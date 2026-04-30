@@ -128,7 +128,7 @@ flowchart LR
 ### Cleanup And Discovery
 
 - `destroy.yml`
-  Tears down app layers before shared dependencies, including the shared observability dashboard and any environment-owned shared artifact stacks such as the `dev` code bucket.
+  Tears down app layers before shared dependencies, including the shared observability dashboard and any environment-owned shared artifact stacks such as the `dev` code bucket. After the main graph completes, `dev` runs a final tagged-resource sweep through `justfile.deploy` that currently deletes leaked Cognito user pools and deregisters leaked ECS task-definition revisions, then fails if tagged leftovers still remain.
 - `shared_directories_get.yml`
   Derives the directory-based matrices used by wrapper workflows and PR action-test discovery.
 
@@ -206,6 +206,8 @@ Run these checks on every CI, workflow, or deploy-contract change.
 - confirm destroy ordering still removes downstream consumers before shared stacks
 - check required Terraform variables on destroy as well as apply
 - prefer depending on real downstream consumers rather than serializing unrelated shared stacks
+- when a module creates manual backup artifacts outside Terraform ownership, decide explicitly whether destroy should delete or retain them by environment
+- if destroy relies on a final tagged-resource sweep, keep the cleanup logic in `justfile.deploy` and fail the workflow on unsupported tagged leftovers so new leak classes are visible
 
 ## Wrapper Workflow Summary
 
