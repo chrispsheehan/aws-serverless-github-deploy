@@ -31,6 +31,7 @@ Shared Aurora PostgreSQL Serverless v2 module.
 - `engine_version`
 - `recovery_class`
 - `restore_drill`
+- `manual_snapshot`
 - `rds_min_capacity`
 - `rds_max_capacity`
 - `rds_max_reader_count`
@@ -55,6 +56,9 @@ Shared Aurora PostgreSQL Serverless v2 module.
 - `restore_drill_schedule_expression`
 - `restore_drill_state_machine_arn`
 - `restore_drill_state_machine_name`
+- `manual_snapshot_enabled`
+- `manual_snapshot_state_machine_arn`
+- `manual_snapshot_state_machine_name`
 
 This module is intentionally Aurora PostgreSQL Serverless v2 specific. It does not currently support provisioned RDS instances or non-Postgres engines.
 In this repo the concrete `database` wrapper resolves the VPC and public or private subnet ids, while the shared infra workflow injects `database_security_group_id` from the `security` stack via `TF_VAR_database_security_group_id`.
@@ -138,3 +142,26 @@ The current Step Functions skeleton:
 6. deletes the temporary instance and cluster
 
 This first version does not yet run application-level validation against the restored database. It proves restore orchestration and cleanup only. Add a dedicated validation Lambda or ECS task later once the restore path itself is stable.
+
+## Manual Snapshot
+
+The shared module can also provision an opt-in manual snapshot trigger. This is separate from the restore drill:
+
+- `manual_snapshot` creates a named Aurora cluster snapshot on demand
+- `restore_drill` restores a temporary cluster and validates the recovery path
+
+Example:
+
+```hcl
+manual_snapshot = {
+  enabled = true
+}
+```
+
+When enabled, the module creates a second Step Functions state machine that:
+
+1. builds a unique snapshot identifier
+2. creates a manual Aurora cluster snapshot
+3. waits until the snapshot reaches `available`
+
+Use the `manual_snapshot_state_machine_arn` or `manual_snapshot_state_machine_name` output to start it manually from the Step Functions console or CLI.

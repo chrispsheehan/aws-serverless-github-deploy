@@ -36,6 +36,16 @@ data "aws_iam_policy_document" "restore_drill_sfn" {
     ]
     resources = ["*"]
   }
+
+  statement {
+    sid    = "CreateAndDescribeManualSnapshots"
+    effect = "Allow"
+    actions = [
+      "rds:CreateDBClusterSnapshot",
+      "rds:DescribeDBClusterSnapshots",
+    ]
+    resources = ["*"]
+  }
 }
 
 data "aws_iam_policy_document" "restore_drill_scheduler_assume" {

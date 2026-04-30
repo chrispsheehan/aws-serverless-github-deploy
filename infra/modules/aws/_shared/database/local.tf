@@ -78,14 +78,24 @@ locals {
     var.restore_drill,
   )
 
+  manual_snapshot = merge(
+    {
+      enabled = false
+    },
+    var.manual_snapshot,
+  )
+
   restore_drill_state_machine_enabled = local.restore_drill.enabled
   restore_drill_schedule_enabled = local.restore_drill.enabled && contains(
     ["scheduled", "manual_and_scheduled"],
     local.restore_drill.mode,
   ) && local.restore_drill.schedule_expression != null
-  restore_drill_identifier_prefix = substr("${local.cluster_identifier}-drill", 0, 30)
-  restore_drill_instance_class    = "db.serverless"
-  restore_drill_retention_seconds = local.restore_drill.retain_hours * 3600
+  manual_snapshot_state_machine_enabled = local.manual_snapshot.enabled
+  snapshot_workflow_role_enabled        = local.restore_drill_state_machine_enabled || local.manual_snapshot_state_machine_enabled
+  restore_drill_identifier_prefix       = substr("${local.cluster_identifier}-drill", 0, 30)
+  manual_snapshot_identifier_prefix     = substr("${local.cluster_identifier}-manual", 0, 32)
+  restore_drill_instance_class          = "db.serverless"
+  restore_drill_retention_seconds       = local.restore_drill.retain_hours * 3600
 
   restore_drill_state_machine_definition = jsonencode({
     Comment = "Restore-drill skeleton for ${local.cluster_identifier}"
@@ -242,6 +252,77 @@ locals {
           },
         ]
         End = true
+      }
+    }
+  })
+
+  manual_snapshot_state_machine_definition = jsonencode({
+    Comment = "Manual snapshot trigger for ${local.cluster_identifier}"
+    StartAt = "PrepareSnapshotContext"
+    States = {
+      PrepareSnapshotContext = {
+        Type = "Pass"
+        Parameters = {
+          "source_cluster_identifier" = aws_rds_cluster.aurora_postgres.cluster_identifier
+          "snapshot_suffix.$"         = "States.ArrayGetItem(States.StringSplit(States.UUID(), '-'), 0)"
+        }
+        Next = "BuildSnapshotIdentifier"
+      }
+      BuildSnapshotIdentifier = {
+        Type = "Pass"
+        Parameters = {
+          "source_cluster_identifier.$" = "$.source_cluster_identifier"
+          "snapshot_suffix.$"           = "$.snapshot_suffix"
+          "snapshot_identifier.$"       = format("States.Format('{}-{}', '%s', $.snapshot_suffix)", local.manual_snapshot_identifier_prefix)
+        }
+        Next = "CreateClusterSnapshot"
+      }
+      CreateClusterSnapshot = {
+        Type     = "Task"
+        Resource = "arn:aws:states:::aws-sdk:rds:createDBClusterSnapshot"
+        Parameters = {
+          "DBClusterIdentifier.$"         = "$.source_cluster_identifier"
+          "DBClusterSnapshotIdentifier.$" = "$.snapshot_identifier"
+          "Tags" = [
+            {
+              "Key"   = "ManualSnapshot"
+              "Value" = "true"
+            },
+            {
+              "Key"   = "SourceCluster"
+              "Value" = aws_rds_cluster.aurora_postgres.cluster_identifier
+            },
+          ]
+        }
+        Next = "WaitForSnapshot"
+      }
+      WaitForSnapshot = {
+        Type    = "Wait"
+        Seconds = 60
+        Next    = "DescribeSnapshot"
+      }
+      DescribeSnapshot = {
+        Type     = "Task"
+        Resource = "arn:aws:states:::aws-sdk:rds:describeDBClusterSnapshots"
+        Parameters = {
+          "DBClusterSnapshotIdentifier.$" = "$.snapshot_identifier"
+        }
+        ResultPath = "$.snapshot_status"
+        Next       = "SnapshotReady"
+      }
+      SnapshotReady = {
+        Type = "Choice"
+        Choices = [
+          {
+            Variable     = "$.snapshot_status.DBClusterSnapshots[0].Status"
+            StringEquals = "available"
+            Next         = "SnapshotCreated"
+          },
+        ]
+        Default = "WaitForSnapshot"
+      }
+      SnapshotCreated = {
+        Type = "Succeed"
       }
     }
   })

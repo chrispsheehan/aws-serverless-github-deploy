@@ -96,14 +96,14 @@ resource "aws_ssm_parameter" "db_readwrite_endpoint_parameter" {
 }
 
 resource "aws_iam_role" "restore_drill_sfn" {
-  count = local.restore_drill_state_machine_enabled ? 1 : 0
+  count = local.snapshot_workflow_role_enabled ? 1 : 0
 
   name               = "${local.cluster_identifier}-restore-drill-sfn"
   assume_role_policy = data.aws_iam_policy_document.restore_drill_sfn_assume.json
 }
 
 resource "aws_iam_role_policy" "restore_drill_sfn" {
-  count = local.restore_drill_state_machine_enabled ? 1 : 0
+  count = local.snapshot_workflow_role_enabled ? 1 : 0
 
   name   = "${local.cluster_identifier}-restore-drill-sfn"
   role   = aws_iam_role.restore_drill_sfn[count.index].id
@@ -117,6 +117,15 @@ resource "aws_sfn_state_machine" "restore_drill" {
   role_arn = aws_iam_role.restore_drill_sfn[count.index].arn
 
   definition = local.restore_drill_state_machine_definition
+}
+
+resource "aws_sfn_state_machine" "manual_snapshot" {
+  count = local.manual_snapshot_state_machine_enabled ? 1 : 0
+
+  name     = "${local.cluster_identifier}-manual-snapshot"
+  role_arn = aws_iam_role.restore_drill_sfn[0].arn
+
+  definition = local.manual_snapshot_state_machine_definition
 }
 
 resource "aws_iam_role" "restore_drill_scheduler" {

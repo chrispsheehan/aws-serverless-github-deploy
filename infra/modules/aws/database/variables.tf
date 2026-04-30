@@ -65,6 +65,14 @@ variable "restore_drill" {
   default = {}
 }
 
+variable "manual_snapshot" {
+  description = "Optional manual snapshot trigger passed through to the shared Aurora module."
+  type = object({
+    enabled = optional(bool, false)
+  })
+  default = {}
+}
+
 variable "rds_min_capacity" {
   type        = number
   description = "Minimum Aurora Serverless v2 capacity in ACUs"

@@ -78,6 +78,14 @@ variable "restore_drill" {
   }
 }
 
+variable "manual_snapshot" {
+  description = "Optional manual snapshot trigger for this Aurora cluster."
+  type = object({
+    enabled = optional(bool, false)
+  })
+  default = {}
+}
+
 variable "rds_min_capacity" {
   type        = number
   description = "Minimum Aurora Serverless v2 capacity in ACUs"

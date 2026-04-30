@@ -11,6 +11,7 @@ module "database" {
 
   recovery_class                        = var.recovery_class
   restore_drill                         = var.restore_drill
+  manual_snapshot                       = var.manual_snapshot
   rds_min_capacity                      = var.rds_min_capacity
   rds_max_capacity                      = var.rds_max_capacity
   performance_insights_enabled          = var.performance_insights_enabled

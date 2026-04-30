@@ -22,6 +22,7 @@ Concrete Aurora PostgreSQL wrapper.
 - `engine_version`
 - `recovery_class`
 - `restore_drill`
+- `manual_snapshot`
 - `rds_min_capacity`
 - `rds_max_capacity`
 - `rds_max_reader_count`
@@ -43,3 +44,4 @@ The database credentials outputs point at the Aurora-managed master secret rathe
 Aurora reader instances created later by scale-out can be paired with the separate `rds_reader_tagger` stack so new readers inherit the cluster's non-AWS tags.
 Use `recovery_class` as the main resilience input and let the shared module derive retention, final-snapshot, deletion-protection, and reader-minimum defaults from that class.
 Use `restore_drill` when you want the shared module to also provision the optional restore-drill Step Functions skeleton and any class-derived schedule.
+Use `manual_snapshot` when you want the shared module to also provision a separate on-demand manual snapshot Step Functions trigger.

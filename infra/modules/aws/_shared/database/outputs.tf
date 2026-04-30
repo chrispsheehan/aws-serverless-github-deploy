@@ -69,3 +69,15 @@ output "restore_drill_state_machine_arn" {
 output "restore_drill_state_machine_name" {
   value = try(aws_sfn_state_machine.restore_drill[0].name, null)
 }
+
+output "manual_snapshot_enabled" {
+  value = local.manual_snapshot.enabled
+}
+
+output "manual_snapshot_state_machine_arn" {
+  value = try(aws_sfn_state_machine.manual_snapshot[0].arn, null)
+}
+
+output "manual_snapshot_state_machine_name" {
+  value = try(aws_sfn_state_machine.manual_snapshot[0].name, null)
+}
