@@ -669,8 +669,8 @@ ecs-rolling-deploy:
     echo "✅ ECS rolling deployment completed for $SERVICE_NAME"
 
 
-# Sweep remaining tagged dev resources that Terraform destroy may leave behind.
-cleanup-dev-tagged-resources:
+# Sweep remaining tagged resources that Terraform destroy may leave behind.
+cleanup-tagged-resources:
     #!/usr/bin/env bash
     set -euo pipefail
 
@@ -684,8 +684,8 @@ cleanup-dev-tagged-resources:
         exit 1
     fi
 
-    if [[ "$ENVIRONMENT" == "prod" ]]; then
-        echo "Refusing to run dev tagged-resource cleanup against prod."
+    if [[ "$ENVIRONMENT" == "prod" && "${ALLOW_PROD_CLEANUP:-false}" != "true" ]]; then
+        echo "Refusing to run tagged-resource cleanup against prod without ALLOW_PROD_CLEANUP=true."
         exit 1
     fi
 

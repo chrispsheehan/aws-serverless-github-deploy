@@ -128,7 +128,7 @@ flowchart LR
 ### Cleanup And Discovery
 
 - `destroy.yml`
-  Tears down app layers before shared dependencies, including the shared observability dashboard and any environment-owned shared artifact stacks such as the `dev` code bucket. After the main graph completes, `dev` runs a final tagged-resource sweep through `justfile.deploy` that currently deletes leaked Cognito user pools and deregisters leaked ECS task-definition revisions, then fails if tagged leftovers still remain.
+  Tears down app layers before shared dependencies, including the shared observability dashboard and any environment-owned shared artifact stacks such as the `dev` code bucket. The workflow-dispatch input `allow_prod_cleanup` now gates every cleanup or destroy job that is normally skipped for `prod`, including the `Code Bucket`, `ECR`, and final tagged-resource sweep jobs. After the main graph completes, `dev` always runs a final tagged-resource sweep through `justfile.deploy` that currently deletes leaked Cognito user pools and deregisters leaked ECS task-definition revisions, then fails if tagged leftovers still remain. `prod` runs that same sweep only when `allow_prod_cleanup` is enabled, and the workflow prints a conspicuous warning first.
 - `shared_directories_get.yml`
   Derives the directory-based matrices used by wrapper workflows and PR action-test discovery.
 

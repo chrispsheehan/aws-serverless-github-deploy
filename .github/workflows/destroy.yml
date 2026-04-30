@@ -10,6 +10,11 @@ on:
         options:
           - dev
           - prod
+      allow_prod_cleanup:
+        description: "Also run prod-only cleanup and destroy jobs that are normally skipped for prod"
+        required: true
+        type: boolean
+        default: false
 
 concurrency: # only run destroy when no other deploy/destroy is running for the same environment
   group: deploy-${{ inputs.environment }}
@@ -258,7 +263,7 @@ jobs:
 
   build-bucket:
     name: Code Bucket
-    if: inputs.environment != 'prod'
+    if: inputs.environment != 'prod' || inputs.allow_prod_cleanup
     needs:
       - lambdas
     runs-on: ubuntu-latest
@@ -278,7 +283,7 @@ jobs:
 
   ecr:
     name: ECR
-    if: inputs.environment != 'prod'
+    if: inputs.environment != 'prod' || inputs.allow_prod_cleanup
     needs:
       - network
     runs-on: ubuntu-latest
@@ -318,8 +323,8 @@ jobs:
           tg_action: destroy
 
   dev-cleanup:
-    name: Dev Cleanup
-    if: inputs.environment != 'prod'
+    name: Tagged Cleanup
+    if: inputs.environment != 'prod' || inputs.allow_prod_cleanup
     needs:
       - observability
       - cognito
@@ -336,11 +341,18 @@ jobs:
           role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Sweep tagged dev resources
+      - name: Warn before prod tagged cleanup
+        if: inputs.environment == 'prod'
+        run: |
+          printf '\033[1;31m%s\033[0m\n' 'WARNING: running retained tagged-resource cleanup for prod.'
+          printf '%s\n' 'This may delete leaked Cognito user pools and deregister tagged ECS task-definition revisions.'
+
+      - name: Sweep tagged resources
         uses: ./.github/actions/just
         env:
           ENVIRONMENT: ${{ inputs.environment }}
           PROJECT_NAME: ${{ vars.PROJECT_NAME }}
+          ALLOW_PROD_CLEANUP: ${{ inputs.allow_prod_cleanup }}
         with:
           justfile_path: justfile.deploy
-          just_action: cleanup-dev-tagged-resources
+          just_action: cleanup-tagged-resources
