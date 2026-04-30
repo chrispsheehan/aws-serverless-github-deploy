@@ -120,6 +120,14 @@ The schedule expression is derived from `recovery_class`:
 - `standard`: `rate(30 days)`
 - `critical`: `rate(7 days)`
 
+Rough cost guidance by recovery class:
+
+- `dev`: lowest ongoing cost; 1-day automated backups, no final snapshot on destroy, no required reader instances, no scheduled drill by default
+- `standard`: moderate cost increase; 7-day backups, final snapshot on destroy, at least 1 reader when multiple subnet AZs are available, monthly scheduled drill if enabled
+- `critical`: highest ongoing cost; 35-day backups, final snapshot on destroy, at least 2 readers when enough subnet AZs are available, weekly scheduled drill if enabled
+
+The largest drill-related cost is the temporary restored Aurora cluster and scratch writer instance. Step Functions and EventBridge Scheduler usually contribute negligible cost compared with Aurora compute and storage.
+
 The current Step Functions skeleton:
 
 1. restores a temporary Aurora cluster from PITR

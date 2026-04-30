@@ -21,6 +21,8 @@ Update documentation in the same change:
 - when changing Terraform in a way that introduces any new AWS service surface area or API family, even inside an existing module, review `infra/live/global_vars.hcl` for required `allowed_role_actions` updates in the same change; do not limit this check only to obviously new top-level stack types
 - before closing any infra change that adds AWS resources, IAM principals, or orchestration services, explicitly verify whether it introduced new permissions for deploy-time creation or mutation and update `infra/live/global_vars.hcl` if needed
 - when changing the set of deployable Lambda or ECS runtimes, check whether the shared `observability` dashboard still reflects the current runtime surface and update it in the same change if needed
+- when changing `infra/modules/aws/_shared/database/**` recovery behavior, restore-drill behavior, backup retention, reader defaults, or other resilience knobs, include a rough cost comparison in the final response that contrasts `dev`, `standard`, and `critical`; keep it qualitative unless current pricing was explicitly requested, and call out that Aurora scratch restore compute/storage dominates drill cost more than Step Functions or Scheduler
+- when changing a live database stack's `recovery_class`, include a short conspicuous ANSI-colored warning block in the final response in the form "you have changed from X to Y" followed by a brief note about likely cost direction such as higher backup storage, more required readers, or more frequent restore drills; keep it short and awareness-focused rather than explanatory
 
 ### Documentation Architecture
 
