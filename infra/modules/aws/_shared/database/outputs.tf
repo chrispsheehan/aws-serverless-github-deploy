@@ -81,3 +81,7 @@ output "manual_snapshot_state_machine_arn" {
 output "manual_snapshot_state_machine_name" {
   value = try(aws_sfn_state_machine.manual_snapshot[0].name, null)
 }
+
+output "manual_snapshot_identifier_prefix" {
+  value = local.manual_snapshot_identifier_prefix
+}

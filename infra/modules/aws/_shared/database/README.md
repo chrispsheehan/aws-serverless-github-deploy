@@ -59,6 +59,7 @@ Shared Aurora PostgreSQL Serverless v2 module.
 - `manual_snapshot_enabled`
 - `manual_snapshot_state_machine_arn`
 - `manual_snapshot_state_machine_name`
+- `manual_snapshot_identifier_prefix`
 
 This module is intentionally Aurora PostgreSQL Serverless v2 specific. It does not currently support provisioned RDS instances or non-Postgres engines.
 In this repo the concrete `database` wrapper resolves the VPC and public or private subnet ids, while the shared infra workflow injects `database_security_group_id` from the `security` stack via `TF_VAR_database_security_group_id`.
@@ -165,3 +166,4 @@ When enabled, the module creates a second Step Functions state machine that:
 3. waits until the snapshot reaches `available`
 
 Use the `manual_snapshot_state_machine_arn` or `manual_snapshot_state_machine_name` output to start it manually from the Step Functions console or CLI.
+The module also exposes `manual_snapshot_identifier_prefix` so destroy or cleanup paths can delete only the repo-owned manual snapshots without re-deriving the naming contract outside Terraform.

@@ -128,7 +128,7 @@ flowchart LR
 ### Cleanup And Discovery
 
 - `destroy.yml`
-  Tears down app layers before shared dependencies, including the shared observability dashboard and any environment-owned shared artifact stacks such as the `dev` code bucket.
+  Tears down app layers before shared dependencies, including the shared observability dashboard and any environment-owned shared artifact stacks such as the `dev` code bucket. In the `database` job, `dev` now runs `tg_action: init` first to read Terraform outputs from the database stack, then passes `cluster_identifier` and `manual_snapshot_identifier_prefix` into `justfile.deploy` so the cleanup recipe deletes only repo-owned manual Aurora cluster snapshots before Terragrunt destroy. `prod` intentionally retains those manual snapshots.
 - `shared_directories_get.yml`
   Derives the directory-based matrices used by wrapper workflows and PR action-test discovery.
 
@@ -206,6 +206,7 @@ Run these checks on every CI, workflow, or deploy-contract change.
 - confirm destroy ordering still removes downstream consumers before shared stacks
 - check required Terraform variables on destroy as well as apply
 - prefer depending on real downstream consumers rather than serializing unrelated shared stacks
+- when a runtime or module creates manual backup artifacts outside Terraform resource ownership, decide explicitly whether destroy should delete or retain them by environment and keep that behavior documented in `destroy.yml` contracts
 
 ## Wrapper Workflow Summary
 
