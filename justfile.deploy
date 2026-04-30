@@ -667,3 +667,38 @@ ecs-rolling-deploy:
         --services "$SERVICE_NAME"
 
     echo "✅ ECS rolling deployment completed for $SERVICE_NAME"
+
+
+# Delete repo-owned manual Aurora cluster snapshots for an environment.
+database-delete-manual-snapshots:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "${CLUSTER_IDENTIFIER:-}" ]]; then
+        echo "❌ CLUSTER_IDENTIFIER environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "${MANUAL_SNAPSHOT_PREFIX:-}" ]]; then
+        echo "❌ MANUAL_SNAPSHOT_PREFIX environment variable is not set."
+        exit 1
+    fi
+
+    snapshot_ids="$(
+        aws rds describe-db-cluster-snapshots \
+          --db-cluster-identifier "$CLUSTER_IDENTIFIER" \
+          --snapshot-type manual \
+          --query "DBClusterSnapshots[?starts_with(DBClusterSnapshotIdentifier, \`${MANUAL_SNAPSHOT_PREFIX}\`)].DBClusterSnapshotIdentifier" \
+          --output text || true
+    )"
+
+    if [[ -z "$snapshot_ids" || "$snapshot_ids" == "None" ]]; then
+        echo "No repo-owned manual snapshots found for $CLUSTER_IDENTIFIER"
+        exit 0
+    fi
+
+    for snapshot_id in $snapshot_ids; do
+        echo "Deleting manual snapshot $snapshot_id"
+        aws rds delete-db-cluster-snapshot \
+          --db-cluster-snapshot-identifier "$snapshot_id"
+    done

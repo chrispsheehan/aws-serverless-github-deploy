@@ -33,3 +33,55 @@ output "readonly_endpoint" {
 output "readwrite_endpoint" {
   value = aws_rds_cluster.aurora_postgres.endpoint
 }
+
+output "recovery_class" {
+  value = var.recovery_class
+}
+
+output "restore_drill_cadence" {
+  value = local.recovery_profile.restore_drill_cadence
+}
+
+output "target_rpo_minutes" {
+  value = local.recovery_profile.target_rpo_minutes
+}
+
+output "target_rto_minutes" {
+  value = local.recovery_profile.target_rto_minutes
+}
+
+output "restore_drill_enabled" {
+  value = local.restore_drill.enabled
+}
+
+output "restore_drill_mode" {
+  value = local.restore_drill.mode
+}
+
+output "restore_drill_schedule_expression" {
+  value = try(local.restore_drill.schedule_expression, null)
+}
+
+output "restore_drill_state_machine_arn" {
+  value = try(aws_sfn_state_machine.restore_drill[0].arn, null)
+}
+
+output "restore_drill_state_machine_name" {
+  value = try(aws_sfn_state_machine.restore_drill[0].name, null)
+}
+
+output "manual_snapshot_enabled" {
+  value = local.manual_snapshot.enabled
+}
+
+output "manual_snapshot_state_machine_arn" {
+  value = try(aws_sfn_state_machine.manual_snapshot[0].arn, null)
+}
+
+output "manual_snapshot_state_machine_name" {
+  value = try(aws_sfn_state_machine.manual_snapshot[0].name, null)
+}
+
+output "manual_snapshot_identifier_prefix" {
+  value = local.manual_snapshot_identifier_prefix
+}

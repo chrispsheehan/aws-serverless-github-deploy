@@ -206,6 +206,31 @@ jobs:
           role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: Get database infra outputs
+        if: inputs.environment != 'prod'
+        id: get-database
+        uses: ./.github/actions/terragrunt
+        env:
+          TF_VAR_database_security_group_id: "destroy-placeholder"
+        with:
+          tg_directory: infra/live/${{ inputs.environment }}/aws/database
+          tg_action: init
+
+      - name: Delete dev manual database snapshots
+        if: inputs.environment != 'prod'
+        uses: ./.github/actions/just
+        env:
+          TG_OUTPUTS: ${{ steps.get-database.outputs.tg_outputs }}
+          CLUSTER_IDENTIFIER: ${{ fromJson(steps.get-database.outputs.tg_outputs).cluster_identifier.value }}
+          MANUAL_SNAPSHOT_PREFIX: ${{ fromJson(steps.get-database.outputs.tg_outputs).manual_snapshot_identifier_prefix.value }}
+        with:
+          justfile_path: justfile.deploy
+          just_action: database-delete-manual-snapshots
+
+      - name: Keep prod manual database snapshots
+        if: inputs.environment == 'prod'
+        run: echo "Retaining prod manual database snapshots."
+
       - name: Destroy database infra
         uses: ./.github/actions/terragrunt
         env:

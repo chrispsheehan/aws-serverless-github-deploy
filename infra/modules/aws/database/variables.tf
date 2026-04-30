@@ -43,10 +43,34 @@ variable "engine_version" {
   default     = "16"
 }
 
-variable "backup_retention_period" {
-  type        = number
-  description = "Days to retain automated backups"
-  default     = 7
+variable "recovery_class" {
+  type        = string
+  description = "Recovery posture preset passed through to the shared Aurora module."
+  default     = "standard"
+
+  validation {
+    condition     = contains(["dev", "standard", "critical"], var.recovery_class)
+    error_message = "recovery_class must be one of: dev, standard, critical."
+  }
+}
+
+variable "restore_drill" {
+  description = "Optional restore-drill automation passed through to the shared Aurora module."
+  type = object({
+    enabled      = optional(bool, false)
+    mode         = optional(string, "manual")
+    use_pitr     = optional(bool, true)
+    retain_hours = optional(number, 4)
+  })
+  default = {}
+}
+
+variable "manual_snapshot" {
+  description = "Optional manual snapshot trigger passed through to the shared Aurora module."
+  type = object({
+    enabled = optional(bool, false)
+  })
+  default = {}
 }
 
 variable "rds_min_capacity" {

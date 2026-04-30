@@ -33,3 +33,7 @@ output "readonly_endpoint" {
 output "readwrite_endpoint" {
   value = module.database.readwrite_endpoint
 }
+
+output "manual_snapshot_identifier_prefix" {
+  value = module.database.manual_snapshot_identifier_prefix
+}

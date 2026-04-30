@@ -43,10 +43,47 @@ variable "engine_version" {
   default     = "16"
 }
 
-variable "backup_retention_period" {
-  type        = number
-  description = "Days to retain automated backups"
-  default     = 7
+variable "recovery_class" {
+  type        = string
+  description = "Recovery posture preset for the Aurora cluster."
+  default     = "standard"
+
+  validation {
+    condition     = contains(["dev", "standard", "critical"], var.recovery_class)
+    error_message = "recovery_class must be one of: dev, standard, critical."
+  }
+}
+
+variable "restore_drill" {
+  description = "Optional restore-drill automation for this Aurora cluster."
+  type = object({
+    enabled      = optional(bool, false)
+    mode         = optional(string, "manual")
+    use_pitr     = optional(bool, true)
+    retain_hours = optional(number, 4)
+  })
+  default = {}
+
+  validation {
+    condition = contains(
+      ["manual", "scheduled", "manual_and_scheduled"],
+      coalesce(var.restore_drill.mode, "manual"),
+    )
+    error_message = "restore_drill.mode must be manual, scheduled, or manual_and_scheduled."
+  }
+
+  validation {
+    condition     = coalesce(var.restore_drill.retain_hours, 4) >= 0
+    error_message = "restore_drill.retain_hours must be zero or greater."
+  }
+}
+
+variable "manual_snapshot" {
+  description = "Optional manual snapshot trigger for this Aurora cluster."
+  type = object({
+    enabled = optional(bool, false)
+  })
+  default = {}
 }
 
 variable "rds_min_capacity" {

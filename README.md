@@ -170,6 +170,7 @@ see [infra/README.md](infra/README.md#infra-deployment-use-cases).
 For Lambda provisioned concurrency patterns and example `provisioned_config` shapes, see [infra/modules/aws/_shared/lambda/README.md](infra/modules/aws/_shared/lambda/README.md).
 
 For ECS scaling patterns and `scaling_strategy` examples, see [infra/modules/aws/_shared/service/README.md](infra/modules/aws/_shared/service/README.md).
+For Aurora recovery posture presets such as `dev`, `standard`, and `critical`, plus the optional restore-drill Step Functions skeleton, see [infra/modules/aws/_shared/database/README.md](infra/modules/aws/_shared/database/README.md).
 
 ### Deployment Model
 
