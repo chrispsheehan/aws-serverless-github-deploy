@@ -1,4 +1,4 @@
-name: PR
+name: Pull Request
 
 on:
   pull_request:
@@ -11,13 +11,20 @@ on:
         ready_for_review,
         edited,
       ]
+  workflow_dispatch:
+    inputs:
+      pr_title:
+        description: "PR title to validate and use for version preview when running manually"
+        required: false
+        type: string
+        default: "chore: manual workflow dispatch"
 
 jobs:
   check-pr-title:
     name: PR Title
     runs-on: ubuntu-latest
     env:
-      PR_TITLE: ${{ github.event.pull_request.title }}
+      PR_TITLE: ${{ github.event.pull_request.title || inputs.pr_title }}
       ALLOWED_PREFIXES: "breaking: feat: patch: fix: minor: chore: docs:"
     steps:
       - name: Fail if PR title does not start with an allowed prefix
@@ -40,13 +47,13 @@ jobs:
       pull-requests: read
       contents: read
     outputs:
-      actions: ${{ steps.filter.outputs.actions }}
-      terraform: ${{ steps.filter.outputs.terraform }}
-      terragrunt: ${{ steps.filter.outputs.terragrunt }}
-      github: ${{ steps.filter.outputs.github }}
-      frontend: ${{ steps.filter.outputs.frontend }}
-      lambdas: ${{ steps.filter.outputs.lambdas }}
-      containers: ${{ steps.filter.outputs.containers }}
+      actions: ${{ steps.force_all.outputs.actions || steps.filter.outputs.actions }}
+      terraform: ${{ steps.force_all.outputs.terraform || steps.filter.outputs.terraform }}
+      terragrunt: ${{ steps.force_all.outputs.terragrunt || steps.filter.outputs.terragrunt }}
+      github: ${{ steps.force_all.outputs.github || steps.filter.outputs.github }}
+      frontend: ${{ steps.force_all.outputs.frontend || steps.filter.outputs.frontend }}
+      lambdas: ${{ steps.force_all.outputs.lambdas || steps.filter.outputs.lambdas }}
+      containers: ${{ steps.force_all.outputs.containers || steps.filter.outputs.containers }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -54,12 +61,26 @@ jobs:
           ref: ${{ github.sha }}
           fetch-depth: 0
 
+      - name: Force all change flags for manual dispatch
+        id: force_all
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        shell: bash
+        run: |
+          echo "actions=true" >> "$GITHUB_OUTPUT"
+          echo "terraform=true" >> "$GITHUB_OUTPUT"
+          echo "terragrunt=true" >> "$GITHUB_OUTPUT"
+          echo "github=true" >> "$GITHUB_OUTPUT"
+          echo "frontend=true" >> "$GITHUB_OUTPUT"
+          echo "lambdas=true" >> "$GITHUB_OUTPUT"
+          echo "containers=true" >> "$GITHUB_OUTPUT"
+
       - name: Detect changed files
+        if: ${{ github.event_name != 'workflow_dispatch' }}
         id: filter
         uses: ./.github/actions/get-changes
         with:
           ref: ${{ github.sha }}
-          base_ref: ${{ github.event.pull_request.base.sha }}
+          base_ref: ${{ github.event.pull_request.base.sha || github.sha }}
 
       - shell: bash
         run: echo "actions changes - ${{ steps.filter.outputs.actions }}"
@@ -92,7 +113,7 @@ jobs:
         id: get_next_version
         uses: ./.github/actions/get-next-version
         with:
-          subjects: ${{ github.event.pull_request.title }}
+          subjects: ${{ github.event.pull_request.title || inputs.pr_title }}
 
       - name: Show action outputs
         run: |
@@ -152,10 +173,14 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: hashicorp/setup-terraform@v4
-      - uses: gruntwork-io/terragrunt-action@v3
+      - uses: jdx/mise-action@v3
         with:
-          tg_version: 0.45.10
-          tf_path: terraform
+          tool_versions: |
+            terragrunt 0.45.10
+          github_token: ${{ github.token }}
+
+      - name: Verify Terragrunt installation
+        run: terragrunt --version
 
       - name: Terraform fmt check
         run: terraform fmt -check -recursive
