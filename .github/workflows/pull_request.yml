@@ -21,6 +21,7 @@ on:
   push:
     branches:
       - fix-terragrunt-mise-node-dep
+      - this
 
 jobs:
   check-pr-title:
