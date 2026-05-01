@@ -40,10 +40,15 @@ runs:
         terraform_wrapper: false
 
     - name: Install Terragrunt
-      uses: gruntwork-io/terragrunt-action@v3
+      uses: jdx/mise-action@v3
       with:
-        tg_version: ${{ inputs.tg_version }}
-        tf_path: terraform
+        tool_versions: |
+          terragrunt ${{ inputs.tg_version }}
+        github_token: ${{ github.token }}
+
+    - name: Verify Terragrunt installation
+      shell: bash
+      run: terragrunt --version
 
     - name: Normalize and write override_tg_vars
       if: inputs.tg_action == 'apply' || inputs.tg_action == 'plan' || inputs.tg_action == 'destroy'

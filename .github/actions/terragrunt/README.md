@@ -5,7 +5,7 @@ This GitHub Action sets up **Terraform** and **Terragrunt** and runs a specified
 ## Features
 
 - Installs pinned versions of Terraform and Terragrunt
-- Installs Terragrunt through `gruntwork-io/terragrunt-action@v3`
+- Installs Terragrunt through `jdx/mise-action@v3`
 - Uses AWS credentials already configured earlier in the same job when needed
 - Optionally passes Terragrunt variables via JSON tfvars
 - Supports `plan` mode for producing local saved plan files

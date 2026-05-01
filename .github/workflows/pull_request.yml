@@ -152,10 +152,14 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: hashicorp/setup-terraform@v4
-      - uses: gruntwork-io/terragrunt-action@v3
+      - uses: jdx/mise-action@v3
         with:
-          tg_version: 0.45.10
-          tf_path: terraform
+          tool_versions: |
+            terragrunt 0.45.10
+          github_token: ${{ github.token }}
+
+      - name: Verify Terragrunt installation
+        run: terragrunt --version
 
       - name: Terraform fmt check
         run: terraform fmt -check -recursive
