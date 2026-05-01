@@ -30,7 +30,7 @@ runs:
   using: "composite"
   steps:
     - name: Install Just
-      uses: extractions/setup-crate@v2
+      uses: extractions/setup-crate@v2.0.1
       with:
         repo: casey/just@${{ inputs.just_version }}
         github-token: ${{ github.token }}
