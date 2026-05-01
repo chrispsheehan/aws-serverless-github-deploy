@@ -18,10 +18,6 @@ on:
         required: false
         type: string
         default: "chore: manual workflow dispatch"
-  push:
-    branches:
-      - fix-terragrunt-mise-node-dep
-      - this
 
 jobs:
   check-pr-title:
