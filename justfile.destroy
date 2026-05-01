@@ -98,6 +98,28 @@ cleanup-tagged-resources:
                     fi
                 fi
                 ;;
+            arn:aws:ecs:*:cluster/*)
+                echo "Deleting ECS cluster ${arn}"
+                if ! delete_output="$(aws ecs delete-cluster --cluster "${arn}" 2>&1 >/dev/null)"; then
+                    if grep -Eq "ClusterNotFoundException|ClusterNotFoundFault" <<<"${delete_output}"; then
+                        echo "ECS cluster ${arn} is already gone."
+                    else
+                        echo "${delete_output}" >&2
+                        exit 1
+                    fi
+                fi
+                ;;
+            arn:aws:secretsmanager:*:secret:*)
+                echo "Deleting Secrets Manager secret ${arn}"
+                if ! delete_output="$(aws secretsmanager delete-secret --secret-id "${arn}" --force-delete-without-recovery 2>&1 >/dev/null)"; then
+                    if grep -Eq "ResourceNotFoundException|marked for deletion|scheduled for deletion|InvalidRequestException" <<<"${delete_output}"; then
+                        echo "Secrets Manager secret ${arn} is already gone or pending deletion."
+                    else
+                        echo "${delete_output}" >&2
+                        exit 1
+                    fi
+                fi
+                ;;
             *)
                 unsupported+=("$arn")
                 ;;
