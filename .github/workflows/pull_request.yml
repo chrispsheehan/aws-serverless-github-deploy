@@ -198,7 +198,7 @@ jobs:
     timeout-minutes: 2
     steps:
       - uses: actions/checkout@v6
-      - uses: terraform-linters/setup-tflint@v4
+      - uses: terraform-linters/setup-tflint@v6
 
       - name: Init TFLint
         run: tflint --init
