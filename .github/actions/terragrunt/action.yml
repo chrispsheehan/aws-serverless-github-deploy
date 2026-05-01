@@ -40,9 +40,10 @@ runs:
         terraform_wrapper: false
 
     - name: Install Terragrunt
-      uses: autero1/action-terragrunt@v3.0.2
+      uses: gruntwork-io/terragrunt-action@v3
       with:
-        terragrunt-version: ${{ inputs.tg_version }}
+        tg_version: ${{ inputs.tg_version }}
+        tf_path: terraform
 
     - name: Normalize and write override_tg_vars
       if: inputs.tg_action == 'apply' || inputs.tg_action == 'plan' || inputs.tg_action == 'destroy'

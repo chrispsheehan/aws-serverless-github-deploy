@@ -51,7 +51,7 @@ If you are unsure, the live `aws/oidc` stack in the target environment is the so
 - `release.yml`
   Creates release tags, prepares shared CI artifacts, builds release outputs, and publishes the GitHub release. Version bumps come from a repo-local action that scans commit subjects since the latest semver tag and matches configurable major/minor/patch prefixes.
 - `pull_request.yml`
-  Provides fast validation for workflow syntax, Terraform formatting/linting, changed runtime builds, and a direct execution check of the repo-local `get-next-version` Docker action. The version preview job classifies the PR title, so it reflects the version that would be implied if that PR title lands on `main`. Its `check` job runs the repo-local `get-changes` Docker action directly, using the PR base SHA for a PR-style `base...HEAD` diff. When `.github/actions/**` changed, the workflow reuses `shared_directories_get.yml` to discover action directories with `Dockerfile`s and runs a Docker unit-test matrix for them after the GitHub formatting job. The Lambda naming check only runs when Lambda sources changed, and the ECS task/service pair check runs when container sources or Terragrunt live-stack directories changed; each is an explicit prerequisite for the corresponding build job.
+  Provides fast validation for workflow syntax, Terraform formatting/linting, changed runtime builds, and a direct execution check of the repo-local `get-next-version` Docker action. The version preview job classifies the PR title, so it reflects the version that would be implied if that PR title lands on `main`. Its `check` job runs the repo-local `get-changes` Docker action directly, using the PR base SHA for a PR-style `base...HEAD` diff. When `.github/actions/**` changed, the workflow reuses `shared_directories_get.yml` to discover action directories with `Dockerfile`s and runs a Docker unit-test matrix for them after the GitHub formatting job. The Lambda naming check only runs when Lambda sources changed, and the ECS task/service pair check runs when container sources or Terragrunt live-stack directories changed; each is an explicit prerequisite for the corresponding build job. Terragrunt installation in that workflow now uses `gruntwork-io/terragrunt-action@v3`.
 
 The local version action can also be tested outside GitHub Actions, either by running the Python entrypoint directly or through its dedicated Docker image.
 
@@ -128,7 +128,7 @@ flowchart LR
 ### Cleanup And Discovery
 
 - `destroy.yml`
-  Tears down app layers before shared dependencies, including the shared observability dashboard and any environment-owned shared artifact stacks such as the `dev` code bucket.
+  Tears down app layers before shared dependencies, including the shared observability dashboard and any environment-owned shared artifact stacks such as the `dev` code bucket. The workflow-dispatch input `allow_prod_cleanup` now gates every cleanup or destroy job that is normally skipped for `prod`, including the `Code Bucket`, `ECR`, and final tagged-resource cleanup jobs. After the main graph completes, the workflow first counts tagged leftovers through `justfile.destroy`, prints a warning only when any remain, and then runs the cleanup recipe. That cleanup currently deletes leaked Cognito user pools, deregisters and then deletes leaked ECS task-definition revisions, deletes leftover ECS clusters, and force-deletes leftover Secrets Manager secrets, then validates the remaining tagged ARNs against the underlying service APIs rather than treating the tagging index as the source of truth. Already-removed Cognito pools, ECS task-definition revisions, ECS clusters, or Secrets Manager secrets are treated as successful no-ops so stale tagging API results do not fail cleanup. `prod` runs that same path only when `allow_prod_cleanup` is enabled, and the workflow prints a conspicuous warning first.
 - `shared_directories_get.yml`
   Derives the directory-based matrices used by wrapper workflows and PR action-test discovery.
 
@@ -144,6 +144,8 @@ Run these checks on every CI, workflow, or deploy-contract change.
 - the repo-local `./.github/actions/terragrunt` action supports `tg_action: plan` for producing the binary plan locally; it renders `terragrunt.plan.txt` and writes `terragrunt.plan.meta.json` via `justfile.tg` (`terragrunt-plan-render`)
 - `./.github/actions/terragrunt` always uploads per-stack plan artifacts on `plan` and always downloads them on `apply_plan`, using the caller-provided `PLAN_ARTIFACT_S3_PREFIX` environment variable, so graph executors like `shared_infra.yml` do not need separate `./.github/actions/just` steps for those transfers
 - both repo-local composite actions, `./.github/actions/just` and `./.github/actions/terragrunt`, now assume AWS credentials are already configured in the current job when they need AWS access. The repo pattern is to run `aws-actions/configure-aws-credentials` at the top of each AWS-using job and then call the local actions without extra auth inputs
+- `./.github/actions/just` installs the requested `just` version through `extractions/setup-crate@v2` in the same minimal composite-action shape as `extractions/setup-just`, rather than depending on `extractions/setup-just` itself
+- `./.github/actions/terragrunt` installs the requested Terragrunt version through `gruntwork-io/terragrunt-action@v3`, passing `tf_path: terraform` so the repo keeps using the separately pinned Terraform binary from `hashicorp/setup-terraform`
 - saved infra-plan storage is intentionally split into two levels:
   - one run-level metadata file at `<plan_artifact_s3_prefix>/infra-plan-metadata/plan-metadata.json`
   - one per-stack plan bundle under `<plan_artifact_s3_prefix>/terragrunt-plan-<sanitized-tg-directory>/`
@@ -160,6 +162,7 @@ Run these checks on every CI, workflow, or deploy-contract change.
   - `justfile.ci` for read-only CI helpers
   - `justfile.tg` for Terragrunt plan artifact helpers (render/upload/download)
   - `justfile.deploy` for mutating CI build and deploy steps
+  - `justfile.destroy` for explicit teardown and post-destroy cleanup steps
 
 ### Release Tagging Checks
 
@@ -206,6 +209,9 @@ Run these checks on every CI, workflow, or deploy-contract change.
 - confirm destroy ordering still removes downstream consumers before shared stacks
 - check required Terraform variables on destroy as well as apply
 - prefer depending on real downstream consumers rather than serializing unrelated shared stacks
+- when a module creates manual backup artifacts outside Terraform ownership, decide explicitly whether destroy should delete or retain them by environment
+- if destroy relies on a final tagged-resource sweep, keep both the scan/count step and the cleanup step in `justfile.destroy`, and fail the workflow on unsupported tagged leftovers so new leak classes are visible
+- if destroy relies on a final tagged-resource sweep, make sure the deploy OIDC role also allows `tag:GetResources`; the cleanup path uses the Resource Groups Tagging API before running service-specific deletions
 
 ## Wrapper Workflow Summary
 

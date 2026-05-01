@@ -1,0 +1,211 @@
+# Destroy and cleanup helpers only.
+# This file is for explicit teardown and post-destroy sweep steps.
+
+PROJECT_DIR := `just --justfile justfile --evaluate PROJECT_DIR`
+
+
+# Count tagged resources that Terraform destroy may leave behind.
+count-tagged-resources:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "${PROJECT_NAME:-}" ]]; then
+        echo "❌ PROJECT_NAME environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "${ENVIRONMENT:-}" ]]; then
+        echo "❌ ENVIRONMENT environment variable is not set."
+        exit 1
+    fi
+
+    if [[ "$ENVIRONMENT" == "prod" && "${ALLOW_PROD_CLEANUP:-false}" != "true" ]]; then
+        echo "Refusing to run tagged-resource cleanup against prod without ALLOW_PROD_CLEANUP=true."
+        exit 1
+    fi
+
+    mapfile -t resource_arns < <(
+        aws resourcegroupstaggingapi get-resources \
+          --tag-filters "Key=Project,Values=${PROJECT_NAME}" "Key=Environment,Values=${ENVIRONMENT}" \
+          --query 'ResourceTagMappingList[].ResourceARN' \
+          --output text \
+        | tr '\t' '\n' \
+        | sed '/^$/d' \
+        | sort -u
+    )
+
+    echo "${#resource_arns[@]}"
+
+# Clean up tagged resources that Terraform destroy may leave behind.
+cleanup-tagged-resources:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -z "${PROJECT_NAME:-}" ]]; then
+        echo "❌ PROJECT_NAME environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "${ENVIRONMENT:-}" ]]; then
+        echo "❌ ENVIRONMENT environment variable is not set."
+        exit 1
+    fi
+
+    if [[ "$ENVIRONMENT" == "prod" && "${ALLOW_PROD_CLEANUP:-false}" != "true" ]]; then
+        echo "Refusing to run tagged-resource cleanup against prod without ALLOW_PROD_CLEANUP=true."
+        exit 1
+    fi
+
+    mapfile -t resource_arns < <(
+        aws resourcegroupstaggingapi get-resources \
+          --tag-filters "Key=Project,Values=${PROJECT_NAME}" "Key=Environment,Values=${ENVIRONMENT}" \
+          --query 'ResourceTagMappingList[].ResourceARN' \
+          --output text \
+        | tr '\t' '\n' \
+        | sed '/^$/d' \
+        | sort -u
+    )
+
+    if [[ ${#resource_arns[@]} -eq 0 ]]; then
+        echo "No tagged ${ENVIRONMENT} resources remain."
+        exit 0
+    fi
+
+    unsupported=()
+
+    for arn in "${resource_arns[@]}"; do
+        case "$arn" in
+            arn:aws:cognito-idp:*:userpool/*)
+                user_pool_id="${arn##*/}"
+                echo "Deleting Cognito user pool ${user_pool_id}"
+                if ! delete_output="$(aws cognito-idp delete-user-pool --user-pool-id "${user_pool_id}" 2>&1)"; then
+                    if grep -q "ResourceNotFoundException" <<<"${delete_output}"; then
+                        echo "Cognito user pool ${user_pool_id} is already gone."
+                    else
+                        echo "${delete_output}" >&2
+                        exit 1
+                    fi
+                fi
+                ;;
+            arn:aws:ecs:*:task-definition/*)
+                echo "Deregistering ECS task definition ${arn}"
+                if ! deregister_output="$(aws ecs deregister-task-definition --task-definition "${arn}" 2>&1 >/dev/null)"; then
+                    if grep -Eq "ClientException|ResourceNotFoundException" <<<"${deregister_output}"; then
+                        echo "ECS task definition ${arn} is already gone or inactive."
+                    else
+                        echo "${deregister_output}" >&2
+                        exit 1
+                    fi
+                fi
+                echo "Deleting ECS task definition ${arn}"
+                if ! delete_output="$(aws ecs delete-task-definitions --task-definitions "${arn}" 2>&1 >/dev/null)"; then
+                    if grep -Eq "ClientException|ResourceNotFoundException" <<<"${delete_output}"; then
+                        echo "ECS task definition ${arn} is already gone or delete-in-progress."
+                    else
+                        echo "${delete_output}" >&2
+                        exit 1
+                    fi
+                fi
+                ;;
+            arn:aws:ecs:*:cluster/*)
+                echo "Deleting ECS cluster ${arn}"
+                if ! delete_output="$(aws ecs delete-cluster --cluster "${arn}" 2>&1 >/dev/null)"; then
+                    if grep -Eq "ClusterNotFoundException|ClusterNotFoundFault" <<<"${delete_output}"; then
+                        echo "ECS cluster ${arn} is already gone."
+                    else
+                        echo "${delete_output}" >&2
+                        exit 1
+                    fi
+                fi
+                ;;
+            arn:aws:secretsmanager:*:secret:*)
+                echo "Deleting Secrets Manager secret ${arn}"
+                if ! delete_output="$(aws secretsmanager delete-secret --secret-id "${arn}" --force-delete-without-recovery 2>&1 >/dev/null)"; then
+                    if grep -Eq "ResourceNotFoundException|marked for deletion|scheduled for deletion|InvalidRequestException" <<<"${delete_output}"; then
+                        echo "Secrets Manager secret ${arn} is already gone or pending deletion."
+                    else
+                        echo "${delete_output}" >&2
+                        exit 1
+                    fi
+                fi
+                ;;
+            *)
+                unsupported+=("$arn")
+                ;;
+        esac
+    done
+
+    if [[ ${#unsupported[@]} -gt 0 ]]; then
+        echo "Unsupported tagged resources remain after cleanup attempt:"
+        printf '%s\n' "${unsupported[@]}"
+        exit 1
+    fi
+
+    sleep 10
+
+    mapfile -t remaining_arns < <(
+        aws resourcegroupstaggingapi get-resources \
+          --tag-filters "Key=Project,Values=${PROJECT_NAME}" "Key=Environment,Values=${ENVIRONMENT}" \
+          --query 'ResourceTagMappingList[].ResourceARN' \
+          --output text \
+        | tr '\t' '\n' \
+        | sed '/^$/d' \
+        | sort -u
+    )
+
+    blocking=()
+
+    for arn in "${remaining_arns[@]}"; do
+        case "$arn" in
+            arn:aws:cognito-idp:*:userpool/*)
+                user_pool_id="${arn##*/}"
+                if aws cognito-idp describe-user-pool --user-pool-id "${user_pool_id}" >/dev/null 2>&1; then
+                    blocking+=("$arn")
+                fi
+                ;;
+            arn:aws:ecs:*:task-definition/*)
+                status="$(
+                    aws ecs describe-task-definition \
+                      --task-definition "${arn}" \
+                      --query 'taskDefinition.status' \
+                      --output text 2>/dev/null || true
+                )"
+                if [[ -n "${status}" && "${status}" != "None" && "${status}" != "DELETE_IN_PROGRESS" ]]; then
+                    blocking+=("$arn")
+                fi
+                ;;
+            arn:aws:ecs:*:cluster/*)
+                status="$(
+                    aws ecs describe-clusters \
+                      --clusters "${arn}" \
+                      --query 'clusters[0].status' \
+                      --output text 2>/dev/null || true
+                )"
+                if [[ -n "${status}" && "${status}" != "None" && "${status}" != "INACTIVE" ]]; then
+                    blocking+=("$arn")
+                fi
+                ;;
+            arn:aws:secretsmanager:*:secret:*)
+                deleted_date="$(
+                    aws secretsmanager describe-secret \
+                      --secret-id "${arn}" \
+                      --query 'DeletedDate' \
+                      --output text 2>/dev/null || true
+                )"
+                if [[ -z "${deleted_date}" || "${deleted_date}" == "None" ]]; then
+                    blocking+=("$arn")
+                fi
+                ;;
+            *)
+                blocking+=("$arn")
+                ;;
+        esac
+    done
+
+    if [[ ${#blocking[@]} -gt 0 ]]; then
+        echo "Tagged resources still remain after cleanup:"
+        printf '%s\n' "${blocking[@]}"
+        exit 1
+    fi
+
+    echo "✅ Tagged ${ENVIRONMENT} resources were fully cleaned up."

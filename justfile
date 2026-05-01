@@ -7,6 +7,8 @@ _default:
     @just --justfile justfile.tg --list
     @printf '\nDeploy recipes (`just --justfile justfile.deploy --list`):\n'
     @just --justfile justfile.deploy --list
+    @printf '\nDestroy recipes (`just --justfile justfile.destroy --list`):\n'
+    @just --justfile justfile.destroy --list
 
 
 PROJECT_DIR := justfile_directory()
