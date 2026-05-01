@@ -128,7 +128,7 @@ flowchart LR
 ### Cleanup And Discovery
 
 - `destroy.yml`
-  Tears down app layers before shared dependencies, including the shared observability dashboard and any environment-owned shared artifact stacks such as the `dev` code bucket. The workflow-dispatch input `allow_prod_cleanup` now gates every cleanup or destroy job that is normally skipped for `prod`, including the `Code Bucket`, `ECR`, and final tagged-resource sweep jobs. After the main graph completes, `dev` always runs a final tagged-resource sweep through `justfile.deploy` that currently deletes leaked Cognito user pools and deregisters leaked ECS task-definition revisions, then fails if tagged leftovers still remain. `prod` runs that same sweep only when `allow_prod_cleanup` is enabled, and the workflow prints a conspicuous warning first.
+  Tears down app layers before shared dependencies, including the shared observability dashboard and any environment-owned shared artifact stacks such as the `dev` code bucket. The workflow-dispatch input `allow_prod_cleanup` now gates every cleanup or destroy job that is normally skipped for `prod`, including the `Code Bucket`, `ECR`, and final tagged-resource cleanup jobs. After the main graph completes, the workflow first counts tagged leftovers through `justfile.destroy`, prints a warning only when any remain, and then runs the cleanup recipe. That cleanup currently deletes leaked Cognito user pools and deregisters leaked ECS task-definition revisions, then fails if tagged leftovers still remain. `prod` runs that same path only when `allow_prod_cleanup` is enabled, and the workflow prints a conspicuous warning first.
 - `shared_directories_get.yml`
   Derives the directory-based matrices used by wrapper workflows and PR action-test discovery.
 
@@ -160,6 +160,7 @@ Run these checks on every CI, workflow, or deploy-contract change.
   - `justfile.ci` for read-only CI helpers
   - `justfile.tg` for Terragrunt plan artifact helpers (render/upload/download)
   - `justfile.deploy` for mutating CI build and deploy steps
+  - `justfile.destroy` for explicit teardown and post-destroy cleanup steps
 
 ### Release Tagging Checks
 
@@ -207,7 +208,7 @@ Run these checks on every CI, workflow, or deploy-contract change.
 - check required Terraform variables on destroy as well as apply
 - prefer depending on real downstream consumers rather than serializing unrelated shared stacks
 - when a module creates manual backup artifacts outside Terraform ownership, decide explicitly whether destroy should delete or retain them by environment
-- if destroy relies on a final tagged-resource sweep, keep the cleanup logic in `justfile.deploy` and fail the workflow on unsupported tagged leftovers so new leak classes are visible
+- if destroy relies on a final tagged-resource sweep, keep both the scan/count step and the cleanup step in `justfile.destroy`, and fail the workflow on unsupported tagged leftovers so new leak classes are visible
 
 ## Wrapper Workflow Summary
 
