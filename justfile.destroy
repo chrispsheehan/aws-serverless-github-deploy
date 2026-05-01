@@ -78,11 +78,25 @@ cleanup-tagged-resources:
             arn:aws:cognito-idp:*:userpool/*)
                 user_pool_id="${arn##*/}"
                 echo "Deleting Cognito user pool ${user_pool_id}"
-                aws cognito-idp delete-user-pool --user-pool-id "${user_pool_id}"
+                if ! delete_output="$(aws cognito-idp delete-user-pool --user-pool-id "${user_pool_id}" 2>&1)"; then
+                    if grep -q "ResourceNotFoundException" <<<"${delete_output}"; then
+                        echo "Cognito user pool ${user_pool_id} is already gone."
+                    else
+                        echo "${delete_output}" >&2
+                        exit 1
+                    fi
+                fi
                 ;;
             arn:aws:ecs:*:task-definition/*)
                 echo "Deregistering ECS task definition ${arn}"
-                aws ecs deregister-task-definition --task-definition "${arn}" >/dev/null
+                if ! deregister_output="$(aws ecs deregister-task-definition --task-definition "${arn}" 2>&1 >/dev/null)"; then
+                    if grep -Eq "ClientException|ResourceNotFoundException" <<<"${deregister_output}"; then
+                        echo "ECS task definition ${arn} is already gone or inactive."
+                    else
+                        echo "${deregister_output}" >&2
+                        exit 1
+                    fi
+                fi
                 ;;
             *)
                 unsupported+=("$arn")
