@@ -97,6 +97,15 @@ cleanup-tagged-resources:
                         exit 1
                     fi
                 fi
+                echo "Deleting ECS task definition ${arn}"
+                if ! delete_output="$(aws ecs delete-task-definitions --task-definitions "${arn}" 2>&1 >/dev/null)"; then
+                    if grep -Eq "ClientException|ResourceNotFoundException" <<<"${delete_output}"; then
+                        echo "ECS task definition ${arn} is already gone or delete-in-progress."
+                    else
+                        echo "${delete_output}" >&2
+                        exit 1
+                    fi
+                fi
                 ;;
             arn:aws:ecs:*:cluster/*)
                 echo "Deleting ECS cluster ${arn}"
@@ -134,15 +143,68 @@ cleanup-tagged-resources:
 
     sleep 10
 
-    remaining_count="$(
-        PROJECT_NAME="${PROJECT_NAME}" \
-        ENVIRONMENT="${ENVIRONMENT}" \
-        ALLOW_PROD_CLEANUP="${ALLOW_PROD_CLEANUP:-false}" \
-        just --justfile "{{PROJECT_DIR}}/justfile.destroy" count-tagged-resources
-    )"
+    mapfile -t remaining_arns < <(
+        aws resourcegroupstaggingapi get-resources \
+          --tag-filters "Key=Project,Values=${PROJECT_NAME}" "Key=Environment,Values=${ENVIRONMENT}" \
+          --query 'ResourceTagMappingList[].ResourceARN' \
+          --output text \
+        | tr '\t' '\n' \
+        | sed '/^$/d' \
+        | sort -u
+    )
 
-    if [[ "${remaining_count}" != "0" ]]; then
-        echo "Tagged resources still remain after cleanup: ${remaining_count}"
+    blocking=()
+
+    for arn in "${remaining_arns[@]}"; do
+        case "$arn" in
+            arn:aws:cognito-idp:*:userpool/*)
+                user_pool_id="${arn##*/}"
+                if aws cognito-idp describe-user-pool --user-pool-id "${user_pool_id}" >/dev/null 2>&1; then
+                    blocking+=("$arn")
+                fi
+                ;;
+            arn:aws:ecs:*:task-definition/*)
+                status="$(
+                    aws ecs describe-task-definition \
+                      --task-definition "${arn}" \
+                      --query 'taskDefinition.status' \
+                      --output text 2>/dev/null || true
+                )"
+                if [[ -n "${status}" && "${status}" != "None" && "${status}" != "DELETE_IN_PROGRESS" ]]; then
+                    blocking+=("$arn")
+                fi
+                ;;
+            arn:aws:ecs:*:cluster/*)
+                status="$(
+                    aws ecs describe-clusters \
+                      --clusters "${arn}" \
+                      --query 'clusters[0].status' \
+                      --output text 2>/dev/null || true
+                )"
+                if [[ -n "${status}" && "${status}" != "None" && "${status}" != "INACTIVE" ]]; then
+                    blocking+=("$arn")
+                fi
+                ;;
+            arn:aws:secretsmanager:*:secret:*)
+                deleted_date="$(
+                    aws secretsmanager describe-secret \
+                      --secret-id "${arn}" \
+                      --query 'DeletedDate' \
+                      --output text 2>/dev/null || true
+                )"
+                if [[ -z "${deleted_date}" || "${deleted_date}" == "None" ]]; then
+                    blocking+=("$arn")
+                fi
+                ;;
+            *)
+                blocking+=("$arn")
+                ;;
+        esac
+    done
+
+    if [[ ${#blocking[@]} -gt 0 ]]; then
+        echo "Tagged resources still remain after cleanup:"
+        printf '%s\n' "${blocking[@]}"
         exit 1
     fi
 
