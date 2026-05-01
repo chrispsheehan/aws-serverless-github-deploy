@@ -209,6 +209,7 @@ Run these checks on every CI, workflow, or deploy-contract change.
 - prefer depending on real downstream consumers rather than serializing unrelated shared stacks
 - when a module creates manual backup artifacts outside Terraform ownership, decide explicitly whether destroy should delete or retain them by environment
 - if destroy relies on a final tagged-resource sweep, keep both the scan/count step and the cleanup step in `justfile.destroy`, and fail the workflow on unsupported tagged leftovers so new leak classes are visible
+- if destroy relies on a final tagged-resource sweep, make sure the deploy OIDC role also allows `tag:GetResources`; the cleanup path uses the Resource Groups Tagging API before running service-specific deletions
 
 ## Wrapper Workflow Summary
 

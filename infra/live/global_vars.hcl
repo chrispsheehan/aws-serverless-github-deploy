@@ -26,6 +26,7 @@ locals {
     "acm:*",
     "route53:*",
     "cognito-idp:*",
+    "tag:GetResources",
   ]
   code_artifact_expiration_days       = 0
   infra_plan_artifact_expiration_days = 30

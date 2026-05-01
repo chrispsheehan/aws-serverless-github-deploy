@@ -323,7 +323,7 @@ jobs:
           tg_action: destroy
 
   cleanup:
-    name: Tagged Cleanup
+    name: Cleanup
     if: inputs.environment != 'prod' || inputs.allow_prod_cleanup
     needs:
       - observability
