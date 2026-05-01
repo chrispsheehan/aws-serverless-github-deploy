@@ -7,6 +7,7 @@ This GitHub Action sets up [`just`](https://github.com/casey/just) and runs a sp
 ## 🚀 Features
 
 - Installs a specific version of [`just`](https://github.com/casey/just)
+- Installs `just` through `extractions/setup-crate@v2` in the same minimal composite-action shape used by `extractions/setup-just`
 - Uses AWS credentials already configured earlier in the same job when needed
 - Executes any `just` command (recipe)
 - Captures and returns the final line of output as an action output

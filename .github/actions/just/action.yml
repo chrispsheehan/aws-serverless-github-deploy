@@ -30,9 +30,14 @@ runs:
   using: "composite"
   steps:
     - name: Install Just
-      uses: extractions/setup-just@v4
+      uses: extractions/setup-crate@v2
       with:
-        just-version: ${{ inputs.just_version }}
+        repo: casey/just@${{ inputs.just_version }}
+        github-token: ${{ github.token }}
+
+    - name: Verify Just installation
+      shell: bash
+      run: just --version
 
     - name: Run just action (try/catch + capture)
       id: capture
