@@ -5,13 +5,15 @@ This GitHub Action sets up **Terraform** and **Terragrunt** and runs a specified
 ## Features
 
 - Installs pinned versions of Terraform and Terragrunt
-- Installs Terragrunt through `jdx/mise-action@v3`
+- Installs Terragrunt through `jdx/mise-action@v4`
 - Uses AWS credentials already configured earlier in the same job when needed
 - Optionally passes Terragrunt variables via JSON tfvars
 - Supports `plan` mode for producing local saved plan files
 - Supports `init` mode for outputs-only reads
 - Uses the repo-local `./.github/actions/just` action for saved plan artifact upload and download
 - Exports Terragrunt outputs as compact JSON when state exists
+
+The Terragrunt install step is kept in this repo-local action rather than hidden behind a third-party Terragrunt wrapper action so the repo can control the exact setup-action revision and react quickly to GitHub Actions runtime deprecations or nested dependency warnings.
 
 ## Inputs
 

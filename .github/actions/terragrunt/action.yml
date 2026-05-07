@@ -39,8 +39,11 @@ runs:
         terraform_version: ${{ inputs.tf_version }}
         terraform_wrapper: false
 
+    # Install Terragrunt through mise directly so this repo controls the exact
+    # setup-action revision and can move faster than third-party wrapper actions
+    # when GitHub Action runtime deprecations or nested dependency warnings land.
     - name: Install Terragrunt
-      uses: jdx/mise-action@v3
+      uses: jdx/mise-action@v4
       with:
         tool_versions: |
           terragrunt ${{ inputs.tg_version }}
