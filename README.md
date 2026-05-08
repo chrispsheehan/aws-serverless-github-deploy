@@ -128,13 +128,13 @@ LAMBDA_NAME=dev-aws-serverless-github-deploy-migrations \
 just --justfile justfile.deploy lambda-invoke
 ```
 
-For a local-only database bootstrap path without AWS, use the repo-local compose file. It starts PostgreSQL and then runs the repo's migration code in a one-shot container after the database becomes healthy:
+For a local-only database bootstrap path without AWS, use the repo-local compose file. It starts PostgreSQL and then runs the repo's migration code in a local container after the database becomes healthy:
 
 ```sh
 just start
 ```
 
-On the first run, the `migrations` service creates the `worker_messages` table. Later runs are idempotent and exit cleanly once the table already exists. The local image is built from the staged [Dockerfile.local](Dockerfile.local) and runs the same `run_migration()` path that the Lambda entrypoint uses.
+On startup, the `migrations` service runs `run_migration()` once and then watches `lambdas/migrations/**/*.py` so it reruns automatically when those files change. The local image is built from the staged [Dockerfile.local](Dockerfile.local).
 
 The same compose file also starts a long-lived `debug` container built from the repo's existing `debug` Docker stage. To print the current tables from inside that container:
 

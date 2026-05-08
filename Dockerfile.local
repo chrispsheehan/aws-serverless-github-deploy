@@ -1,14 +1,19 @@
-FROM python:3.12-slim AS migrations-local
+FROM python:3.12-slim AS local-python-base
 
 WORKDIR /workspace
+
+RUN pip install --no-cache-dir boto3
+RUN pip install --no-cache-dir watchfiles
+
+
+FROM local-python-base AS migrations-local
 
 COPY lib /workspace/lib
 COPY lambdas/lib /workspace/lambdas/lib
 COPY lambdas/migrations /workspace/lambdas/migrations
 
-RUN pip install --no-cache-dir boto3 \
-    && pip install --no-cache-dir -r /workspace/lambdas/migrations/requirements.txt
+RUN pip install --no-cache-dir -r /workspace/lambdas/migrations/requirements.txt
 
 ENV PYTHONPATH=/workspace/lib:/workspace/lambdas/lib:/workspace/lambdas/migrations
 
-CMD ["python", "-c", "from lambda_handler import run_migration; run_migration()"]
+CMD ["sh", "-lc", "python -c \"from lambda_handler import run_migration; run_migration()\" && watchfiles --filter python \"python -c 'from lambda_handler import run_migration; run_migration()'\" /workspace/lambdas/migrations"]
