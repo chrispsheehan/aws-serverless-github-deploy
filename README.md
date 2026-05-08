@@ -139,7 +139,9 @@ On startup, the `migrations` service runs `run_migration()` once and then watche
 The same local-only Dockerfile also exposes:
 
 - `lambda_api` on `http://localhost:18080/` through a reusable local API harness under `local/`, with the port passed into the harness entrypoint
-- `lambda_worker` as a one-shot local invocation through a reusable local invoke harness under `local/`, currently using an empty `Records` array
+- `lambda_worker` as a local invocation through a reusable local invoke harness under `local/`, currently using an empty `Records` array
+
+Both local Lambda services run under `watchfiles`, so edits under their Lambda directory, `lambdas/lib`, `lib`, or `local/` trigger a restart/rerun without changing the production runtime code.
 
 Those local entrypoints live under `local/` so the production Lambda modules stay free of Docker-only scaffolding.
 

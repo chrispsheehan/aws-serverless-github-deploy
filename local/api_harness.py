@@ -79,7 +79,14 @@ def serve_lambda_http_handler(
         def log_message(self, format: str, *args) -> None:
             return
 
-    HTTPServer((host, port), Handler).serve_forever()
+    server = HTTPServer((host, port), Handler)
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        # watchfiles interrupts the running server process before restarting it.
+        pass
+    finally:
+        server.server_close()
 
 
 def import_handler(import_path: str) -> Callable[[dict, object], dict]:

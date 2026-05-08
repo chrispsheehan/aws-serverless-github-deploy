@@ -5,6 +5,9 @@ WORKDIR /workspace
 RUN pip install --no-cache-dir boto3
 RUN pip install --no-cache-dir watchfiles
 
+COPY lambdas/lambda_worker /workspace/lambdas/lambda_worker
+COPY local/invoke_harness.py /workspace/local/invoke_harness.py
+
 
 FROM local-python-base AS local-lambda-base
 
@@ -14,22 +17,16 @@ COPY lambdas/lib /workspace/lambdas/lib
 
 FROM local-lambda-base AS lambda-api-local
 
-COPY lambdas/lambda_api /workspace/lambdas/lambda_api
-COPY local/api_harness.py /workspace/local/api_harness.py
-
 ENV PYTHONPATH=/workspace/lib:/workspace/lambdas/lib:/workspace/lambdas/lambda_api:/workspace/local
 
-CMD ["python", "/workspace/local/api_harness.py", "lambda_handler:lambda_handler"]
+CMD ["sh", "-lc", "watchfiles --filter python \"python /workspace/local/api_harness.py lambda_handler:lambda_handler\" /workspace/lambdas/lambda_api /workspace/lambdas/lib /workspace/lib /workspace/local"]
 
 
 FROM local-lambda-base AS lambda-worker-local
 
-COPY lambdas/lambda_worker /workspace/lambdas/lambda_worker
-COPY local/invoke_harness.py /workspace/local/invoke_harness.py
-
 ENV PYTHONPATH=/workspace/lib:/workspace/lambdas/lib:/workspace/lambdas/lambda_worker:/workspace/local
 
-CMD ["python", "/workspace/local/invoke_harness.py", "lambda_handler:lambda_handler", "--event-file", "/workspace/local/lambda_worker_event.json"]
+CMD ["sh", "-lc", "watchfiles --filter python \"python /workspace/local/invoke_harness.py lambda_handler:lambda_handler --event-file /workspace/local/lambda_worker_event.json\" /workspace/lambdas/lambda_worker /workspace/lambdas/lib /workspace/lib /workspace/local"]
 
 
 FROM local-lambda-base AS migrations-local
