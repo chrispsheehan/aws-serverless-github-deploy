@@ -15,6 +15,14 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  elasticmq:
+    image: softwaremill/elasticmq-native:1.5.12
+    ports:
+      - "19324:9324"
+    volumes:
+      - ./local/elasticmq.conf:/opt/elasticmq.conf:ro
+    command: ["-Dconfig.file=/opt/elasticmq.conf"]
+
   migrations:
     build:
       context: .
@@ -64,6 +72,49 @@ services:
       - .:/workspace
     restart: "no"
 
+  ecs_api:
+    build:
+      context: .
+      dockerfile: Dockerfile.local
+      target: ecs-api-local
+    depends_on:
+      migrations:
+        condition: service_started
+    environment:
+      AWS_REGION: eu-west-2
+      AWS_SERVICE_NAME: ecs-service-api-local
+      IMAGE: local-ecs-api
+      PORT: "8080"
+      ROOT_PATH: ""
+    volumes:
+      - .:/workspace
+    ports:
+      - "18081:8080"
+    restart: unless-stopped
+
+  ecs_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.local
+      target: ecs-worker-local
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrations:
+        condition: service_started
+      elasticmq:
+        condition: service_started
+    environment:
+      AWS_REGION: eu-west-2
+      DATABASE_URL: postgresql://app:app@postgres:5432/app
+      AWS_SQS_QUEUE_URL: http://elasticmq:9324/000000000000/worker-events
+      AWS_ENDPOINT_URL_SQS: http://elasticmq:9324
+      POLL_TIMEOUT: "5"
+      HEARTBEAT_FILE: /tmp/worker-heartbeat
+    volumes:
+      - .:/workspace
+    restart: unless-stopped
+
   debug:
     build:
       context: .
@@ -78,6 +129,10 @@ services:
         condition: service_started
       lambda_worker:
         condition: service_completed_successfully
+      ecs_api:
+        condition: service_started
+      ecs_worker:
+        condition: service_started
     environment:
       PGHOST: postgres
       PGPORT: "5432"

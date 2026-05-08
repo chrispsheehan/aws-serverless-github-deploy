@@ -139,9 +139,13 @@ On startup, the `migrations` service runs `run_migration()` once and then watche
 The same local-only Dockerfile also exposes:
 
 - `lambda_api` on `http://localhost:18080/` through a reusable local API harness under `local/`, with the port passed into the harness entrypoint
-- `lambda_worker` as a local invocation through a reusable local invoke harness under `local/`, currently using an empty `Records` array
+- `lambda_worker` as a local invocation through a reusable local invoke harness under `local/`, seeded from `local/lambda_worker_event.json`
+- `ecs_api` on `http://localhost:18081/`, running the existing ECS API app under local file watching without changing the production container code
+- `ecs_worker` as a long-lived local ECS worker wired to local PostgreSQL and a local ElasticMQ queue, with the SQS endpoint override injected only through local Docker setup
 
 Both local Lambda services run under `watchfiles`, so edits under their Lambda directory, `lambdas/lib`, `lib`, or `local/` trigger a restart/rerun without changing the production runtime code.
+
+The local ECS services follow the same pattern. Edits under `containers/<service>`, `containers/lib`, `lib`, or `local/` trigger a restart, and the ECS worker reads its local SQS endpoint override from Docker Compose env through a local-only entrypoint under `local/`, without adding Docker-only endpoint logic to the production worker code.
 
 Those local entrypoints live under `local/` so the production Lambda modules stay free of Docker-only scaffolding.
 

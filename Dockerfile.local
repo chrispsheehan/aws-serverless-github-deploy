@@ -5,17 +5,18 @@ WORKDIR /workspace
 RUN pip install --no-cache-dir boto3
 RUN pip install --no-cache-dir watchfiles
 
-COPY lambdas/lambda_worker /workspace/lambdas/lambda_worker
-COPY local/invoke_harness.py /workspace/local/invoke_harness.py
-
-
 FROM local-python-base AS local-lambda-base
 
 COPY lib /workspace/lib
 COPY lambdas/lib /workspace/lambdas/lib
+COPY local/api_harness.py /workspace/local/api_harness.py
+COPY local/invoke_harness.py /workspace/local/invoke_harness.py
+COPY local/lambda_worker_event.json /workspace/local/lambda_worker_event.json
 
 
 FROM local-lambda-base AS lambda-api-local
+
+COPY lambdas/lambda_api /workspace/lambdas/lambda_api
 
 ENV PYTHONPATH=/workspace/lib:/workspace/lambdas/lib:/workspace/lambdas/lambda_api:/workspace/local
 
@@ -23,6 +24,8 @@ CMD ["sh", "-lc", "watchfiles --filter python \"python /workspace/local/api_harn
 
 
 FROM local-lambda-base AS lambda-worker-local
+
+COPY lambdas/lambda_worker /workspace/lambdas/lambda_worker
 
 ENV PYTHONPATH=/workspace/lib:/workspace/lambdas/lib:/workspace/lambdas/lambda_worker:/workspace/local
 
@@ -38,3 +41,32 @@ RUN pip install --no-cache-dir -r /workspace/lambdas/migrations/requirements.txt
 ENV PYTHONPATH=/workspace/lib:/workspace/lambdas/lib:/workspace/lambdas/migrations
 
 CMD ["sh", "-lc", "python -c \"from lambda_handler import run_migration; run_migration()\" && watchfiles --filter python \"python -c 'from lambda_handler import run_migration; run_migration()'\" /workspace/lambdas/migrations"]
+
+
+FROM local-python-base AS local-ecs-base
+
+COPY lib /workspace/lib
+COPY containers/lib /workspace/containers/lib
+COPY local/ecs_worker_entrypoint.py /workspace/local/ecs_worker_entrypoint.py
+
+
+FROM local-ecs-base AS ecs-api-local
+
+COPY containers/api /workspace/containers/api
+
+RUN pip install --no-cache-dir -r /workspace/containers/lib/requirements.txt -r /workspace/containers/api/requirements.txt
+
+ENV PYTHONPATH=/workspace/lib:/workspace/containers/lib:/workspace/containers/api:/workspace/local
+
+CMD ["sh", "-lc", "watchfiles --filter python \"python -u /workspace/containers/api/app.py\" /workspace/containers/api /workspace/containers/lib /workspace/lib /workspace/local"]
+
+
+FROM local-ecs-base AS ecs-worker-local
+
+COPY containers/worker /workspace/containers/worker
+
+RUN pip install --no-cache-dir -r /workspace/containers/lib/requirements.txt -r /workspace/containers/worker/requirements.txt
+
+ENV PYTHONPATH=/workspace/lib:/workspace/containers/lib:/workspace/local
+
+CMD ["sh", "-lc", "watchfiles --filter python \"python -u /workspace/local/ecs_worker_entrypoint.py\" /workspace/containers/worker /workspace/containers/lib /workspace/lib /workspace/local"]
