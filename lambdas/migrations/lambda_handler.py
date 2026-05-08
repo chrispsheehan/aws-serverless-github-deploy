@@ -1,3 +1,5 @@
+import json
+import sys
 from sqlalchemy import create_engine, inspect
 
 from lambda_shared import get_logger, json_response
@@ -45,55 +47,65 @@ def _ensure_tables() -> dict[str, object]:
         engine.dispose()
 
 
-def lambda_handler(event, context):
+def run_migration(request_id: str = "local") -> dict[str, object]:
     logger.info(
         "migration_start",
         extra={
             "event": "migration_start",
             "migration": MIGRATION_NAME,
             "managed_tables": sorted(Base.metadata.tables.keys()),
-            "request_id": context.aws_request_id,
+            "request_id": request_id,
         },
     )
+
     result = _ensure_tables()
     if not result["created_any"]:
+        payload = {
+            "ok": True,
+            "migration": MIGRATION_NAME,
+            "skipped": True,
+            "reason": "worker_messages already exists in public schema",
+            "managed_tables": result["managed_tables"],
+        }
         logger.info(
             "migration_complete",
             extra={
                 "event": "migration_complete",
                 "migration": MIGRATION_NAME,
-                "request_id": context.aws_request_id,
+                "request_id": request_id,
                 "skipped": True,
                 "managed_tables": result["managed_tables"],
             },
         )
-        return json_response(
-            200,
-            {
-                "ok": True,
-                "migration": MIGRATION_NAME,
-                "skipped": True,
-                "reason": "worker_messages already exists in public schema",
-                "managed_tables": result["managed_tables"],
-            },
-        )
+        return payload
 
+    payload = {
+        "ok": True,
+        "migration": MIGRATION_NAME,
+        "created_tables": result["managed_tables"],
+    }
     logger.info(
         "migration_complete",
         extra={
             "event": "migration_complete",
             "migration": MIGRATION_NAME,
-            "request_id": context.aws_request_id,
+            "request_id": request_id,
             "skipped": False,
             "created_tables": result["managed_tables"],
         },
     )
+    return payload
 
-    return json_response(
-        200,
-        {
-            "ok": True,
-            "migration": MIGRATION_NAME,
-            "created_tables": result["managed_tables"],
-        },
-    )
+
+def lambda_handler(event, context):
+    return json_response(200, run_migration(request_id=context.aws_request_id))
+
+
+def main() -> int:
+    payload = run_migration()
+    print(json.dumps(payload, indent=2, default=str))
+    return 0 if payload.get("ok") else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -11,6 +11,16 @@ _default:
     @just --justfile justfile.destroy --list
 
 
+# Start the local Postgres + migrations compose stack.
+start:
+    @docker compose -f {{justfile_directory()}}/docker-compose.local.yml up --build
+
+
+# Open a shell in the local debug container.
+debug:
+    @docker compose -f {{justfile_directory()}}/docker-compose.local.yml exec debug sh
+
+
 PROJECT_DIR := justfile_directory()
 LAMBDA_DIR := "lambdas"
 FRONTEND_DIR := "frontend"
