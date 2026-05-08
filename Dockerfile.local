@@ -6,10 +6,34 @@ RUN pip install --no-cache-dir boto3
 RUN pip install --no-cache-dir watchfiles
 
 
-FROM local-python-base AS migrations-local
+FROM local-python-base AS local-lambda-base
 
 COPY lib /workspace/lib
 COPY lambdas/lib /workspace/lambdas/lib
+
+
+FROM local-lambda-base AS lambda-api-local
+
+COPY lambdas/lambda_api /workspace/lambdas/lambda_api
+COPY local/api_harness.py /workspace/local/api_harness.py
+
+ENV PYTHONPATH=/workspace/lib:/workspace/lambdas/lib:/workspace/lambdas/lambda_api:/workspace/local
+
+CMD ["python", "/workspace/local/api_harness.py", "lambda_handler:lambda_handler"]
+
+
+FROM local-lambda-base AS lambda-worker-local
+
+COPY lambdas/lambda_worker /workspace/lambdas/lambda_worker
+COPY local/invoke_harness.py /workspace/local/invoke_harness.py
+
+ENV PYTHONPATH=/workspace/lib:/workspace/lambdas/lib:/workspace/lambdas/lambda_worker:/workspace/local
+
+CMD ["python", "/workspace/local/invoke_harness.py", "lambda_handler:lambda_handler", "--event-file", "/workspace/local/lambda_worker_event.json"]
+
+
+FROM local-lambda-base AS migrations-local
+
 COPY lambdas/migrations /workspace/lambdas/migrations
 
 RUN pip install --no-cache-dir -r /workspace/lambdas/migrations/requirements.txt

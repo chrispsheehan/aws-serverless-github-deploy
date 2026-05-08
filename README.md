@@ -136,6 +136,13 @@ just start
 
 On startup, the `migrations` service runs `run_migration()` once and then watches `lambdas/migrations/**/*.py` so it reruns automatically when those files change. The local image is built from the staged [Dockerfile.local](Dockerfile.local).
 
+The same local-only Dockerfile also exposes:
+
+- `lambda_api` on `http://localhost:18080/` through a reusable local API harness under `local/`, with the port passed into the harness entrypoint
+- `lambda_worker` as a one-shot local invocation through a reusable local invoke harness under `local/`, currently using an empty `Records` array
+
+Those local entrypoints live under `local/` so the production Lambda modules stay free of Docker-only scaffolding.
+
 The same compose file also starts a long-lived `debug` container built from the repo's existing `debug` Docker stage. To print the current tables from inside that container:
 
 ```sh

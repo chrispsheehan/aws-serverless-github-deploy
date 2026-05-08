@@ -30,6 +30,40 @@ services:
       - .:/workspace
     restart: unless-stopped
 
+  lambda_api:
+    build:
+      context: .
+      dockerfile: Dockerfile.local
+      target: lambda-api-local
+    depends_on:
+      migrations:
+        condition: service_started
+    environment:
+      AWS_REGION: eu-west-2
+      PORT: "8080"
+      LOCAL_API_HARNESS_PORT: "8080"
+    volumes:
+      - .:/workspace
+    ports:
+      - "18080:8080"
+    restart: unless-stopped
+
+  lambda_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.local
+      target: lambda-worker-local
+    depends_on:
+      migrations:
+        condition: service_started
+    environment:
+      AWS_REGION: eu-west-2
+      LOCAL_INVOKE_FUNCTION_NAME: lambda_worker
+      LOCAL_INVOKE_REQUEST_ID: local-lambda-worker-request
+    volumes:
+      - .:/workspace
+    restart: "no"
+
   debug:
     build:
       context: .
@@ -40,6 +74,10 @@ services:
         condition: service_healthy
       migrations:
         condition: service_started
+      lambda_api:
+        condition: service_started
+      lambda_worker:
+        condition: service_completed_successfully
     environment:
       PGHOST: postgres
       PGPORT: "5432"

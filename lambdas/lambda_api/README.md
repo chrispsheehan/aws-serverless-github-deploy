@@ -37,3 +37,4 @@ The consumer-side trace continuation relies on the ECS tracing helper using the 
 - logs are emitted through the shared JSON runtime logger
 - unexpected SNS publish failures are logged as `lambda_api_publish_failed`
 - publish attempts and normalized request metadata are logged as `lambda_api_publish_attempt` and `lambda_api_publish_request`
+- the local compose `lambda_api` service uses the reusable local API harness under `local/api_harness.py`, with the handler import path and port passed in from `Dockerfile.local`
