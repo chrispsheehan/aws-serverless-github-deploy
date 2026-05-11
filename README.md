@@ -153,7 +153,7 @@ The same compose file also starts a long-lived `debug` container built from the 
 
 ```sh
 just debug
-bash /workspace/local/print_tables.sh
+psql -v ON_ERROR_STOP=1 -c '\dt'
 ```
 
 ### Open An ECS Worker Debug Shell
