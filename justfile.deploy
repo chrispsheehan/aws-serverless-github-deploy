@@ -52,6 +52,15 @@ docker-build:
 
     TAG="${IMAGE_URI:-$CONTAINER_NAME}"
 
+    if [[ "$CONTAINER_NAME" == "debug" || "$CONTAINER_NAME" == "otel_collector" ]]; then
+        docker build \
+          --file "{{PROJECT_DIR}}/Dockerfile" \
+          --target "$CONTAINER_NAME" \
+          -t "$TAG" \
+          "{{PROJECT_DIR}}"
+        exit 0
+    fi
+
     docker build \
       --file "{{PROJECT_DIR}}/Dockerfile" \
       --build-arg "SERVICE=$CONTAINER_NAME" \
