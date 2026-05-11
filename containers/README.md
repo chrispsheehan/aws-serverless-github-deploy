@@ -61,4 +61,4 @@ When the local ECS worker persists messages to PostgreSQL, it now records:
 - `source_queue`
 - `processed_at`
 
-Those fields make it easier to verify that local API publish calls actually fanned out through the expected queue and were processed by the ECS worker, not just inserted as an opaque row.
+Those fields make it easier to verify that local API publish calls were fanned out to the ECS worker queue and processed by the ECS worker, not just inserted as an opaque row.

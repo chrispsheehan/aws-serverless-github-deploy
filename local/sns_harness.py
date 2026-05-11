@@ -3,15 +3,16 @@ from __future__ import annotations
 
 # Local-only SNS publish shim.
 # This is not a full SNS emulator. It only supports the Publish call shape used
-# by lambda_api and fans those messages out to the configured local SQS queues.
+# by lambda_api and fans those messages out to the local worker queues.
 
 import os
 import uuid
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from urllib.parse import parse_qs
+from urllib.parse import parse_qs, urlparse
 from xml.sax.saxutils import escape
 
 import boto3
+from botocore.exceptions import ClientError
 
 
 AWS_REGION = os.getenv("AWS_REGION", "eu-west-2")
@@ -25,6 +26,32 @@ _sqs_client_kwargs = {"region_name": AWS_REGION}
 if os.getenv("AWS_ENDPOINT_URL_SQS", "").strip():
     _sqs_client_kwargs["endpoint_url"] = os.getenv("AWS_ENDPOINT_URL_SQS", "").strip()
 SQS = boto3.client("sqs", **_sqs_client_kwargs)
+
+
+def queue_name(queue_url: str) -> str:
+    return urlparse(queue_url).path.rsplit("/", 1)[-1]
+
+
+def ensure_queue(queue_url: str) -> None:
+    SQS.create_queue(QueueName=queue_name(queue_url))
+
+
+def send_message(queue_url: str, *, body: str, message_attributes: dict[str, dict[str, str]]) -> None:
+    try:
+        SQS.send_message(
+            QueueUrl=queue_url,
+            MessageBody=body,
+            MessageAttributes=message_attributes,
+        )
+    except ClientError as exc:
+        if exc.response.get("Error", {}).get("Code") != "QueueDoesNotExist":
+            raise
+        ensure_queue(queue_url)
+        SQS.send_message(
+            QueueUrl=queue_url,
+            MessageBody=body,
+            MessageAttributes=message_attributes,
+        )
 
 
 def parse_message_attributes(params: dict[str, list[str]]) -> dict[str, dict[str, str]]:
@@ -80,10 +107,10 @@ class Handler(BaseHTTPRequestHandler):
         message = (params.get("Message") or [""])[0]
         message_attributes = parse_message_attributes(params)
         for queue_url in QUEUE_URLS:
-            SQS.send_message(
-                QueueUrl=queue_url,
-                MessageBody=message,
-                MessageAttributes=message_attributes,
+            send_message(
+                queue_url,
+                body=message,
+                message_attributes=message_attributes,
             )
         encoded = publish_response_xml(str(uuid.uuid4()))
 
@@ -98,6 +125,8 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main() -> int:
+    for queue_url in QUEUE_URLS:
+        ensure_queue(queue_url)
     server = HTTPServer(("0.0.0.0", PORT), Handler)
     try:
         server.serve_forever()
