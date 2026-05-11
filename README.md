@@ -128,6 +128,94 @@ LAMBDA_NAME=dev-aws-serverless-github-deploy-migrations \
 just --justfile justfile.deploy lambda-invoke
 ```
 
+For a local-only database bootstrap path without AWS, use the repo-local compose file. `just start` brings the local stack up in detached mode, starts the frontend Vite dev server in the background, opens the ElasticMQ UI and frontend, and then tails the Compose logs. It starts PostgreSQL and then runs the repo's migration code in a local container after the database becomes healthy:
+
+```sh
+just start
+```
+
+To tear the local stack down completely, including Compose volumes:
+
+```sh
+just stop
+```
+
+On startup, the `migrations` service runs `run_migration()` once and then watches `lambdas/migrations/**/*.py` so it reruns automatically when those files change. The local image is built from the staged [Dockerfile.local](Dockerfile.local).
+
+The same local-only Dockerfile also exposes:
+
+- `lambda_api` on `http://localhost:18080/` through a reusable local Lambda HTTP harness under `local/`, with the port passed into the harness entrypoint
+- `lambda_worker` as a long-lived local Lambda-style worker polling its own local ElasticMQ queue through a reusable local invoke harness under `local/`
+- `ecs_api` on `http://localhost:18081/`, running the existing ECS API app under local file watching without changing the production container code
+- `ecs_worker` as a long-lived local ECS worker wired to local PostgreSQL and its own local ElasticMQ queue, with the SQS endpoint override controlled by `AWS_ENDPOINT_URL_SQS` and local dummy AWS credentials supplied through Docker Compose for request signing
+- the frontend as a plain local Vite dev server on `http://localhost:5173` via `just frontend`, not in Docker, with a local-only proxy that mirrors the CloudFront `/api/*` and `/api/ecs/*` path rewrites
+
+Both local Lambda services run under `watchfiles`, so edits under their Lambda directory, `lambdas/lib`, `lib`, or `local/` trigger a restart/rerun without changing the production runtime code. The Lambda stages in [Dockerfile.local](Dockerfile.local) now use a shared local service base plus `SERVICE` build args from `docker-compose.local.yml`, and the service-specific local commands live in Compose rather than the Dockerfile. The local Lambda worker now polls a dedicated local queue instead of replaying a fixed event file. The local `lambda_api` service keeps the same SNS publish contract as production, but locally it points `AWS_ENDPOINT_URL_SNS` at [local/sns_harness.py](local/sns_harness.py), which fans publish calls out directly to the Lambda and ECS worker queues.
+
+The local ECS services follow the same pattern. Edits under `containers/<service>`, `containers/lib`, `lib`, or `local/` trigger a restart, and the ECS worker can switch to a local SQS-compatible endpoint by setting `AWS_ENDPOINT_URL_SQS` in Docker Compose. Local SQS is mocked with the third-party [SoftwareMill ElasticMQ](https://github.com/softwaremill/elasticmq) service rather than an in-repo SQS implementation. Because `boto3` still signs SQS requests even for ElasticMQ, the local compose file also provides dummy `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` values for both local worker consumers. The ECS stages in [Dockerfile.local](Dockerfile.local) use a shared local service base plus `SERVICE` build args from `docker-compose.local.yml`, and the service-specific local commands live in Compose rather than the Dockerfile.
+
+Those local entrypoints live under `local/` so the production Lambda modules stay free of Docker-only scaffolding. The HTTP-facing Lambda adapter is `local/lambda_http_harness.py`; it is only for local HTTP-triggered Lambda flows, not ECS.
+
+If you want to run only the frontend dev server separately, use a second terminal:
+
+```sh
+just frontend
+```
+
+That Vite server is also started automatically by `just start`. It proxies `/api/*` to the local Lambda API and `/api/ecs/*` to the local ECS API with the same prefix stripping the deployed CloudFront distribution performs. It also serves `auth-config.json` with no-cache headers locally so frontend auth config changes are picked up immediately. When `frontend/public/auth-config.json` has `"enabled": false`, the frontend runs in a local unauthenticated mode instead of redirecting to Cognito.
+
+The local ElasticMQ config now mirrors the shared AWS worker-messaging contract by exposing:
+
+- `lambda-worker-queue` for the Lambda worker consumer
+- `ecs-worker-queue` for the ECS worker consumer
+
+The local ElasticMQ UI is exposed at `http://localhost:19300` through a dedicated `softwaremill/elasticmq-ui` container pointed at the local ElasticMQ API.
+
+To publish a test message directly to the local Lambda worker queue from your host:
+
+```sh
+just local-sqs-send lambda-worker-queue
+```
+
+To publish a test message directly to the local ECS worker queue from your host:
+
+```sh
+just local-sqs-send ecs-worker-queue
+```
+
+To simulate the shared worker SNS fanout locally by publishing one message to both worker queues:
+
+```sh
+just local-worker-publish
+```
+
+Each local publish command sends the same fixed JSON shape and only varies the timestamp:
+
+```sh
+{"job_id":"local-<timestamp>","source":"local","payload":{"timestamp":"<timestamp>"}}
+```
+
+The same compose file also starts a long-lived `debug` container built from the repo's existing `debug` Docker stage. To print the current tables from inside that container:
+
+```sh
+just debug
+psql -v ON_ERROR_STOP=1 -c '\dt'
+```
+
+To print the current worker messages directly:
+
+```sh
+just messages
+```
+
+That query now prints the verification fields that matter for the local fanout path:
+
+- `job_id`
+- `message_type`
+- `correlation_id`
+- `source_queue`
+- `processed_at`
+
 ### Open An ECS Worker Debug Shell
 
 ```sh

@@ -13,24 +13,13 @@ COPY containers/${SERVICE}/requirements.txt /tmp/requirements.txt
 RUN pip install --no-cache-dir -r /tmp/shared-requirements.txt -r /tmp/requirements.txt
 
 
-FROM service-base AS worker
+FROM service-base AS service
 
 ARG SERVICE
 
 COPY containers/lib/ecs_tracing.py /usr/app/ecs_tracing.py
 COPY lib/runtime_logging.py /usr/app/runtime_logging.py
 COPY lib/db_shared.py /usr/app/db_shared.py
-COPY containers/${SERVICE}/app.py /usr/app/app.py
-
-CMD ["python", "-u", "app.py"]
-
-
-FROM service-base AS api
-
-ARG SERVICE
-
-COPY containers/lib/ecs_tracing.py /usr/app/ecs_tracing.py
-COPY lib/runtime_logging.py /usr/app/runtime_logging.py
 COPY containers/${SERVICE}/app.py /usr/app/app.py
 
 CMD ["python", "-u", "app.py"]

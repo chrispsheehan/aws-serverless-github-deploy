@@ -1,0 +1,234 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: app
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d app"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  elasticmq:
+    image: softwaremill/elasticmq-native:1.7.1
+    ports:
+      - "19324:9324"
+    volumes:
+      - ./local/elasticmq.conf:/opt/elasticmq.conf:ro
+    command: ["-Dconfig.file=/opt/elasticmq.conf"]
+
+  elasticmq_ui:
+    image: softwaremill/elasticmq-ui:1.7.1
+    depends_on:
+      elasticmq:
+        condition: service_started
+    environment:
+      SQS_ENDPOINT: http://elasticmq:9324
+      AWS_REGION: eu-west-2
+      AWS_ACCESS_KEY_ID: elasticmq
+      AWS_SECRET_ACCESS_KEY: elasticmq
+    ports:
+      - "19300:3000"
+
+  local_sns:
+    build:
+      context: .
+      dockerfile: Dockerfile.local
+      target: local-python-base
+    hostname: local-sns
+    command:
+      - python
+      - /workspace/local/sns_harness.py
+    depends_on:
+      elasticmq:
+        condition: service_started
+    environment:
+      AWS_REGION: eu-west-2
+      AWS_ACCESS_KEY_ID: elasticmq
+      AWS_SECRET_ACCESS_KEY: elasticmq
+      AWS_ENDPOINT_URL_SQS: http://elasticmq:9324
+      LOCAL_WORKER_QUEUE_URLS: http://elasticmq:9324/000000000000/lambda-worker-queue,http://elasticmq:9324/000000000000/ecs-worker-queue
+      LOCAL_SNS_HARNESS_PORT: "9911"
+    volumes:
+      - .:/workspace
+    restart: unless-stopped
+
+  migrations:
+    build:
+      context: .
+      dockerfile: Dockerfile.local
+      target: local-lambda-service-base
+      args:
+        SERVICE: migrations
+    command:
+      - sh
+      - -lc
+      - python -c "from lambda_handler import run_migration; run_migration()" && watchfiles --filter python "python -c 'from lambda_handler import run_migration; run_migration()'" /workspace/lambdas/migrations
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://app:app@postgres:5432/app
+      AWS_REGION: eu-west-2
+    volumes:
+      - .:/workspace
+    restart: unless-stopped
+
+  lambda_api:
+    build:
+      context: .
+      dockerfile: Dockerfile.local
+      target: local-lambda-service-base
+      args:
+        SERVICE: lambda_api
+    command:
+      - sh
+      - -lc
+      - watchfiles --filter python "python /workspace/local/lambda_http_harness.py lambda_handler:lambda_handler" /workspace/lambdas/lambda_api /workspace/lambdas/lib /workspace/lib /workspace/local
+    depends_on:
+      elasticmq:
+        condition: service_started
+      local_sns:
+        condition: service_started
+      migrations:
+        condition: service_started
+    environment:
+      AWS_REGION: eu-west-2
+      AWS_ACCESS_KEY_ID: elasticmq
+      AWS_SECRET_ACCESS_KEY: elasticmq
+      AWS_ENDPOINT_URL_SNS: http://local-sns:9911
+      PORT: "8080"
+      LOCAL_API_HARNESS_PORT: "8080"
+      WORKER_TOPIC_ARN: arn:aws:sns:eu-west-2:000000000000:local-worker-fanout
+      WORKER_TOPIC_NAME: local-worker-fanout
+    volumes:
+      - .:/workspace
+    ports:
+      - "18080:8080"
+    restart: unless-stopped
+
+  lambda_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.local
+      target: local-lambda-service-base
+      args:
+        SERVICE: lambda_worker
+    command:
+      - sh
+      - -lc
+      - watchfiles --filter python "python /workspace/local/invoke_harness.py lambda_handler:lambda_handler --sqs-queue-url $$AWS_SQS_QUEUE_URL" /workspace/lambdas/lambda_worker /workspace/lambdas/lib /workspace/lib /workspace/local
+    depends_on:
+      migrations:
+        condition: service_started
+      elasticmq:
+        condition: service_started
+    environment:
+      AWS_REGION: eu-west-2
+      AWS_ACCESS_KEY_ID: elasticmq
+      AWS_SECRET_ACCESS_KEY: elasticmq
+      AWS_SQS_QUEUE_URL: http://elasticmq:9324/000000000000/lambda-worker-queue
+      AWS_ENDPOINT_URL_SQS: http://elasticmq:9324
+      LOCAL_INVOKE_FUNCTION_NAME: lambda_worker
+      LOCAL_SQS_EVENT_SOURCE_ARN: arn:aws:sqs:eu-west-2:000000000000:lambda-worker-queue
+    volumes:
+      - .:/workspace
+    restart: unless-stopped
+
+  ecs_api:
+    build:
+      context: .
+      dockerfile: Dockerfile.local
+      target: local-ecs-service-base
+      args:
+        SERVICE: api
+    command:
+      - sh
+      - -lc
+      - watchfiles --filter python "python -u /workspace/containers/api/app.py" /workspace/containers/api /workspace/containers/lib /workspace/lib /workspace/local
+    depends_on:
+      migrations:
+        condition: service_started
+    environment:
+      AWS_REGION: eu-west-2
+      AWS_SERVICE_NAME: ecs-service-api-local
+      IMAGE: local-ecs-api
+      PORT: "8080"
+      ROOT_PATH: ""
+    volumes:
+      - .:/workspace
+    ports:
+      - "18081:8080"
+    restart: unless-stopped
+
+  ecs_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.local
+      target: local-ecs-service-base
+      args:
+        SERVICE: worker
+    command:
+      - sh
+      - -lc
+      - watchfiles --filter python "python -u /workspace/containers/worker/app.py" /workspace/containers/worker /workspace/containers/lib /workspace/lib /workspace/local
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrations:
+        condition: service_started
+      elasticmq:
+        condition: service_started
+    environment:
+      AWS_REGION: eu-west-2
+      AWS_ACCESS_KEY_ID: elasticmq
+      AWS_SECRET_ACCESS_KEY: elasticmq
+      DATABASE_URL: postgresql://app:app@postgres:5432/app
+      AWS_SQS_QUEUE_URL: http://elasticmq:9324/000000000000/ecs-worker-queue
+      AWS_ENDPOINT_URL_SQS: http://elasticmq:9324
+      POLL_TIMEOUT: "5"
+      HEARTBEAT_FILE: /tmp/worker-heartbeat
+    volumes:
+      - .:/workspace
+    restart: unless-stopped
+
+  debug:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: debug
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrations:
+        condition: service_started
+      lambda_api:
+        condition: service_started
+      lambda_worker:
+        condition: service_started
+      local_sns:
+        condition: service_started
+      elasticmq_ui:
+        condition: service_started
+      ecs_api:
+        condition: service_started
+      ecs_worker:
+        condition: service_started
+    environment:
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGDATABASE: app
+      PGUSER: app
+      PGPASSWORD: app
+    volumes:
+      - .:/workspace
+    working_dir: /workspace
+
+volumes:
+  postgres_data:

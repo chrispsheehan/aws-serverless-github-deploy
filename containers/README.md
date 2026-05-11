@@ -22,6 +22,7 @@ Container source directories for this boilerplate.
 - container images copy only the files referenced by the Dockerfile for the selected service shape, including shared helpers from `lib/` and `containers/lib/`
 - markdown files in `containers/` are documentation only and are not included in container image artifacts
 - detection alone is not enough: the runtime still needs the matching Terragrunt task and service stacks to participate in infra apply and code rollout correctly
+- local Docker services should be added explicitly to `docker-compose.local.yml` and `Dockerfile.local`; the local Dockerfile can mirror the production parameterized pattern by passing a `SERVICE` build arg for each target, while Compose provides the service-specific local commands and env overrides
 
 ## Boilerplate Patterns
 
@@ -51,3 +52,13 @@ Container source directories for this boilerplate.
 
 - ECS service rules: [infra/modules/aws/_shared/service/README.md](../infra/modules/aws/_shared/service/README.md)
 - shared infra context: [infra/README.md](../infra/README.md)
+## Local Verification
+
+When the local ECS worker persists messages to PostgreSQL, it now records:
+
+- `message_type`
+- `correlation_id`
+- `source_queue`
+- `processed_at`
+
+Those fields make it easier to verify that local API publish calls were fanned out to the ECS worker queue and processed by the ECS worker, not just inserted as an opaque row.

@@ -17,7 +17,15 @@ class WorkerMessage(Base):
     id: Mapped[int] = mapped_column(BIGINT, primary_key=True, autoincrement=True)
     sqs_message_id: Mapped[str | None] = mapped_column(Text, unique=True)
     job_id: Mapped[str | None] = mapped_column(Text, nullable=True)
+    message_type: Mapped[str | None] = mapped_column(Text, nullable=True)
+    correlation_id: Mapped[str | None] = mapped_column(Text, nullable=True)
+    source_queue: Mapped[str | None] = mapped_column(Text, nullable=True)
     message_body: Mapped[str] = mapped_column(Text, nullable=False)
+    processed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),

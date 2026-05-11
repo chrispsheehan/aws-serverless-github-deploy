@@ -1,0 +1,38 @@
+ARG SERVICE
+
+FROM python:3.12-slim AS local-python-base
+
+WORKDIR /workspace
+
+RUN pip install --no-cache-dir boto3
+RUN pip install --no-cache-dir watchfiles
+
+FROM local-python-base AS local-shared-base
+
+COPY lib /workspace/lib
+
+FROM local-shared-base AS local-lambda-service-base
+
+ARG SERVICE
+
+COPY lambdas/lib /workspace/lambdas/lib
+COPY local/lambda_http_harness.py /workspace/local/lambda_http_harness.py
+COPY local/sns_harness.py /workspace/local/sns_harness.py
+COPY local/invoke_harness.py /workspace/local/invoke_harness.py
+COPY lambdas/${SERVICE} /workspace/lambdas/${SERVICE}
+
+RUN pip install --no-cache-dir -r /workspace/lambdas/${SERVICE}/requirements.txt
+
+ENV PYTHONPATH=/workspace/lib:/workspace/lambdas/lib:/workspace/lambdas/${SERVICE}:/workspace/local
+
+
+FROM local-shared-base AS local-ecs-service-base
+
+ARG SERVICE
+
+COPY containers/lib /workspace/containers/lib
+COPY containers/${SERVICE} /workspace/containers/${SERVICE}
+
+RUN pip install --no-cache-dir -r /workspace/containers/lib/requirements.txt -r /workspace/containers/${SERVICE}/requirements.txt
+
+ENV PYTHONPATH=/workspace/lib:/workspace/containers/lib:/workspace/containers/${SERVICE}:/workspace/local

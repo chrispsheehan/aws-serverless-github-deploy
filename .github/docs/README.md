@@ -128,9 +128,10 @@ flowchart LR
 ### Cleanup And Discovery
 
 - `destroy.yml`
-  Tears down app layers before shared dependencies, including the shared observability dashboard and any environment-owned shared artifact stacks such as the `dev` code bucket. The workflow-dispatch input `allow_prod_cleanup` now gates every cleanup or destroy job that is normally skipped for `prod`, including the `Code Bucket`, `ECR`, and final tagged-resource cleanup jobs. After the main graph completes, the workflow first counts tagged leftovers through `justfile.destroy`, prints a warning only when any remain, and then runs the cleanup recipe. That cleanup currently deletes leaked Cognito user pools, deregisters and then deletes leaked ECS task-definition revisions, deletes leftover ECS clusters, and force-deletes leftover Secrets Manager secrets, then validates the remaining tagged ARNs against the underlying service APIs rather than treating the tagging index as the source of truth. Already-removed Cognito pools, ECS task-definition revisions, ECS clusters, or Secrets Manager secrets are treated as successful no-ops so stale tagging API results do not fail cleanup. `prod` runs that same path only when `allow_prod_cleanup` is enabled, and the workflow prints a conspicuous warning first.
+  Tears down app layers before shared dependencies, including the shared observability dashboard and any environment-owned shared artifact stacks such as the `dev` code bucket. The workflow-dispatch input `allow_prod_cleanup` now gates every cleanup or destroy job that is normally skipped for `prod`, including the `Code Bucket`, `ECR`, and final tagged-resource cleanup jobs. After the main graph completes, the workflow first counts tagged leftovers through `justfile.destroy`, prints a warning only when any remain, and then runs the cleanup recipe. That cleanup currently deletes leaked Cognito user pools, deregisters and then deletes leaked ECS task-definition revisions, deletes leftover ECS clusters, and force-deletes leftover Secrets Manager secrets, then validates the remaining tagged ARNs against the underlying service APIs rather than treating the tagging index as the source of truth. Already-removed Cognito pools, ECS task-definition revisions, ECS clusters, or Secrets Manager secrets are treated as successful no-ops so stale tagging API results do not fail cleanup. If unsupported or still-live tagged resources remain after that sweep, the workflow now records a warning and step summary instead of failing the whole destroy run. `prod` runs that same path only when `allow_prod_cleanup` is enabled, and the workflow prints a conspicuous warning first.
 - `shared_directories_get.yml`
   Derives the directory-based matrices used by wrapper workflows and PR action-test discovery.
+  The distinction between `service_dirs` and `container_dirs` is intentional: `service_dirs` contains deployable ECS service image directories only, while `container_dirs` also includes shared ECS sidecar image targets such as `debug` and `otel_collector`. ECS artifact builds that feed `shared_build.yml` should use `container_dirs` for `ecs_matrix`, because ECS task deploys need the shared sidecar images as well as the service images. Workflows that only need app service names or task/service stack derivation should use `service_dirs`.
 
 ## Feasibility Checks
 
@@ -210,7 +211,7 @@ Run these checks on every CI, workflow, or deploy-contract change.
 - check required Terraform variables on destroy as well as apply
 - prefer depending on real downstream consumers rather than serializing unrelated shared stacks
 - when a module creates manual backup artifacts outside Terraform ownership, decide explicitly whether destroy should delete or retain them by environment
-- if destroy relies on a final tagged-resource sweep, keep both the scan/count step and the cleanup step in `justfile.destroy`, and fail the workflow on unsupported tagged leftovers so new leak classes are visible
+- if destroy relies on a final tagged-resource sweep, keep both the scan/count step and the cleanup step in `justfile.destroy`, and surface unsupported tagged leftovers as an explicit workflow warning so new leak classes are still visible
 - if destroy relies on a final tagged-resource sweep, make sure the deploy OIDC role also allows `tag:GetResources`; the cleanup path uses the Resource Groups Tagging API before running service-specific deletions
 
 ## Wrapper Workflow Summary
@@ -240,4 +241,6 @@ These are the workflows most users trigger directly.
 
 - `shared_directories_get.yml` is the workflow-level source for directory-derived matrices
 - top-level Lambda directories under `lambdas/` are treated as deployable functions, excluding generated build output
-- top-level deployable container directories under `containers/` are treated as ECS image targets, excluding helper-only directories such as `lib` and `_shared`
+- top-level deployable ECS service directories under `containers/` are exposed through `service_dirs`
+- the broader `container_dirs` matrix includes those service directories plus shared ECS sidecar image targets such as `debug` and `otel_collector`
+- use `container_dirs` when building the full ECS deploy artifact set, and use `service_dirs` when you only need service/task naming

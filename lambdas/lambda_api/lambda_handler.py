@@ -15,7 +15,10 @@ WORKER_TOPIC_ARN = os.getenv("WORKER_TOPIC_ARN", "").strip()
 WORKER_TOPIC_NAME = os.getenv("WORKER_TOPIC_NAME", "").strip()
 logger = get_logger(__name__)
 
-_sns = boto3.client("sns", region_name=os.getenv("AWS_REGION", "eu-west-2"))
+_sns_client_kwargs = {"region_name": os.getenv("AWS_REGION", "eu-west-2")}
+if os.getenv("AWS_ENDPOINT_URL_SNS", "").strip():
+    _sns_client_kwargs["endpoint_url"] = os.getenv("AWS_ENDPOINT_URL_SNS", "").strip()
+_sns = boto3.client("sns", **_sns_client_kwargs)
 
 
 def _json_body(event):

@@ -34,6 +34,9 @@ The consumer-side trace continuation relies on the ECS tracing helper using the 
 ## Operational Notes
 
 - the Lambda reads the shared worker topic ARN and name from environment variables wired by the `lambda_api` infra module
+- the SNS client endpoint can be overridden with `AWS_ENDPOINT_URL_SNS`, which the local compose service uses to point at a small local publish shim under `local/sns_harness.py`; that shim fans messages out directly to the local worker queues backed by the third-party ElasticMQ SQS-compatible mock
 - logs are emitted through the shared JSON runtime logger
 - unexpected SNS publish failures are logged as `lambda_api_publish_failed`
 - publish attempts and normalized request metadata are logged as `lambda_api_publish_attempt` and `lambda_api_publish_request`
+- the local compose `lambda_api` service uses the reusable local Lambda HTTP harness under `local/lambda_http_harness.py`, with the handler import path and port passed in from `Dockerfile.local`
+- the local compose `lambda_api` service restarts on Python changes through `watchfiles` in `Dockerfile.local`
