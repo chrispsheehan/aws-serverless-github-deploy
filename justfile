@@ -13,7 +13,17 @@ _default:
 
 # Start the local Postgres + migrations compose stack.
 start:
-    @docker compose -f {{justfile_directory()}}/docker-compose.local.yml up --build
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    docker compose -f {{justfile_directory()}}/docker-compose.local.yml up --build -d
+    open http://localhost:19300
+    docker compose -f {{justfile_directory()}}/docker-compose.local.yml logs -f
+
+
+# Tear down the local compose stack and remove its volumes for a clean restart.
+stop:
+    @docker compose -f {{justfile_directory()}}/docker-compose.local.yml down -v --remove-orphans
 
 
 # Open a shell in the local debug container.

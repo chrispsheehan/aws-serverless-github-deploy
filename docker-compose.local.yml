@@ -23,6 +23,19 @@ services:
       - ./local/elasticmq.conf:/opt/elasticmq.conf:ro
     command: ["-Dconfig.file=/opt/elasticmq.conf"]
 
+  elasticmq_ui:
+    image: softwaremill/elasticmq-ui:1.7.1
+    depends_on:
+      elasticmq:
+        condition: service_started
+    environment:
+      SQS_ENDPOINT: http://elasticmq:9324
+      AWS_REGION: eu-west-2
+      AWS_ACCESS_KEY_ID: elasticmq
+      AWS_SECRET_ACCESS_KEY: elasticmq
+    ports:
+      - "19300:3000"
+
   migrations:
     build:
       context: .
@@ -166,6 +179,8 @@ services:
       lambda_api:
         condition: service_started
       lambda_worker:
+        condition: service_started
+      elasticmq_ui:
         condition: service_started
       ecs_api:
         condition: service_started

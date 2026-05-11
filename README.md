@@ -128,10 +128,16 @@ LAMBDA_NAME=dev-aws-serverless-github-deploy-migrations \
 just --justfile justfile.deploy lambda-invoke
 ```
 
-For a local-only database bootstrap path without AWS, use the repo-local compose file. It starts PostgreSQL and then runs the repo's migration code in a local container after the database becomes healthy:
+For a local-only database bootstrap path without AWS, use the repo-local compose file. `just start` brings the local stack up in detached mode, opens the ElasticMQ UI, and then tails the Compose logs. It starts PostgreSQL and then runs the repo's migration code in a local container after the database becomes healthy:
 
 ```sh
 just start
+```
+
+To tear the local stack down completely, including Compose volumes, and restart from a clean slate:
+
+```sh
+just stop
 ```
 
 On startup, the `migrations` service runs `run_migration()` once and then watches `lambdas/migrations/**/*.py` so it reruns automatically when those files change. The local image is built from the staged [Dockerfile.local](Dockerfile.local).
@@ -150,6 +156,8 @@ The local ECS services follow the same pattern. Edits under `containers/<service
 Those local entrypoints live under `local/` so the production Lambda modules stay free of Docker-only scaffolding.
 
 The local ElasticMQ config now mirrors the shared AWS worker-messaging contract by exposing one queue for the Lambda worker and one queue for the ECS worker.
+
+The local ElasticMQ UI is exposed at `http://localhost:19300` through a dedicated `softwaremill/elasticmq-ui` container pointed at the local ElasticMQ API.
 
 To publish a test message directly to the local Lambda worker queue from your host:
 
