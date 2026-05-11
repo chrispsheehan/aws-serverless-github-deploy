@@ -24,7 +24,7 @@ jobs:
       frontend_version: ${{ github.sha }}
       ecs_version: ${{ github.sha }}
       lambda_matrix: ${{ needs.setup.outputs.lambda_dirs }}
-      ecs_matrix: ${{ needs.setup.outputs.container_dirs }}
+      ecs_matrix: ${{ needs.setup.outputs.service_dirs }}
 
 
   get_build:
