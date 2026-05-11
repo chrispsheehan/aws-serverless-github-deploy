@@ -7,11 +7,14 @@ WORKDIR /workspace
 RUN pip install --no-cache-dir boto3
 RUN pip install --no-cache-dir watchfiles
 
-FROM local-python-base AS local-lambda-service-base
+FROM local-python-base AS local-shared-base
+
+COPY lib /workspace/lib
+
+FROM local-shared-base AS local-lambda-service-base
 
 ARG SERVICE
 
-COPY lib /workspace/lib
 COPY lambdas/lib /workspace/lambdas/lib
 COPY local/api_harness.py /workspace/local/api_harness.py
 COPY local/invoke_harness.py /workspace/local/invoke_harness.py
@@ -23,11 +26,10 @@ RUN pip install --no-cache-dir -r /workspace/lambdas/${SERVICE}/requirements.txt
 ENV PYTHONPATH=/workspace/lib:/workspace/lambdas/lib:/workspace/lambdas/${SERVICE}:/workspace/local
 
 
-FROM local-python-base AS local-ecs-service-base
+FROM local-shared-base AS local-ecs-service-base
 
 ARG SERVICE
 
-COPY lib /workspace/lib
 COPY containers/lib /workspace/containers/lib
 COPY containers/${SERVICE} /workspace/containers/${SERVICE}
 
