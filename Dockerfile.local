@@ -1,3 +1,5 @@
+ARG SERVICE
+
 FROM python:3.12-slim AS local-python-base
 
 WORKDIR /workspace
@@ -5,68 +7,39 @@ WORKDIR /workspace
 RUN pip install --no-cache-dir boto3
 RUN pip install --no-cache-dir watchfiles
 
-FROM local-python-base AS local-lambda-base
+FROM local-python-base AS local-lambda-service-base
+
+ARG SERVICE
 
 COPY lib /workspace/lib
 COPY lambdas/lib /workspace/lambdas/lib
 COPY local/api_harness.py /workspace/local/api_harness.py
 COPY local/invoke_harness.py /workspace/local/invoke_harness.py
 COPY local/lambda_worker_event.json /workspace/local/lambda_worker_event.json
+COPY lambdas/${SERVICE} /workspace/lambdas/${SERVICE}
+
+RUN pip install --no-cache-dir -r /workspace/lambdas/${SERVICE}/requirements.txt
+
+FROM local-lambda-service-base AS lambda-local
+
+ARG SERVICE
+
+ENV PYTHONPATH=/workspace/lib:/workspace/lambdas/lib:/workspace/lambdas/${SERVICE}:/workspace/local
 
 
-FROM local-lambda-base AS lambda-api-local
+FROM local-python-base AS local-ecs-service-base
 
-COPY lambdas/lambda_api /workspace/lambdas/lambda_api
-
-ENV PYTHONPATH=/workspace/lib:/workspace/lambdas/lib:/workspace/lambdas/lambda_api:/workspace/local
-
-CMD ["sh", "-lc", "watchfiles --filter python \"python /workspace/local/api_harness.py lambda_handler:lambda_handler\" /workspace/lambdas/lambda_api /workspace/lambdas/lib /workspace/lib /workspace/local"]
-
-
-FROM local-lambda-base AS lambda-worker-local
-
-COPY lambdas/lambda_worker /workspace/lambdas/lambda_worker
-
-ENV PYTHONPATH=/workspace/lib:/workspace/lambdas/lib:/workspace/lambdas/lambda_worker:/workspace/local
-
-CMD ["sh", "-lc", "watchfiles --filter python \"python /workspace/local/invoke_harness.py lambda_handler:lambda_handler --event-file /workspace/local/lambda_worker_event.json\" /workspace/lambdas/lambda_worker /workspace/lambdas/lib /workspace/lib /workspace/local"]
-
-
-FROM local-lambda-base AS migrations-local
-
-COPY lambdas/migrations /workspace/lambdas/migrations
-
-RUN pip install --no-cache-dir -r /workspace/lambdas/migrations/requirements.txt
-
-ENV PYTHONPATH=/workspace/lib:/workspace/lambdas/lib:/workspace/lambdas/migrations
-
-CMD ["sh", "-lc", "python -c \"from lambda_handler import run_migration; run_migration()\" && watchfiles --filter python \"python -c 'from lambda_handler import run_migration; run_migration()'\" /workspace/lambdas/migrations"]
-
-
-FROM local-python-base AS local-ecs-base
+ARG SERVICE
 
 COPY lib /workspace/lib
 COPY containers/lib /workspace/containers/lib
-COPY local/ecs_worker_entrypoint.py /workspace/local/ecs_worker_entrypoint.py
+COPY containers/${SERVICE} /workspace/containers/${SERVICE}
+
+RUN pip install --no-cache-dir -r /workspace/containers/lib/requirements.txt -r /workspace/containers/${SERVICE}/requirements.txt
 
 
-FROM local-ecs-base AS ecs-api-local
+FROM local-ecs-service-base AS ecs-local
 
-COPY containers/api /workspace/containers/api
+ARG SERVICE
 
-RUN pip install --no-cache-dir -r /workspace/containers/lib/requirements.txt -r /workspace/containers/api/requirements.txt
-
-ENV PYTHONPATH=/workspace/lib:/workspace/containers/lib:/workspace/containers/api:/workspace/local
-
-CMD ["sh", "-lc", "watchfiles --filter python \"python -u /workspace/containers/api/app.py\" /workspace/containers/api /workspace/containers/lib /workspace/lib /workspace/local"]
-
-
-FROM local-ecs-base AS ecs-worker-local
-
-COPY containers/worker /workspace/containers/worker
-
-RUN pip install --no-cache-dir -r /workspace/containers/lib/requirements.txt -r /workspace/containers/worker/requirements.txt
-
-ENV PYTHONPATH=/workspace/lib:/workspace/containers/lib:/workspace/local
-
-CMD ["sh", "-lc", "watchfiles --filter python \"python -u /workspace/local/ecs_worker_entrypoint.py\" /workspace/containers/worker /workspace/containers/lib /workspace/lib /workspace/local"]
+ENV PYTHONPATH=/workspace/lib:/workspace/containers/lib:/workspace/containers/${SERVICE}:/workspace/local

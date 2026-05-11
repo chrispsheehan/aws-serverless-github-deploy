@@ -16,7 +16,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
 
   elasticmq:
-    image: softwaremill/elasticmq-native:1.5.12
+    image: softwaremill/elasticmq-native:1.7.1
     ports:
       - "19324:9324"
     volumes:
@@ -27,7 +27,13 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.local
-      target: migrations-local
+      target: lambda-local
+      args:
+        SERVICE: migrations
+    command:
+      - sh
+      - -lc
+      - python -c "from lambda_handler import run_migration; run_migration()" && watchfiles --filter python "python -c 'from lambda_handler import run_migration; run_migration()'" /workspace/lambdas/migrations
     depends_on:
       postgres:
         condition: service_healthy
@@ -42,7 +48,13 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.local
-      target: lambda-api-local
+      target: lambda-local
+      args:
+        SERVICE: lambda_api
+    command:
+      - sh
+      - -lc
+      - watchfiles --filter python "python /workspace/local/api_harness.py lambda_handler:lambda_handler" /workspace/lambdas/lambda_api /workspace/lambdas/lib /workspace/lib /workspace/local
     depends_on:
       migrations:
         condition: service_started
@@ -60,7 +72,13 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.local
-      target: lambda-worker-local
+      target: lambda-local
+      args:
+        SERVICE: lambda_worker
+    command:
+      - sh
+      - -lc
+      - watchfiles --filter python "python /workspace/local/invoke_harness.py lambda_handler:lambda_handler --event-file /workspace/local/lambda_worker_event.json" /workspace/lambdas/lambda_worker /workspace/lambdas/lib /workspace/lib /workspace/local
     depends_on:
       migrations:
         condition: service_started
@@ -76,7 +94,13 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.local
-      target: ecs-api-local
+      target: ecs-local
+      args:
+        SERVICE: api
+    command:
+      - sh
+      - -lc
+      - watchfiles --filter python "python -u /workspace/containers/api/app.py" /workspace/containers/api /workspace/containers/lib /workspace/lib /workspace/local
     depends_on:
       migrations:
         condition: service_started
@@ -96,7 +120,13 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.local
-      target: ecs-worker-local
+      target: ecs-local
+      args:
+        SERVICE: worker
+    command:
+      - sh
+      - -lc
+      - watchfiles --filter python "python -u /workspace/containers/worker/app.py" /workspace/containers/worker /workspace/containers/lib /workspace/lib /workspace/local
     depends_on:
       postgres:
         condition: service_healthy
@@ -106,6 +136,8 @@ services:
         condition: service_started
     environment:
       AWS_REGION: eu-west-2
+      AWS_ACCESS_KEY_ID: elasticmq
+      AWS_SECRET_ACCESS_KEY: elasticmq
       DATABASE_URL: postgresql://app:app@postgres:5432/app
       AWS_SQS_QUEUE_URL: http://elasticmq:9324/000000000000/worker-events
       AWS_ENDPOINT_URL_SQS: http://elasticmq:9324

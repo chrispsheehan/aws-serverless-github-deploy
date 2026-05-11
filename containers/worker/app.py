@@ -11,10 +11,14 @@ from runtime_logging import get_logger
 
 QUEUE_URL    = os.environ['AWS_SQS_QUEUE_URL']
 AWS_REGION   = os.environ['AWS_REGION']
+AWS_ENDPOINT_URL_SQS = os.getenv("AWS_ENDPOINT_URL_SQS")
 POLL_TIMEOUT = int(os.getenv("POLL_TIMEOUT", "60"))
 HEARTBEAT_FILE = os.getenv("HEARTBEAT_FILE", "/tmp/worker-heartbeat")
 
-sqs = boto3.client('sqs', region_name=AWS_REGION)
+sqs_client_kwargs = {"region_name": AWS_REGION}
+if AWS_ENDPOINT_URL_SQS:
+    sqs_client_kwargs["endpoint_url"] = AWS_ENDPOINT_URL_SQS
+sqs = boto3.client('sqs', **sqs_client_kwargs)
 logger = get_logger(__name__)
 
 

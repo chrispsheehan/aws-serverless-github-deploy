@@ -22,7 +22,7 @@ Container source directories for this boilerplate.
 - container images copy only the files referenced by the Dockerfile for the selected service shape, including shared helpers from `lib/` and `containers/lib/`
 - markdown files in `containers/` are documentation only and are not included in container image artifacts
 - detection alone is not enough: the runtime still needs the matching Terragrunt task and service stacks to participate in infra apply and code rollout correctly
-- local Docker services for ECS should be added explicitly to `docker-compose.local.yml` and `Dockerfile.local`; keep any Docker-only entrypoint or endpoint-shim logic under `local/` rather than in the production container apps
+- local Docker services should be added explicitly to `docker-compose.local.yml` and `Dockerfile.local`; the local Dockerfile can mirror the production parameterized pattern by passing a `SERVICE` build arg for each target, while Compose provides the service-specific local commands and env overrides
 
 ## Boilerplate Patterns
 
