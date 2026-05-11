@@ -27,7 +27,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.local
-      target: lambda-local
+      target: local-lambda-service-base
       args:
         SERVICE: migrations
     command:
@@ -48,7 +48,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.local
-      target: lambda-local
+      target: local-lambda-service-base
       args:
         SERVICE: lambda_api
     command:
@@ -72,7 +72,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.local
-      target: lambda-local
+      target: local-lambda-service-base
       args:
         SERVICE: lambda_worker
     command:
@@ -94,7 +94,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.local
-      target: ecs-local
+      target: local-ecs-service-base
       args:
         SERVICE: api
     command:
@@ -120,7 +120,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.local
-      target: ecs-local
+      target: local-ecs-service-base
       args:
         SERVICE: worker
     command:
