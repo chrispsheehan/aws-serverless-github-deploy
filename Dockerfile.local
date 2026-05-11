@@ -18,7 +18,6 @@ ARG SERVICE
 COPY lambdas/lib /workspace/lambdas/lib
 COPY local/api_harness.py /workspace/local/api_harness.py
 COPY local/invoke_harness.py /workspace/local/invoke_harness.py
-COPY local/lambda_worker_event.json /workspace/local/lambda_worker_event.json
 COPY lambdas/${SERVICE} /workspace/lambdas/${SERVICE}
 
 RUN pip install --no-cache-dir -r /workspace/lambdas/${SERVICE}/requirements.txt

@@ -21,6 +21,36 @@ debug:
     @docker compose -f {{justfile_directory()}}/docker-compose.local.yml exec debug sh
 
 
+# List rows from the local worker_messages table.
+messages:
+    @docker compose -f {{justfile_directory()}}/docker-compose.local.yml exec debug \
+      psql -v ON_ERROR_STOP=1 \
+      -c "select sqs_message_id, job_id, left(message_body, 120) as message_body_preview from worker_messages order by created_at desc nulls last, sqs_message_id desc;"
+
+
+# Publish a message directly to a local ElasticMQ queue by full queue name.
+local-sqs-send queue_name='lambda-worker-queue':
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    timestamp="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+    message_body="{\"job_id\":\"local-${timestamp}\",\"source\":\"local\",\"payload\":{\"timestamp\":\"${timestamp}\"}}"
+
+    AWS_ACCESS_KEY_ID=elasticmq \
+    AWS_SECRET_ACCESS_KEY=elasticmq \
+    AWS_REGION="${AWS_REGION:-eu-west-2}" \
+    aws sqs send-message \
+      --endpoint-url http://localhost:19324 \
+      --queue-url "http://localhost:19324/000000000000/{{queue_name}}" \
+      --message-body "$message_body"
+
+
+# Publish one message to both local worker queues, simulating local SNS fanout.
+local-worker-publish:
+    @just local-sqs-send lambda-worker-queue
+    @just local-sqs-send ecs-worker-queue
+
+
 PROJECT_DIR := justfile_directory()
 LAMBDA_DIR := "lambdas"
 FRONTEND_DIR := "frontend"

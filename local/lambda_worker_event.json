@@ -1,8 +1,0 @@
-{
-  "Records": [
-    {
-      "messageId": "local-message-1",
-      "body": "{\"job_id\":\"local-job-1\",\"source\":\"local-worker\",\"payload\":{\"hello\":\"world\"}}"
-    }
-  ]
-}

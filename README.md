@@ -139,21 +139,53 @@ On startup, the `migrations` service runs `run_migration()` once and then watche
 The same local-only Dockerfile also exposes:
 
 - `lambda_api` on `http://localhost:18080/` through a reusable local API harness under `local/`, with the port passed into the harness entrypoint
-- `lambda_worker` as a local invocation through a reusable local invoke harness under `local/`, seeded from `local/lambda_worker_event.json`
+- `lambda_worker` as a long-lived local Lambda-style worker polling its own local ElasticMQ queue through a reusable local invoke harness under `local/`
 - `ecs_api` on `http://localhost:18081/`, running the existing ECS API app under local file watching without changing the production container code
-- `ecs_worker` as a long-lived local ECS worker wired to local PostgreSQL and a local ElasticMQ queue, with the SQS endpoint override controlled by `AWS_ENDPOINT_URL_SQS` and local dummy AWS credentials supplied through Docker Compose for request signing
+- `ecs_worker` as a long-lived local ECS worker wired to local PostgreSQL and its own local ElasticMQ queue, with the SQS endpoint override controlled by `AWS_ENDPOINT_URL_SQS` and local dummy AWS credentials supplied through Docker Compose for request signing
 
-Both local Lambda services run under `watchfiles`, so edits under their Lambda directory, `lambdas/lib`, `lib`, or `local/` trigger a restart/rerun without changing the production runtime code. The Lambda stages in [Dockerfile.local](Dockerfile.local) now use a shared local service base plus `SERVICE` build args from `docker-compose.local.yml`, and the service-specific local commands live in Compose rather than the Dockerfile.
+Both local Lambda services run under `watchfiles`, so edits under their Lambda directory, `lambdas/lib`, `lib`, or `local/` trigger a restart/rerun without changing the production runtime code. The Lambda stages in [Dockerfile.local](Dockerfile.local) now use a shared local service base plus `SERVICE` build args from `docker-compose.local.yml`, and the service-specific local commands live in Compose rather than the Dockerfile. The local Lambda worker now polls a dedicated local queue instead of replaying a fixed event file.
 
-The local ECS services follow the same pattern. Edits under `containers/<service>`, `containers/lib`, `lib`, or `local/` trigger a restart, and the ECS worker can switch to a local SQS-compatible endpoint by setting `AWS_ENDPOINT_URL_SQS` in Docker Compose. Because `boto3` still signs SQS requests even for ElasticMQ, the local compose file also provides dummy `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` values for the worker. The ECS stages in [Dockerfile.local](Dockerfile.local) use a shared local service base plus `SERVICE` build args from `docker-compose.local.yml`, and the service-specific local commands live in Compose rather than the Dockerfile.
+The local ECS services follow the same pattern. Edits under `containers/<service>`, `containers/lib`, `lib`, or `local/` trigger a restart, and the ECS worker can switch to a local SQS-compatible endpoint by setting `AWS_ENDPOINT_URL_SQS` in Docker Compose. Because `boto3` still signs SQS requests even for ElasticMQ, the local compose file also provides dummy `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` values for both local worker consumers. The ECS stages in [Dockerfile.local](Dockerfile.local) use a shared local service base plus `SERVICE` build args from `docker-compose.local.yml`, and the service-specific local commands live in Compose rather than the Dockerfile.
 
 Those local entrypoints live under `local/` so the production Lambda modules stay free of Docker-only scaffolding.
+
+The local ElasticMQ config now mirrors the shared AWS worker-messaging contract by exposing one queue for the Lambda worker and one queue for the ECS worker.
+
+To publish a test message directly to the local Lambda worker queue from your host:
+
+```sh
+just local-sqs-send lambda-worker-queue
+```
+
+To publish a test message directly to the local ECS worker queue from your host:
+
+```sh
+just local-sqs-send ecs-worker-queue
+```
+
+To simulate the shared worker SNS fanout locally by publishing the same message to both queues:
+
+```sh
+just local-worker-publish
+```
+
+Each local publish command sends the same fixed JSON shape and only varies the timestamp:
+
+```sh
+{"job_id":"local-<timestamp>","source":"local","payload":{"timestamp":"<timestamp>"}}
+```
 
 The same compose file also starts a long-lived `debug` container built from the repo's existing `debug` Docker stage. To print the current tables from inside that container:
 
 ```sh
 just debug
 psql -v ON_ERROR_STOP=1 -c '\dt'
+```
+
+To print the current worker messages directly:
+
+```sh
+just messages
 ```
 
 ### Open An ECS Worker Debug Shell

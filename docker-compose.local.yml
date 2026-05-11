@@ -78,17 +78,23 @@ services:
     command:
       - sh
       - -lc
-      - watchfiles --filter python "python /workspace/local/invoke_harness.py lambda_handler:lambda_handler --event-file /workspace/local/lambda_worker_event.json" /workspace/lambdas/lambda_worker /workspace/lambdas/lib /workspace/lib /workspace/local
+      - watchfiles --filter python "python /workspace/local/invoke_harness.py lambda_handler:lambda_handler --sqs-queue-url $$AWS_SQS_QUEUE_URL" /workspace/lambdas/lambda_worker /workspace/lambdas/lib /workspace/lib /workspace/local
     depends_on:
       migrations:
         condition: service_started
+      elasticmq:
+        condition: service_started
     environment:
       AWS_REGION: eu-west-2
+      AWS_ACCESS_KEY_ID: elasticmq
+      AWS_SECRET_ACCESS_KEY: elasticmq
+      AWS_SQS_QUEUE_URL: http://elasticmq:9324/000000000000/lambda-worker-queue
+      AWS_ENDPOINT_URL_SQS: http://elasticmq:9324
       LOCAL_INVOKE_FUNCTION_NAME: lambda_worker
-      LOCAL_INVOKE_REQUEST_ID: local-lambda-worker-request
+      LOCAL_SQS_EVENT_SOURCE_ARN: arn:aws:sqs:eu-west-2:000000000000:lambda-worker-queue
     volumes:
       - .:/workspace
-    restart: "no"
+    restart: unless-stopped
 
   ecs_api:
     build:
@@ -139,7 +145,7 @@ services:
       AWS_ACCESS_KEY_ID: elasticmq
       AWS_SECRET_ACCESS_KEY: elasticmq
       DATABASE_URL: postgresql://app:app@postgres:5432/app
-      AWS_SQS_QUEUE_URL: http://elasticmq:9324/000000000000/worker-events
+      AWS_SQS_QUEUE_URL: http://elasticmq:9324/000000000000/ecs-worker-queue
       AWS_ENDPOINT_URL_SQS: http://elasticmq:9324
       POLL_TIMEOUT: "5"
       HEARTBEAT_FILE: /tmp/worker-heartbeat
@@ -160,7 +166,7 @@ services:
       lambda_api:
         condition: service_started
       lambda_worker:
-        condition: service_completed_successfully
+        condition: service_started
       ecs_api:
         condition: service_started
       ecs_worker:
