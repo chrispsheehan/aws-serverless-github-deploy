@@ -17,18 +17,26 @@ start:
     set -euo pipefail
 
     docker compose -f {{justfile_directory()}}/docker-compose.local.yml up --build -d
+    npm --prefix {{justfile_directory()}}/frontend run dev -- --host 0.0.0.0 &
+
     open http://localhost:19300
+    open http://localhost:5173
     docker compose -f {{justfile_directory()}}/docker-compose.local.yml logs -f
 
 
 # Tear down the local compose stack and remove its volumes for a clean restart.
 stop:
-    @docker compose -f {{justfile_directory()}}/docker-compose.local.yml down -v --remove-orphans
+    docker compose -f {{justfile_directory()}}/docker-compose.local.yml down -v --remove-orphans
 
 
 # Open a shell in the local debug container.
 debug:
     @docker compose -f {{justfile_directory()}}/docker-compose.local.yml exec debug sh
+
+
+# Run the local frontend dev server with CloudFront-like API path proxying.
+frontend:
+    @npm --prefix {{justfile_directory()}}/frontend run dev -- --host 0.0.0.0
 
 
 # List rows from the local worker_messages table.

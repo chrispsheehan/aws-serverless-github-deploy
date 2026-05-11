@@ -128,13 +128,13 @@ LAMBDA_NAME=dev-aws-serverless-github-deploy-migrations \
 just --justfile justfile.deploy lambda-invoke
 ```
 
-For a local-only database bootstrap path without AWS, use the repo-local compose file. `just start` brings the local stack up in detached mode, opens the ElasticMQ UI, and then tails the Compose logs. It starts PostgreSQL and then runs the repo's migration code in a local container after the database becomes healthy:
+For a local-only database bootstrap path without AWS, use the repo-local compose file. `just start` brings the local stack up in detached mode, starts the frontend Vite dev server in the background, opens the ElasticMQ UI and frontend, and then tails the Compose logs. It starts PostgreSQL and then runs the repo's migration code in a local container after the database becomes healthy:
 
 ```sh
 just start
 ```
 
-To tear the local stack down completely, including Compose volumes, and restart from a clean slate:
+To tear the local stack down completely, including Compose volumes:
 
 ```sh
 just stop
@@ -148,12 +148,21 @@ The same local-only Dockerfile also exposes:
 - `lambda_worker` as a long-lived local Lambda-style worker polling its own local ElasticMQ queue through a reusable local invoke harness under `local/`
 - `ecs_api` on `http://localhost:18081/`, running the existing ECS API app under local file watching without changing the production container code
 - `ecs_worker` as a long-lived local ECS worker wired to local PostgreSQL and its own local ElasticMQ queue, with the SQS endpoint override controlled by `AWS_ENDPOINT_URL_SQS` and local dummy AWS credentials supplied through Docker Compose for request signing
+- the frontend as a plain local Vite dev server on `http://localhost:5173` via `just frontend`, not in Docker, with a local-only proxy that mirrors the CloudFront `/api/*` and `/api/ecs/*` path rewrites
 
 Both local Lambda services run under `watchfiles`, so edits under their Lambda directory, `lambdas/lib`, `lib`, or `local/` trigger a restart/rerun without changing the production runtime code. The Lambda stages in [Dockerfile.local](Dockerfile.local) now use a shared local service base plus `SERVICE` build args from `docker-compose.local.yml`, and the service-specific local commands live in Compose rather than the Dockerfile. The local Lambda worker now polls a dedicated local queue instead of replaying a fixed event file.
 
 The local ECS services follow the same pattern. Edits under `containers/<service>`, `containers/lib`, `lib`, or `local/` trigger a restart, and the ECS worker can switch to a local SQS-compatible endpoint by setting `AWS_ENDPOINT_URL_SQS` in Docker Compose. Because `boto3` still signs SQS requests even for ElasticMQ, the local compose file also provides dummy `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` values for both local worker consumers. The ECS stages in [Dockerfile.local](Dockerfile.local) use a shared local service base plus `SERVICE` build args from `docker-compose.local.yml`, and the service-specific local commands live in Compose rather than the Dockerfile.
 
 Those local entrypoints live under `local/` so the production Lambda modules stay free of Docker-only scaffolding.
+
+If you want to run only the frontend dev server separately, use a second terminal:
+
+```sh
+just frontend
+```
+
+That Vite server is also started automatically by `just start`. It proxies `/api/*` to the local Lambda API and `/api/ecs/*` to the local ECS API with the same prefix stripping the deployed CloudFront distribution performs. It also serves `auth-config.json` with no-cache headers locally so frontend auth config changes are picked up immediately. When `frontend/public/auth-config.json` has `"enabled": false`, the frontend runs in a local unauthenticated mode instead of redirecting to Cognito.
 
 The local ElasticMQ config now mirrors the shared AWS worker-messaging contract by exposing one queue for the Lambda worker and one queue for the ECS worker.
 

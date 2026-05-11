@@ -269,7 +269,12 @@ export default function App() {
         setAuthConfig(config)
 
         if (!config.enabled) {
-          throw new Error('Authentication is disabled in auth-config.json. Update the local placeholder file or use the deployed frontend stack output.')
+          setSession({
+            tokens: {},
+            claims: null,
+            localMode: true,
+          })
+          return
         }
 
         const url = new URL(window.location.href)
@@ -345,15 +350,15 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    if (!session?.tokens?.access_token) {
+    if (!session) {
       return
     }
 
-    fetchJson('/api/', session.tokens.access_token)
+    fetchJson('/api/', session.tokens?.access_token)
       .then(setLambdaData)
       .catch(setLambdaError)
 
-    fetchJson('/api/ecs', session.tokens.access_token)
+    fetchJson('/api/ecs', session.tokens?.access_token)
       .then(setEcsData)
       .catch(setEcsError)
   }, [session])
@@ -372,7 +377,7 @@ export default function App() {
   )
 
   async function publishMessage() {
-    if (!session?.tokens?.access_token) {
+    if (!session) {
       return
     }
 
@@ -384,7 +389,7 @@ export default function App() {
       const payload = await buildBrowserTelemetryPayload(session)
       setPublishedPayload(payload)
       const data = await sendJson('/api/messages', {
-        accessToken: session.tokens.access_token,
+        accessToken: session.tokens?.access_token,
         method: 'POST',
         body: payload,
       })
@@ -400,6 +405,9 @@ export default function App() {
     <div style={{ fontFamily: 'monospace', padding: '2rem' }}>
       <h1>Serverless App</h1>
       {authError && <p style={{ color: 'red' }}>Auth error: {String(authError)}</p>}
+      {authConfig && !authConfig.enabled && (
+        <p>Running in local frontend mode with auth disabled from <code>auth-config.json</code>.</p>
+      )}
       {authConfig && session?.claims && (
         <div style={{ marginBottom: '2rem' }}>
           <p>Signed in as {session.claims.email || session.claims['cognito:username']}</p>
@@ -422,7 +430,7 @@ export default function App() {
       <h2 style={{ marginTop: '2rem' }}>Publish Worker Message</h2>
       <p>Send your current browser metadata, page context, timestamp, and geolocation to the shared worker SNS topic through the authenticated Lambda API.</p>
       <div style={{ marginTop: '1rem' }}>
-        <button type="button" onClick={publishMessage} disabled={publishPending || !session?.tokens?.access_token}>
+        <button type="button" onClick={publishMessage} disabled={publishPending || !session}>
           {publishPending ? 'Collecting + publishing...' : 'Send browser telemetry'}
         </button>
       </div>
