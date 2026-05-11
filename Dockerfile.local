@@ -16,7 +16,8 @@ FROM local-shared-base AS local-lambda-service-base
 ARG SERVICE
 
 COPY lambdas/lib /workspace/lambdas/lib
-COPY local/api_harness.py /workspace/local/api_harness.py
+COPY local/lambda_http_harness.py /workspace/local/lambda_http_harness.py
+COPY local/sns_harness.py /workspace/local/sns_harness.py
 COPY local/invoke_harness.py /workspace/local/invoke_harness.py
 COPY lambdas/${SERVICE} /workspace/lambdas/${SERVICE}
 

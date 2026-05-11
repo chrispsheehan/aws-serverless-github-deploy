@@ -5,6 +5,8 @@
 - request escalation for `just tg <env> <module> validate` when Terragrunt needs normal network or AWS access outside the sandbox
 - request escalation for `just tg <env> <module> plan` when Terragrunt needs normal network, AWS, or remote-state access outside the sandbox
 - request escalation for `just tg-all <op>` when the command needs real Terragrunt/Terraform access beyond sandbox limits
+- request escalation for local Docker debug loops when the task depends on inspecting or driving the running local stack through the Docker daemon, for example `docker compose -f docker-compose.local.yml logs`, `ps`, `exec`, `up`, `down`, or direct local `curl` checks against those services
+- when a local dev issue is clearly in the running compose stack, prefer asking for that Docker/local-debug escalation immediately instead of iterating blind from static file reads alone
 - when one of those commands is relevant to the task, ask for escalation immediately before running it rather than failing inside the sandbox first
 - use stable command prefixes where possible so repeated `just tg` escalations can be approved and reused consistently
 

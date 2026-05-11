@@ -1,9 +1,16 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+# Local-only HTTP adapter for Lambda-style handlers.
+# This exists to make an HTTP-triggered Lambda callable from the browser during
+# local development without changing the production Lambda code.
+# It is not a generic app server and it is not used by ECS services.
+
 import argparse
 import importlib
+import json
 import os
+import traceback
 import uuid
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from typing import Callable
@@ -38,7 +45,7 @@ def build_lambda_http_event(
 
 
 def serve_lambda_http_handler(
-    handler: Callable[[dict, object], dict],
+    handler_import_path: str,
     *,
     host: str = "0.0.0.0",
     port: int = 8080,
@@ -59,7 +66,22 @@ def serve_lambda_http_handler(
                 body=body,
             )
             context = context_factory(str(uuid.uuid4()))
-            response = handler(event, context)
+            try:
+                handler = import_handler(handler_import_path)
+                response = handler(event, context)
+            except Exception as exc:
+                traceback.print_exc()
+                response = {
+                    "statusCode": 500,
+                    "headers": {"Content-Type": "application/json"},
+                    "body": json.dumps(
+                        {
+                            "ok": False,
+                            "error": "Local Lambda HTTP harness caught an unhandled exception",
+                            "detail": str(exc),
+                        }
+                    ),
+                }
             response_body = response.get("body", "")
             encoded = response_body.encode("utf-8")
 
@@ -110,8 +132,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
-    handler = import_handler(args.handler_import_path)
-    serve_lambda_http_handler(handler, host=args.host, port=args.port)
+    serve_lambda_http_handler(args.handler_import_path, host=args.host, port=args.port)
     return 0
 
 

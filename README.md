@@ -144,17 +144,17 @@ On startup, the `migrations` service runs `run_migration()` once and then watche
 
 The same local-only Dockerfile also exposes:
 
-- `lambda_api` on `http://localhost:18080/` through a reusable local API harness under `local/`, with the port passed into the harness entrypoint
+- `lambda_api` on `http://localhost:18080/` through a reusable local Lambda HTTP harness under `local/`, with the port passed into the harness entrypoint
 - `lambda_worker` as a long-lived local Lambda-style worker polling its own local ElasticMQ queue through a reusable local invoke harness under `local/`
 - `ecs_api` on `http://localhost:18081/`, running the existing ECS API app under local file watching without changing the production container code
 - `ecs_worker` as a long-lived local ECS worker wired to local PostgreSQL and its own local ElasticMQ queue, with the SQS endpoint override controlled by `AWS_ENDPOINT_URL_SQS` and local dummy AWS credentials supplied through Docker Compose for request signing
 - the frontend as a plain local Vite dev server on `http://localhost:5173` via `just frontend`, not in Docker, with a local-only proxy that mirrors the CloudFront `/api/*` and `/api/ecs/*` path rewrites
 
-Both local Lambda services run under `watchfiles`, so edits under their Lambda directory, `lambdas/lib`, `lib`, or `local/` trigger a restart/rerun without changing the production runtime code. The Lambda stages in [Dockerfile.local](Dockerfile.local) now use a shared local service base plus `SERVICE` build args from `docker-compose.local.yml`, and the service-specific local commands live in Compose rather than the Dockerfile. The local Lambda worker now polls a dedicated local queue instead of replaying a fixed event file.
+Both local Lambda services run under `watchfiles`, so edits under their Lambda directory, `lambdas/lib`, `lib`, or `local/` trigger a restart/rerun without changing the production runtime code. The Lambda stages in [Dockerfile.local](Dockerfile.local) now use a shared local service base plus `SERVICE` build args from `docker-compose.local.yml`, and the service-specific local commands live in Compose rather than the Dockerfile. The local Lambda worker now polls a dedicated local queue instead of replaying a fixed event file. The local `lambda_api` service keeps the same SNS publish contract as production, but locally it points `AWS_ENDPOINT_URL_SNS` at [local/sns_harness.py](local/sns_harness.py), a tiny fanout shim that forwards publish calls to the two ElasticMQ worker queues.
 
 The local ECS services follow the same pattern. Edits under `containers/<service>`, `containers/lib`, `lib`, or `local/` trigger a restart, and the ECS worker can switch to a local SQS-compatible endpoint by setting `AWS_ENDPOINT_URL_SQS` in Docker Compose. Because `boto3` still signs SQS requests even for ElasticMQ, the local compose file also provides dummy `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` values for both local worker consumers. The ECS stages in [Dockerfile.local](Dockerfile.local) use a shared local service base plus `SERVICE` build args from `docker-compose.local.yml`, and the service-specific local commands live in Compose rather than the Dockerfile.
 
-Those local entrypoints live under `local/` so the production Lambda modules stay free of Docker-only scaffolding.
+Those local entrypoints live under `local/` so the production Lambda modules stay free of Docker-only scaffolding. The HTTP-facing Lambda adapter is `local/lambda_http_harness.py`; it is only for local HTTP-triggered Lambda flows, not ECS.
 
 If you want to run only the frontend dev server separately, use a second terminal:
 
