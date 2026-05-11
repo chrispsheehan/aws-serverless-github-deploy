@@ -43,7 +43,7 @@ frontend:
 messages:
     @docker compose -f {{justfile_directory()}}/docker-compose.local.yml exec debug \
       psql -v ON_ERROR_STOP=1 \
-      -c "select sqs_message_id, job_id, left(message_body, 120) as message_body_preview from worker_messages order by created_at desc nulls last, sqs_message_id desc;"
+      -c "select sqs_message_id, job_id, message_type, correlation_id, source_queue, processed_at, left(message_body, 120) as message_body_preview from worker_messages order by processed_at desc nulls last, sqs_message_id desc;"
 
 
 # Publish a message directly to a local ElasticMQ queue by full queue name.

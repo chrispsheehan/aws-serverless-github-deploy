@@ -8,6 +8,12 @@ from database_models import Base, WorkerMessage
 
 MIGRATION_NAME = "001_create_worker_messages"
 logger = get_logger(__name__)
+WORKER_MESSAGE_COLUMN_SQL = {
+    "message_type": "alter table public.worker_messages add column message_type text",
+    "correlation_id": "alter table public.worker_messages add column correlation_id text",
+    "source_queue": "alter table public.worker_messages add column source_queue text",
+    "processed_at": "alter table public.worker_messages add column processed_at timestamptz not null default now()",
+}
 
 
 def _sqlalchemy_url() -> str:
@@ -33,14 +39,26 @@ def _ensure_tables() -> dict[str, object]:
             },
         )
         if worker_messages_exists:
+            existing_columns = {
+                column["name"] for column in inspector.get_columns(WorkerMessage.__tablename__, schema="public")
+            }
+            added_columns = []
+            with engine.begin() as connection:
+                for column_name, statement in WORKER_MESSAGE_COLUMN_SQL.items():
+                    if column_name in existing_columns:
+                        continue
+                    connection.exec_driver_sql(statement)
+                    added_columns.append(column_name)
             return {
                 "created_any": False,
+                "added_columns": added_columns,
                 "managed_tables": sorted(Base.metadata.tables.keys()),
             }
 
         Base.metadata.create_all(bind=engine, tables=[WorkerMessage.__table__], checkfirst=True)
         return {
             "created_any": True,
+            "added_columns": [],
             "managed_tables": sorted(Base.metadata.tables.keys()),
         }
     finally:
@@ -63,8 +81,9 @@ def run_migration(request_id: str = "local") -> dict[str, object]:
         payload = {
             "ok": True,
             "migration": MIGRATION_NAME,
-            "skipped": True,
+            "skipped": not result["added_columns"],
             "reason": "worker_messages already exists in public schema",
+            "added_columns": result["added_columns"],
             "managed_tables": result["managed_tables"],
         }
         logger.info(
@@ -73,7 +92,8 @@ def run_migration(request_id: str = "local") -> dict[str, object]:
                 "event": "migration_complete",
                 "migration": MIGRATION_NAME,
                 "request_id": request_id,
-                "skipped": True,
+                "skipped": not result["added_columns"],
+                "added_columns": result["added_columns"],
                 "managed_tables": result["managed_tables"],
             },
         )

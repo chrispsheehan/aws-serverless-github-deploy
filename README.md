@@ -205,6 +205,14 @@ To print the current worker messages directly:
 just messages
 ```
 
+That query now prints the verification fields that matter for the local fanout path:
+
+- `job_id`
+- `message_type`
+- `correlation_id`
+- `source_queue`
+- `processed_at`
+
 ### Open An ECS Worker Debug Shell
 
 ```sh

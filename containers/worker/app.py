@@ -40,14 +40,26 @@ def process_message(msg):
             "messaging.message.id": msg["MessageId"],
         },
     ):
-        job_id = extract_job_id(msg["Body"])
-        persist_message(msg["MessageId"], msg["Body"], job_id)
+        payload = parse_payload(msg["Body"])
+        job_id = extract_job_id(payload)
+        message_type = extract_message_type(payload)
+        correlation_id = extract_correlation_id(msg, payload)
+        persist_message(
+            msg["MessageId"],
+            msg["Body"],
+            job_id,
+            message_type,
+            correlation_id,
+            QUEUE_URL,
+        )
         logger.info(
             "ecs_worker_message_processed",
             extra={
                 "event": "ecs_worker_message_processed",
                 "message_id": msg["MessageId"],
                 "job_id": job_id,
+                "message_type": message_type,
+                "correlation_id": correlation_id,
                 "persisted_to_postgres": True,
                 "body_preview": msg["Body"][:200],
                 "queue_url": QUEUE_URL,
@@ -56,15 +68,32 @@ def process_message(msg):
         )
 
 
-def extract_job_id(body):
+def parse_payload(body):
     try:
-        payload = json.loads(body)
+        return json.loads(body)
     except json.JSONDecodeError:
         return None
+
+
+def extract_job_id(payload):
     return payload.get("job_id") if isinstance(payload, dict) else None
 
 
-def persist_message(message_id, body, job_id):
+def extract_message_type(payload):
+    return payload.get("type") if isinstance(payload, dict) else None
+
+
+def extract_correlation_id(message, payload):
+    if value := message_attribute_value(message, "correlation_id"):
+        return value
+    if isinstance(payload, dict):
+        trace_payload = payload.get("_trace")
+        if isinstance(trace_payload, dict):
+            return trace_payload.get("correlation_id")
+    return None
+
+
+def persist_message(message_id, body, job_id, message_type, correlation_id, source_queue):
     with start_span(
         "db.persist_message",
         kind=SpanKind.CLIENT,
@@ -79,11 +108,18 @@ def persist_message(message_id, body, job_id):
             with connection.cursor() as cursor:
                 cursor.execute(
                     """
-                    insert into worker_messages (sqs_message_id, job_id, message_body)
-                    values (%s, %s, %s)
+                    insert into worker_messages (
+                        sqs_message_id,
+                        job_id,
+                        message_type,
+                        correlation_id,
+                        source_queue,
+                        message_body
+                    )
+                    values (%s, %s, %s, %s, %s, %s)
                     on conflict (sqs_message_id) do nothing
                     """,
-                    (message_id, job_id, body),
+                    (message_id, job_id, message_type, correlation_id, source_queue, body),
                 )
 
 

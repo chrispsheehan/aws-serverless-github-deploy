@@ -52,3 +52,13 @@ Container source directories for this boilerplate.
 
 - ECS service rules: [infra/modules/aws/_shared/service/README.md](../infra/modules/aws/_shared/service/README.md)
 - shared infra context: [infra/README.md](../infra/README.md)
+## Local Verification
+
+When the local ECS worker persists messages to PostgreSQL, it now records:
+
+- `message_type`
+- `correlation_id`
+- `source_queue`
+- `processed_at`
+
+Those fields make it easier to verify that local API publish calls actually fanned out through the expected queue and were processed by the ECS worker, not just inserted as an opaque row.

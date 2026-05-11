@@ -6,6 +6,7 @@ Database migration runtime for the local and AWS-backed PostgreSQL paths.
 
 - creating the `worker_messages` table when it does not exist
 - idempotent startup checks for the migration-managed tables
+- additive schema updates for the `worker_messages` verification columns used by the local ECS worker debug path
 
 ## Does Not Own
 
