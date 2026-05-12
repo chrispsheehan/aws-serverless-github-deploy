@@ -63,11 +63,21 @@ jobs:
         run: |
           echo "repository_url=$(echo "$TG_OUTPUTS" | jq -r '.repository_url.value')" >> "$GITHUB_OUTPUT"
 
+      - name: Check bootstrap image tag
+        id: bootstrap_image
+        uses: ./.github/actions/just
+        env:
+          REPOSITORY_URL: ${{ steps.get_repository_url.outputs.repository_url }}
+        with:
+          justfile_path: justfile.ci
+          just_action: ecr-bootstrap-image-exists
+
       - name: Build and push bootstrap image
+        if: steps.bootstrap_image.outputs.just_outputs != 'true'
         uses: ./.github/actions/just
         env:
           SOURCE_IMAGE: nginx:latest
-          IMAGE_URI: ${{ steps.get_repository_url.outputs.repository_url }}:bootstrap-${{ inputs.infra_version }}
+          IMAGE_URI: ${{ steps.get_repository_url.outputs.repository_url }}:bootstrap
         with:
           justfile_path: justfile.deploy
           just_action: docker-mirror docker-push
@@ -75,7 +85,7 @@ jobs:
       - name: Set bootstrap image uri
         id: set_bootstrap_image_uri
         env:
-          BOOTSTRAP_IMAGE_URI: ${{ steps.get_repository_url.outputs.repository_url }}:bootstrap-${{ inputs.infra_version }}
+          BOOTSTRAP_IMAGE_URI: ${{ steps.get_repository_url.outputs.repository_url }}:bootstrap
         run: |
           echo "bootstrap_image_uri=$BOOTSTRAP_IMAGE_URI" >> "$GITHUB_OUTPUT"
 

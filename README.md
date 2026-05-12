@@ -43,6 +43,7 @@ This repo is structured to work well with coding agents as well as humans.
 - docs are split by ownership so agents can find the right contract before changing code
 - the root README is the entry point, while workflow, infra, runtime, and shared-module details live in their own READMEs
 - the `just` command surface is split so local commands, read-only CI helpers, and mutating deploy helpers stay distinct
+- the ECS bootstrap placeholder image is a stable shared tag, so infra runs reuse one bootstrap image instead of versioning a new placeholder artifact per release
 
 ## Prerequisites
 

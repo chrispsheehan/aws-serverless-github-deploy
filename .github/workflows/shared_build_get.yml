@@ -188,9 +188,8 @@ jobs:
         shell: bash
         env:
           REPOSITORY_URL: ${{ needs.ecr.outputs.repository_url }}
-          VERSION: ${{ inputs.ecs_version }}
         run: |
-          echo "bootstrap_image_uri=${REPOSITORY_URL}:bootstrap-${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "bootstrap_image_uri=${REPOSITORY_URL}:bootstrap" >> "$GITHUB_OUTPUT"
 
       - name: Build ECS task matrix
         id: task_matrix
