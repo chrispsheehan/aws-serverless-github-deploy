@@ -40,6 +40,7 @@ When `connection_type = "vpc_link"`, the module can also attach a shared API Gat
 ## Bootstrap behavior
 
 Bootstrap ECS services use the shared placeholder image.
+That placeholder image is expected to be a stable shared tag, so infra applies can reuse the same bootstrap task definition input instead of churning a new placeholder image reference on every release.
 Bootstrap health checks use `/`.
 Real task deploys use the normal app health path, such as `/health` or `/<root_path>/health`.
 
