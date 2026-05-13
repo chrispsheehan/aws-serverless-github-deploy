@@ -14,14 +14,11 @@ Also update the affected module `README.md` files under `infra/modules/**` whene
 
 ## AI-Assisted Changes
 
-AI-assisted changes are expected to follow the same repo contracts as manual changes.
+AI-assisted changes should follow the same repo contracts as manual changes:
 
-- prefer reading the nearest owning README before changing code
-- keep the root `README.md` focused on entry-point guidance; put detailed behavior in the owning workflow, runtime, or module docs
-- when changing workflow contracts, update `.github/docs/README.md` in the same PR
-- when changing shared module behavior, update the relevant `infra/modules/**/README.md` in the same PR
-- when changing runtime behavior, update the nearest `lambdas/**/README.md` or `containers/**/README.md`
-- when HCL or downstream Terraform dependencies change, run the smallest relevant `just tg <env> <module> plan` or `validate` command when feasible and call out any environment limits if you cannot run it
+- read the nearest owning README before changing code
+- keep docs aligned with workflow/module/runtime changes
+- when HCL or Terraform dependencies change, run the smallest relevant `just tg <env> <module> plan` or `validate` when feasible (or call out why it could not be run)
 
 ## Working Style
 
