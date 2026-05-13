@@ -5,9 +5,7 @@ Lambda + ECS with CodeDeploy rollouts, plus provisioned concurrency controls for
 
 ## Sections
 
-- [Example Prompts](#example-prompts)
 - [Overview](#overview)
-- [AI-Assisted Usage](#ai-assisted-usage)
 - [Prerequisites](#prerequisites)
 - [Setup](#setup)
 - [Common Tasks](#common-tasks)
@@ -16,34 +14,14 @@ Lambda + ECS with CodeDeploy rollouts, plus provisioned concurrency controls for
 - [Reference](#reference)
 - [Read This Next](#read-this-next)
 
-## Example Prompts
-
-Use prompts like these when you want an agent to extend the repo without having to spell out every file path up front:
-
-- `Add a new env called qa.`
-- `Add a public API that has a home page, a health check, a test failure route, and a way to send a message into the shared worker flow.`
-- `Add a background Lambda worker that picks up messages from the shared worker flow and processes them.`
-- `Add a Lambda that watches for new Aurora reader instances and copies the database cluster tags onto them automatically.`
-- `Add an ECS-based API service for a new feature that is available through the existing shared API setup.`
-- `Add an internal ECS worker service that reads from the shared worker queue and saves results to the database.`
-
-Use [CONTRIBUTING.md](CONTRIBUTING.md) for expectations when changing the repo itself, especially for AI-assisted changes.
-
 ## Overview
 
 - Terraform/Terragrunt stacks for a typical AWS application shape: APIs, workers, frontend, database, auth, and messaging
 - GitHub Actions workflows for infrastructure apply, artifact build, code deploy, and destroy
 - shared deployment patterns for Lambda and ECS, with repo-local `just` commands for local and CI operations
-- runtime and infrastructure layouts designed to be extended by humans or coding agents without having to rediscover the whole repo each time
+- runtime and infrastructure layouts designed to be extended without having to rediscover the whole repo each time
 
-## AI-Assisted Usage
-
-This repo is structured to work well with coding agents as well as humans.
-
-- docs are split by ownership so agents can find the right contract before changing code
-- the root README is the entry point, while workflow, infra, runtime, and shared-module details live in their own READMEs
-- the `just` command surface is split so local commands, read-only CI helpers, and mutating deploy helpers stay distinct
-- the ECS bootstrap placeholder image is a stable shared tag, so infra runs reuse one bootstrap image instead of versioning a new placeholder artifact per release
+Use [CONTRIBUTING.md](CONTRIBUTING.md) for expectations when changing the repo itself.
 
 ## Prerequisites
 
