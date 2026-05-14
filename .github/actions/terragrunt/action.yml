@@ -109,6 +109,7 @@ runs:
       working-directory: ${{ inputs.tg_directory }}
       run: |
         PLAN_PATH="$(pwd)/terragrunt.tfplan"
+        PLAN_LOG_PATH="$(pwd)/terragrunt.plan.log"
 
         case "${{ inputs.tg_action }}" in
           apply)
@@ -116,11 +117,16 @@ runs:
             ;;
           plan)
             set +e
-            terragrunt plan -input=false -lock=false -detailed-exitcode -compact-warnings -out="$PLAN_PATH" -var-file=override_tg_vars.tfvars.json
-            plan_exit_code=$?
+            terragrunt plan -input=false -lock=false -detailed-exitcode -compact-warnings -out="$PLAN_PATH" -var-file=override_tg_vars.tfvars.json 2>&1 | tee "$PLAN_LOG_PATH"
+            plan_exit_code=${PIPESTATUS[0]}
             set -e
 
             if [ "$plan_exit_code" -eq 1 ]; then
+              exit 1
+            fi
+
+            if grep -Fq "mock outputs provided and returning those in dependency output" "$PLAN_LOG_PATH"; then
+              echo "::error title=Mock outputs used during plan::Terragrunt used dependency mock outputs while creating a saved plan. Discard this plan and re-run after the upstream real outputs exist."
               exit 1
             fi
 
