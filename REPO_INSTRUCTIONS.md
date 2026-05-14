@@ -34,6 +34,13 @@ These instructions apply to the entire repository.
 - state material assumptions when the intended shape is not fully explicit
 - when ambiguity is material or a wrong assumption could cause the repo shape or contract to drift, ask the user a clarifying question before editing
 
+## Capability Selection
+
+- treat this repo as a menu of optional platform capabilities, not just a single fixed app shape
+- infer which capabilities the user is selecting from the request, and which existing capabilities fall outside that target shape
+- when the requested shape uses only a subset of the repo's current capabilities, explicitly list the major unused capabilities and ask whether they should be kept for future use or removed
+- do not assume that unmentioned capabilities should stay forever, and do not remove them without confirmation
+
 ## New Repo Bootstrap Requests
 
 - when a request suggests the user is adapting this repo as a fresh app or new project, first determine whether this is a new repo/bootstrap scenario or a change to an existing app
