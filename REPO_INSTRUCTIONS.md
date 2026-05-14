@@ -49,6 +49,8 @@ These instructions apply to the entire repository.
 - when a change touches `*.hcl`, Terraform modules, live Terragrunt stacks, or downstream dependencies that can affect Terraform evaluation or plan output, run the relevant `just tg <env> <module> plan` command before closing the task when feasible
 - choose the smallest relevant plan surface rather than defaulting to `run-all`; for example, plan only the affected `dev`, `ci`, or `prod` stack(s)
 - when shared modules or remote-state contracts change, consider the downstream consumer stacks too and run plans for the affected dependents, not just the module wrapper you edited
+- treat saved plans as apply-intent artifacts, not as general previews: only keep a `plan` you expect to apply, because Terraform reuses the exact planned variable values during `apply_plan`
+- be especially careful on first deploys or bootstrap-sensitive stacks that use Terragrunt `mock_outputs` for planability; if a saved plan captured mock values, discard it and create a fresh plan after the upstream real outputs exist
 - if a plan is not feasible because credentials, network, permissions, or state access are unavailable, say that explicitly in the final response and name the plan command that should be run manually
 
 ## High-Signal Edit Warnings

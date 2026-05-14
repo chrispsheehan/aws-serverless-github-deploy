@@ -112,6 +112,8 @@ That `containers/lib` directory is helper code only and is not treated as a depl
 - prefer `dependency` blocks for all cross-stack communication
 - use `mock_outputs` for dependencies during `plan`, `validate`, and other non-apply commands to allow independent iteration without requiring upstream stacks to be deployed
 - restrict mocks using `mock_outputs_allowed_terraform_commands` to ensure real outputs are always used during `apply`
+- treat saved `plan` artifacts as apply-intent only: Terraform will reuse the exact variable values captured in the plan file during `apply_plan`
+- for first deploys or other bootstrap-sensitive stacks, do not reuse a saved plan that captured `mock_outputs`; re-plan after the upstream real outputs exist before running `apply_plan`
 
 ### When to Use Remote State
 
