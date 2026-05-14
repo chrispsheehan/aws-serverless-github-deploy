@@ -29,15 +29,11 @@ Use [CONTRIBUTING.md](CONTRIBUTING.md) for expectations when changing the repo i
 Example prompts:
 
 ```text
-Tell me the repo-specific rules you are following for this task before making any changes.
+add a new environment called qa
 ```
 
 ```text
-Read the relevant local contract docs for the files you plan to touch, and summarize the constraints that apply before editing.
-```
-
-```text
-For workflow changes, read ./.github/docs/README.md, restate the applicable workflow contracts, and then make the change.
+Give me a simple static website with an API backed by Lambda
 ```
 
 ## Prerequisites

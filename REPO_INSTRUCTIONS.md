@@ -34,6 +34,15 @@ These instructions apply to the entire repository.
 - state material assumptions when the intended shape is not fully explicit
 - when ambiguity is material or a wrong assumption could cause the repo shape or contract to drift, ask the user a clarifying question before editing
 
+## New Repo Bootstrap Requests
+
+- when a request suggests the user is adapting this repo as a fresh app or new project, first determine whether this is a new repo/bootstrap scenario or a change to an existing app
+- if it appears to be a new repo/bootstrap scenario, ask whether the user wants to keep or remove the boilerplate/example application code before making broad changes
+- treat clearly labeled example, demo, sample, or boilerplate code as removable only after confirming with the user
+- do not delete or replace template/example code solely because a new feature request could be implemented more cleanly without it
+- for potentially expensive infrastructure such as load balancers, ECS clusters, or other shared runtime components, ask whether the user wants to keep them for future use or remove them entirely before changing that footprint
+- do not assume expensive infrastructure should be deployed, retained, or removed without explicit user confirmation when the request is a bootstrap or simplification scenario
+
 ## CI OIDC Scope
 
 - treat `infra/live/ci/aws/oidc/terragrunt.hcl` as intentionally narrow
