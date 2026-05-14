@@ -42,6 +42,11 @@ These instructions apply to the entire repository.
 - do not delete or replace template/example code solely because a new feature request could be implemented more cleanly without it
 - for potentially expensive infrastructure such as load balancers, ECS clusters, or other shared runtime components, ask whether the user wants to keep them for future use or remove them entirely before changing that footprint
 - do not assume expensive infrastructure should be deployed, retained, or removed without explicit user confirmation when the request is a bootstrap or simplification scenario
+- persist bootstrap-specific questions and user answers in `BOOTSTRAP_DECISIONS.md` so the same questions do not need to be asked repeatedly
+- before asking a bootstrap-related clarifying question, check `BOOTSTRAP_DECISIONS.md` first and reuse the recorded answer unless the user changes it
+- if the user gives an answer that conflicts with an existing entry in `BOOTSTRAP_DECISIONS.md`, warn that the recorded decision is changing, then update the file
+- always consider security during bootstrap and simplification work; if a proposed API would be exposed to the public internet, say that explicitly and suggest at least one more secure option
+- do not assume a public unauthenticated API is acceptable just because it is the simplest technical shape
 
 ## CI OIDC Scope
 
