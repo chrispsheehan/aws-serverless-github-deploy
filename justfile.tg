@@ -14,6 +14,7 @@ PLAN_META_FILE := "terragrunt.plan.meta.json"
 # Expected environment variables:
 # - TG_DIRECTORY: directory containing the saved plan file
 # - TG_PLAN_EXIT_CODE: detailed-exitcode from `terragrunt plan` (0 or 2)
+# - TG_PLAN_CONTAINS_MOCKED_OUTPUTS: whether Terragrunt reported dependency mock outputs during plan
 terragrunt-plan-render:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -25,6 +26,11 @@ terragrunt-plan-render:
 
     if [[ -z "${TG_PLAN_EXIT_CODE:-}" ]]; then
         echo "❌ TG_PLAN_EXIT_CODE environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "${TG_PLAN_CONTAINS_MOCKED_OUTPUTS:-}" ]]; then
+        echo "❌ TG_PLAN_CONTAINS_MOCKED_OUTPUTS environment variable is not set."
         exit 1
     fi
 
@@ -45,7 +51,8 @@ terragrunt-plan-render:
       --arg tg_directory "$TG_DIRECTORY" \
       --argjson exit_code "$TG_PLAN_EXIT_CODE" \
       --argjson has_changes "$([ "$TG_PLAN_EXIT_CODE" -eq 2 ] && echo true || echo false)" \
-      '{tg_directory: $tg_directory, exit_code: $exit_code, has_changes: $has_changes}' \
+      --argjson contains_mocked_outputs "$TG_PLAN_CONTAINS_MOCKED_OUTPUTS" \
+      '{tg_directory: $tg_directory, exit_code: $exit_code, has_changes: $has_changes, contains_mocked_outputs: $contains_mocked_outputs}' \
       > "$PLAN_META_PATH"
 
     echo "Terragrunt binary plan path: $PLAN_PATH"

@@ -96,6 +96,9 @@ runs:
         if [ "$(jq -r '.has_changes' "$PLAN_META_PATH")" != "true" ]; then
           echo "::warning title=Empty saved plan::Saved plan '$PLAN_PATH' contains no mutating resource changes. Skipping apply."
           echo "should_apply=false" >> "$GITHUB_OUTPUT"
+        elif [ "$(jq -r '.contains_mocked_outputs // false' "$PLAN_META_PATH")" = "true" ]; then
+          echo "::error title=Saved plan contains mocked outputs::Saved plan '$PLAN_PATH' was created while Terragrunt dependency mock outputs were in use. Regenerate the plan after upstream real outputs exist."
+          exit 1
         else
           echo "should_apply=true" >> "$GITHUB_OUTPUT"
         fi
@@ -125,12 +128,14 @@ runs:
               exit 1
             fi
 
+            plan_contains_mocked_outputs=false
             if grep -Fq "mock outputs provided and returning those in dependency output" "$PLAN_LOG_PATH"; then
-              echo "::error title=Mock outputs used during plan::Terragrunt used dependency mock outputs while creating a saved plan. Discard this plan and re-run after the upstream real outputs exist."
-              exit 1
+              plan_contains_mocked_outputs=true
+              echo "::warning title=Mock outputs used during plan::Terragrunt used dependency mock outputs while creating a saved plan. This plan artifact should not be used with apply_plan until a fresh plan is created from real upstream outputs."
             fi
 
             echo "plan_exit_code=$plan_exit_code" >> "$GITHUB_OUTPUT"
+            echo "plan_contains_mocked_outputs=$plan_contains_mocked_outputs" >> "$GITHUB_OUTPUT"
             echo "Terragrunt binary plan path: $PLAN_PATH"
             ls -l "$PLAN_PATH"
 
@@ -157,6 +162,7 @@ runs:
       env:
         TG_DIRECTORY: ${{ inputs.tg_directory }}
         TG_PLAN_EXIT_CODE: ${{ steps.terragrunt_action.outputs.plan_exit_code }}
+        TG_PLAN_CONTAINS_MOCKED_OUTPUTS: ${{ steps.terragrunt_action.outputs.plan_contains_mocked_outputs }}
       with:
         justfile_path: justfile.tg
         just_action: terragrunt-plan-render
