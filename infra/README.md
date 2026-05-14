@@ -104,16 +104,46 @@ That `containers/lib` directory is helper code only and is not treated as a depl
 
 ## Dependency Notes
 
-- many modules use `data.terraform_remote_state` to read outputs from other stacks
-- prefer using `data.terraform_remote_state` only for outputs that are expected to stay stable or change rarely; avoid using it as the normal handoff for values that change as part of the same rollout, because downstream plans can then drift from the upstream state they were planned against
-- because of that, workflow ordering matters for apply, deploy, and destroy
-- `service_api` consumes the shared JWT authorizer output from `network`, so `cognito` and `network` must exist before that ECS API service stack applies, and the service must destroy before `network` is torn down
-- on destroy, `network` can tear down once downstream consumers such as `frontend`, `service_*`, `task_*`, and `database` are gone
-- on destroy, `cluster` can tear down in parallel with `network` once `service_*`, `task_*`, and other real cluster consumers are gone; `frontend` is not a cluster dependency
-- on destroy, `security` must wait for VPC-attached lambdas such as `migrations` as well as `network`, otherwise the shared runtime security group can still be attached during Lambda ENI cleanup
-- avoid making one runtime depend on another runtime's state ownership unnecessarily; for example, shared worker fanout state is owned by `worker_messaging` rather than by `lambda_worker` or `task_worker`
-- some shared infrastructure, such as the landing-zone VPC and tagged private subnets, is discovered with `data` lookups and must already exist
-- frontend custom-domain deploys also require the matching Route53 hosted zone to already exist
+- modules use Terragrunt `dependency` blocks to consume outputs from other stacks instead of `data.terraform_remote_state`
+- this allows Terragrunt to understand the dependency graph explicitly and manage ordering for apply and destroy operations
+
+### Dependency Strategy
+
+- prefer `dependency` blocks for all cross-stack communication
+- use `mock_outputs` for dependencies during `plan`, `validate`, and other non-apply commands to allow independent iteration without requiring upstream stacks to be deployed
+- restrict mocks using `mock_outputs_allowed_terraform_commands` to ensure real outputs are always used during `apply`
+
+### When to Use Remote State
+
+- avoid using `data.terraform_remote_state` as the default mechanism for passing values between stacks
+- it may still be used for:
+  - infrastructure that is managed outside of Terragrunt
+  - globally stable/shared resources that rarely change
+  - cross-account or external dependencies where Terragrunt `dependency` is not practical
+
+### Workflow and Ordering
+
+- Terragrunt dependencies define ordering implicitly, but logical constraints still apply:
+
+  - `service_api` consumes the shared JWT authorizer output from `network`, so `cognito` and `network` must exist before the ECS API service stack applies
+  - the API service must be destroyed before `network` is torn down
+
+- on destroy:
+
+  - `network` can tear down once downstream consumers such as `frontend`, `service_*`, `task_*`, and `database` are gone
+  - `cluster` can tear down in parallel with `network` once `service_*`, `task_*`, and other cluster consumers are gone; `frontend` is not a cluster dependency
+  - `security` must wait for VPC-attached lambdas such as `migrations` as well as `network`, otherwise the shared runtime security group may still be attached during Lambda ENI cleanup
+
+### Design Guidelines
+
+- avoid making one runtime depend on another runtime's state ownership unnecessarily
+  - for example, shared worker fanout state is owned by `worker_messaging` rather than by `lambda_worker` or `task_worker`
+
+- prefer explicit ownership boundaries between stacks
+
+- some shared infrastructure, such as the landing-zone VPC and tagged private subnets, is discovered via `data` lookups and must already exist
+
+- frontend custom-domain deploys require the matching Route53 hosted zone to already exist
 
 ## Deployment Model
 
