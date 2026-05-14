@@ -14,7 +14,7 @@ module "lambda_worker" {
   }
 
   additional_policy_arns = [
-    data.terraform_remote_state.worker_messaging.outputs.lambda_worker_queue_read_policy_arn
+    var.lambda_worker_queue_read_policy_arn
   ]
 
   deployment_config = var.deployment_config
@@ -29,7 +29,7 @@ module "lambda_worker" {
       sqs_scale = merge(
         var.provisioned_config.sqs_scale,
         {
-          queue_name = data.terraform_remote_state.worker_messaging.outputs.lambda_worker_queue_name
+          queue_name = var.lambda_worker_queue_name
         }
       )
     }
@@ -37,7 +37,7 @@ module "lambda_worker" {
 }
 
 resource "aws_lambda_event_source_mapping" "sqs" {
-  event_source_arn = data.terraform_remote_state.worker_messaging.outputs.lambda_worker_queue_arn
+  event_source_arn = var.lambda_worker_queue_arn
   function_name    = module.lambda_worker.function_name
 
   batch_size                         = local.sqs_chunk_size
@@ -47,8 +47,8 @@ resource "aws_lambda_event_source_mapping" "sqs" {
 }
 
 resource "aws_cloudwatch_metric_alarm" "dlq_new_messages" {
-  alarm_name        = "${data.terraform_remote_state.worker_messaging.outputs.lambda_worker_dead_letter_queue_name}-new-messages"
-  alarm_description = "New messages sent to DLQ ${data.terraform_remote_state.worker_messaging.outputs.lambda_worker_dead_letter_queue_name}"
+  alarm_name        = "${var.lambda_worker_dead_letter_queue_name}-new-messages"
+  alarm_description = "New messages sent to DLQ ${var.lambda_worker_dead_letter_queue_name}"
   actions_enabled   = true
 
   namespace   = "AWS/SQS"
@@ -64,6 +64,6 @@ resource "aws_cloudwatch_metric_alarm" "dlq_new_messages" {
   treat_missing_data  = "notBreaching"
 
   dimensions = {
-    QueueName = data.terraform_remote_state.worker_messaging.outputs.lambda_worker_dead_letter_queue_name
+    QueueName = var.lambda_worker_dead_letter_queue_name
   }
 }

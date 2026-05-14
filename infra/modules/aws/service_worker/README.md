@@ -35,12 +35,12 @@ Concrete ECS worker service wrapper.
 
 ## Dependency Notes
 
-- reads `task_worker` remote state
-- reads `worker_messaging` remote state
-- reads `cluster` and `network` remote state
+- expects the live Terragrunt stack to pass the `task_worker` task definition through a `dependency` block
+- expects the live Terragrunt stack to pass the shared ECS worker queue name through a `dependency` block to drive autoscaling
+- expects the live Terragrunt stack to pass the shared `cluster` and `network` outputs as explicit inputs
 - expects the live Terragrunt stack to pass the ECS runtime security group id as an explicit input
 - relies on `worker_messaging` owning the queue contract rather than duplicating queue state locally
-- for bootstrap-friendly plan and validate flows, prefer Terragrunt dependency mocks in the live stack instead of direct `security` remote-state reads in the module
+- for bootstrap-friendly plan and validate flows, prefer Terragrunt dependency mocks in the live stack rather than sibling state reads inside the module
 
 It uses the shared ECS worker queue name exported by `worker_messaging` for service autoscaling.
 During bootstrap applies, it uses placeholder values instead of reading task outputs directly so the bootstrap path does not need a pre-existing task state file.

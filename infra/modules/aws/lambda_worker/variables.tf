@@ -11,12 +11,12 @@ variable "environment" {
 
 variable "state_bucket" {
   type        = string
-  description = "Remote state bucket used to read shared stack outputs"
+  description = "Terraform state bucket"
 }
 
 variable "aws_region" {
   type        = string
-  description = "AWS region for remote state and provider resources"
+  description = "AWS region for provider resources"
 }
 
 variable "code_bucket" {
@@ -74,4 +74,28 @@ variable "sqs_dlq_alarm_evaluation_periods" {
 variable "sqs_dlq_alarm_datapoints_to_alarm" {
   type        = number
   description = "The number of evaluated periods that must be breaching to trigger ALARM"
+}
+
+variable "lambda_worker_queue_name" {
+  type = string
+}
+
+variable "lambda_worker_queue_arn" {
+  type = string
+}
+
+variable "lambda_worker_queue_url" {
+  type = string
+}
+
+variable "lambda_worker_queue_read_policy_arn" {
+  type = string
+}
+
+variable "lambda_worker_dead_letter_queue_name" {
+  type = string
+}
+
+variable "lambda_worker_dead_letter_queue_url" {
+  type = string
 }

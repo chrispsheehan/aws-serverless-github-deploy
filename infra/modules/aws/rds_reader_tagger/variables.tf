@@ -22,3 +22,7 @@ variable "otel_sample_rate" {
   type    = number
   default = 1.0
 }
+
+variable "database_cluster_identifier" {
+  type = string
+}

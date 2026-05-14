@@ -62,3 +62,31 @@ variable "xray_enabled" {
   type    = bool
   default = false
 }
+
+variable "ecs_worker_queue_name" {
+  type = string
+}
+
+variable "ecs_worker_queue_url" {
+  type = string
+}
+
+variable "ecs_worker_queue_read_policy_arn" {
+  type = string
+}
+
+variable "database_readwrite_endpoint" {
+  type = string
+}
+
+variable "database_name" {
+  type = string
+}
+
+variable "database_port" {
+  type = number
+}
+
+variable "database_credentials_secret_arn" {
+  type = string
+}

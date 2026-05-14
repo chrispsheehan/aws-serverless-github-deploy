@@ -79,3 +79,55 @@ variable "bootstrap_image_uri" {
 variable "ecs_security_group_id" {
   type = string
 }
+
+variable "task_definition_arn" {
+  type = string
+}
+
+variable "cluster_id" {
+  type = string
+}
+
+variable "cluster_name" {
+  type = string
+}
+
+variable "network_default_target_group_arn" {
+  type = string
+}
+
+variable "network_load_balancer_arn" {
+  type = string
+}
+
+variable "network_default_http_listener_arn" {
+  type = string
+}
+
+variable "network_load_balancer_arn_suffix" {
+  type = string
+}
+
+variable "network_target_group_arn_suffix" {
+  type = string
+}
+
+variable "network_api_id" {
+  type = string
+}
+
+variable "network_vpc_link_id" {
+  type = string
+}
+
+variable "network_internal_invoke_url" {
+  type = string
+}
+
+variable "network_api_invoke_url" {
+  type = string
+}
+
+variable "network_http_api_authorizer_id" {
+  type = string
+}
