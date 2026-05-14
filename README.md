@@ -36,6 +36,14 @@ add a new environment called qa
 Give me a simple static website with an API backed by Lambda
 ```
 
+```text
+Give me a site with a backend
+```
+
+```text
+Give me a site with a backend and a database
+```
+
 ## Prerequisites
 
 The AWS account must already have the landing-zone or StackSet network in place before deploying this repo.

@@ -33,6 +33,7 @@ These instructions apply to the entire repository.
 - verify related workflows, infra, docs, and downstream dependencies when the request affects shared behavior
 - state material assumptions when the intended shape is not fully explicit
 - when ambiguity is material or a wrong assumption could cause the repo shape or contract to drift, ask the user a clarifying question before editing
+- for broad product or app-shaping requests, provide a short pre-implementation summary of the inferred app shape, likely capability choices, major assumptions, important questions, and notable cost or security implications before making changes
 
 ## Capability Selection
 
@@ -40,6 +41,9 @@ These instructions apply to the entire repository.
 - infer which capabilities the user is selecting from the request, and which existing capabilities fall outside that target shape
 - when the requested shape uses only a subset of the repo's current capabilities, explicitly list the major unused capabilities and ask whether they should be kept for future use or removed
 - do not assume that unmentioned capabilities should stay forever, and do not remove them without confirmation
+- when a user asks for a website or frontend with a backend but does not specify the backend runtime, prefer the simplest repo-native backend shape as the default starting assumption
+- in this repo, default that assumption to a Lambda-backed API unless the user asks for ECS, long-running workers, containers, or another specific runtime
+- state that assumption and ask for confirmation before making changes when backend choice materially affects infrastructure shape, cost, or security
 
 ## New Repo Bootstrap Requests
 
