@@ -48,6 +48,8 @@ These instructions apply to the entire repository.
 ## New Repo Bootstrap Requests
 
 - when a request suggests the user is adapting this repo as a fresh app or new project, first determine whether this is a new repo/bootstrap scenario or a change to an existing app
+- when the target repo is empty or effectively empty, enter bootstrap flow immediately
+- treat a repo as effectively empty when it has no meaningful app, infra, runtime, or workflow code beyond placeholders, starter files, or minimal scaffolding
 - if it appears to be a new repo/bootstrap scenario, ask whether the user wants to keep or remove the boilerplate/example application code before making broad changes
 - treat clearly labeled example, demo, sample, or boilerplate code as removable only after confirming with the user
 - do not delete or replace template/example code solely because a new feature request could be implemented more cleanly without it

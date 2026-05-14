@@ -44,6 +44,10 @@ Give me a site with a backend
 Give me a site with a backend and a database
 ```
 
+```text
+I'm building an app in ../sandbox/skill-test
+```
+
 ## Prerequisites
 
 The AWS account must already have the landing-zone or StackSet network in place before deploying this repo.
