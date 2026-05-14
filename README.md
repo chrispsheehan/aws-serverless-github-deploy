@@ -5,6 +5,7 @@ Lambda + ECS with CodeDeploy rollouts, plus provisioned concurrency controls for
 
 ## Sections
 
+- [For AI Agents](#for-ai-agents)
 - [Overview](#overview)
 - [Prerequisites](#prerequisites)
 - [Setup](#setup)
@@ -26,6 +27,22 @@ Lambda + ECS with CodeDeploy rollouts, plus provisioned concurrency controls for
 For cross-stack contracts that often block CI plans before upstream stacks exist, this repo prefers Terragrunt `dependency` wiring in the live stack plus `mock_outputs` for non-mutating commands such as `plan` and `validate`. The Terraform modules should consume explicit inputs rather than reaching back into sibling stack state directly when the contract needs bootstrap-friendly plan behavior.
 
 Use [CONTRIBUTING.md](CONTRIBUTING.md) for expectations when changing the repo itself.
+
+## For AI Agents
+
+Example prompts:
+
+```text
+add a new environment called qa
+```
+
+```text
+Give me a site with a backend and a database
+```
+
+```text
+look at ../sandbox and tell me how to deploy
+```
 
 ## Prerequisites
 
