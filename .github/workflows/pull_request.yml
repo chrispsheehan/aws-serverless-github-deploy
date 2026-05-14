@@ -39,9 +39,26 @@ jobs:
           echo "::error::❌ PR title must start with one of: $ALLOWED_PREFIXES"
           exit 1
 
+  check-agent-guidance-sync:
+    name: Agent Docs Sync
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Fail if AGENTS.md and CLAUDE.md differ
+        run: |
+          if ! cmp -s AGENTS.md CLAUDE.md; then
+            echo "::error::❌ AGENTS.md and CLAUDE.md must be identical."
+            diff -u AGENTS.md CLAUDE.md || true
+            exit 1
+          fi
+          echo "✅ AGENTS.md and CLAUDE.md are identical."
+
   check:
     name: Changes
-    needs: check-pr-title
+    needs:
+      - check-pr-title
+      - check-agent-guidance-sync
     runs-on: ubuntu-latest
     permissions:
       pull-requests: read
@@ -102,7 +119,9 @@ jobs:
 
   test-next-version-action:
     name: Next Version Action
-    needs: check-pr-title
+    needs:
+      - check-pr-title
+      - check-agent-guidance-sync
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
