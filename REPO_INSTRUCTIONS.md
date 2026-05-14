@@ -25,6 +25,14 @@ These instructions apply to the entire repository.
 - runtime behavior: `lambdas/**/README.md` and `containers/**/README.md`
 - before editing, read the relevant local contract docs for the files you plan to touch and follow those contracts
 
+## Context Loading Order
+
+- load context lazily and only as needed
+- start with `REPO_INSTRUCTIONS.md`, then `README.md`
+- next read only the relevant contract docs for the capability subset being considered
+- only after that inspect implementation files for the selected shape
+- avoid loading unrelated capability areas unless the task requires them
+
 ## Task Interpretation
 
 - interpret brief requests using this repo's existing patterns and contracts rather than taking them literally
