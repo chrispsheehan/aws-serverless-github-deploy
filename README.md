@@ -5,6 +5,7 @@ Lambda + ECS with CodeDeploy rollouts, plus provisioned concurrency controls for
 
 ## Sections
 
+- [For AI Agents](#for-ai-agents)
 - [Overview](#overview)
 - [Prerequisites](#prerequisites)
 - [Setup](#setup)
@@ -22,6 +23,22 @@ Lambda + ECS with CodeDeploy rollouts, plus provisioned concurrency controls for
 - runtime and infrastructure layouts designed to be extended without having to rediscover the whole repo each time
 
 Use [CONTRIBUTING.md](CONTRIBUTING.md) for expectations when changing the repo itself.
+
+## For AI Agents
+
+Example prompts:
+
+```text
+add a new environment called qa
+```
+
+```text
+Give me a site with a backend and a database
+```
+
+```text
+look at ../sandbox and tell me how to deploy
+```
 
 ## Prerequisites
 
