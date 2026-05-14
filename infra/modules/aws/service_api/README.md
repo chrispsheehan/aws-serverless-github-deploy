@@ -40,8 +40,10 @@ Concrete ECS API service wrapper for the sample API service.
 ## Dependency Notes
 
 - reads `task_api` remote state for the task definition
-- reads `cluster`, `network`, and `security` remote state
+- reads `cluster` and `network` remote state
+- expects the live Terragrunt stack to pass the ECS runtime security group id as an explicit input
 - depends on the `network` stack owning the shared VPC link, ALB listener path, and JWT authorizer inputs
+- for bootstrap-friendly plan and validate flows, prefer Terragrunt dependency mocks in the live stack instead of direct `security` remote-state reads in the module
 
 ## Inherits Behavior From
 

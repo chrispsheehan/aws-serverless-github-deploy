@@ -21,6 +21,10 @@ Lambda + ECS with CodeDeploy rollouts, plus provisioned concurrency controls for
 - shared deployment patterns for Lambda and ECS, with repo-local `just` commands for local and CI operations
 - runtime and infrastructure layouts designed to be extended without having to rediscover the whole repo each time
 
+## Bootstrap-Friendly Plans
+
+For cross-stack contracts that often block CI plans before upstream stacks exist, this repo prefers Terragrunt `dependency` wiring in the live stack plus `mock_outputs` for non-mutating commands such as `plan` and `validate`. The Terraform modules should consume explicit inputs rather than reaching back into sibling stack state directly when the contract needs bootstrap-friendly plan behavior.
+
 Use [CONTRIBUTING.md](CONTRIBUTING.md) for expectations when changing the repo itself.
 
 ## Prerequisites

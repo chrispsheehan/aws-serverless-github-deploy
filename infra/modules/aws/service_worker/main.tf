@@ -13,7 +13,7 @@ module "service_worker" {
 
   cluster_id            = data.terraform_remote_state.cluster.outputs.cluster_id
   cluster_name          = data.terraform_remote_state.cluster.outputs.cluster_name
-  ecs_security_group_id = data.terraform_remote_state.security.outputs.ecs_sg
+  ecs_security_group_id = var.ecs_security_group_id
 
   default_target_group_arn  = data.terraform_remote_state.network.outputs.default_target_group_arn
   default_http_listener_arn = data.terraform_remote_state.network.outputs.default_http_listener_arn

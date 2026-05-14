@@ -17,5 +17,6 @@ Lambda wrapper for database migrations using packaged SQLAlchemy models.
 - `cloudwatch_log_group`
 
 This module is intended for manual or pipeline-triggered schema migrations against the shared Aurora PostgreSQL database. It runs inside the VPC and reuses the shared runtime security group from `security` so it can reach the database without introducing a second database-ingress rule pattern.
+The live Terragrunt stack is expected to pass that runtime security group id as an explicit input. For bootstrap-friendly plan and validate flows, prefer Terragrunt dependency mocks in the live stack instead of direct `security` remote-state reads in the module.
 The current handler loads the packaged SQLAlchemy models, checks whether its owned table already exists, and creates the declared table metadata directly in the default schema when needed for the worker runtime.
 In this repo's reusable code deploy workflow, the function is also invoked automatically when `migrations` is part of the Lambda deployment matrix.

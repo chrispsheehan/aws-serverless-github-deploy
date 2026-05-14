@@ -26,3 +26,7 @@ variable "otel_sample_rate" {
 variable "vpc_name" {
   type = string
 }
+
+variable "runtime_security_group_id" {
+  type = string
+}

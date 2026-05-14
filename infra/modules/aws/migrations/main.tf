@@ -27,6 +27,6 @@ module "migrations" {
 
   vpc_subnet_ids = data.aws_subnets.private.ids
   vpc_security_group_ids = [
-    data.terraform_remote_state.security.outputs.runtime_sg,
+    var.runtime_security_group_id,
   ]
 }
