@@ -23,23 +23,3 @@ data "aws_route_tables" "private" {
     values = data.aws_subnets.private.ids
   }
 }
-
-data "terraform_remote_state" "security" {
-  backend = "s3"
-
-  config = {
-    bucket = var.state_bucket
-    key    = "${var.environment}/aws/security/terraform.tfstate"
-    region = var.aws_region
-  }
-}
-
-data "terraform_remote_state" "cognito" {
-  backend = "s3"
-
-  config = {
-    bucket = var.state_bucket
-    key    = "${var.environment}/aws/cognito/terraform.tfstate"
-    region = var.aws_region
-  }
-}
