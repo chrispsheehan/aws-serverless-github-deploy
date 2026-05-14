@@ -149,52 +149,10 @@ jobs:
           role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Get network infra
-        if: inputs.tg_action != 'apply_plan'
-        uses: ./.github/actions/terragrunt
-        id: get-network
-        with:
-          tg_directory: infra/live/${{ inputs.environment }}/aws/network
-          tg_action: init
-
-      - name: Get cognito infra
-        if: inputs.tg_action != 'apply_plan'
-        uses: ./.github/actions/terragrunt
-        id: get-cognito
-        env:
-          TF_VAR_domain_name: ${{ env.DOMAIN_NAME }}
-        with:
-          tg_directory: infra/live/${{ inputs.environment }}/aws/cognito
-          tg_action: init
-
-      - name: Get api invoke url
-        if: inputs.tg_action != 'apply_plan'
-        id: get_api_vars
-        env:
-          TG_OUTPUTS: ${{ steps.get-network.outputs.tg_outputs }}
-        run: |
-          echo "invoke_url=$(echo $TG_OUTPUTS | jq -r '.api_invoke_url.value')" >> $GITHUB_OUTPUT
-
-      - name: Get cognito values
-        if: inputs.tg_action != 'apply_plan'
-        id: get_cognito_vars
-        env:
-          TG_OUTPUTS: ${{ steps.get-cognito.outputs.tg_outputs }}
-        run: |
-          echo "user_pool_id=$(echo "$TG_OUTPUTS" | jq -r '.user_pool_id.value')" >> "$GITHUB_OUTPUT"
-          echo "user_pool_client_id=$(echo "$TG_OUTPUTS" | jq -r '.user_pool_client_id.value')" >> "$GITHUB_OUTPUT"
-          echo "hosted_ui_url=$(echo "$TG_OUTPUTS" | jq -r '.hosted_ui_url.value')" >> "$GITHUB_OUTPUT"
-          echo "readonly_group_name=$(echo "$TG_OUTPUTS" | jq -r '.readonly_group_name.value')" >> "$GITHUB_OUTPUT"
-
       - name: ${{ env.TG_ACTION_LABEL }} frontend infra
         uses: ./.github/actions/terragrunt
         env:
-          TF_VAR_api_invoke_url: ${{ inputs.tg_action == 'apply_plan' && '' || steps.get_api_vars.outputs.invoke_url }}
           TF_VAR_domain_name: ${{ env.DOMAIN_NAME }}
-          TF_VAR_auth_user_pool_id: ${{ inputs.tg_action == 'apply_plan' && '' || steps.get_cognito_vars.outputs.user_pool_id }}
-          TF_VAR_auth_user_pool_client_id: ${{ inputs.tg_action == 'apply_plan' && '' || steps.get_cognito_vars.outputs.user_pool_client_id }}
-          TF_VAR_auth_hosted_ui_url: ${{ inputs.tg_action == 'apply_plan' && '' || steps.get_cognito_vars.outputs.hosted_ui_url }}
-          TF_VAR_auth_readonly_group_name: ${{ inputs.tg_action == 'apply_plan' && '' || steps.get_cognito_vars.outputs.readonly_group_name }}
         with:
           tg_directory: infra/live/${{ inputs.environment }}/aws/frontend
           tg_action: ${{ inputs.tg_action }}
