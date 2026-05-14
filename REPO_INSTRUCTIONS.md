@@ -47,6 +47,7 @@ These instructions apply to the entire repository.
 - if the user gives an answer that conflicts with an existing entry in `BOOTSTRAP_DECISIONS.md`, warn that the recorded decision is changing, then update the file
 - always consider security during bootstrap and simplification work; if a proposed API would be exposed to the public internet, say that explicitly and suggest at least one more secure option
 - do not assume a public unauthenticated API is acceptable just because it is the simplest technical shape
+- at the end of a bootstrap or simplification flow, explicitly name any infrastructure that would remain but no longer be used by the proposed app shape, and ask whether the user wants to remove it or keep it for future use
 
 ## CI OIDC Scope
 
