@@ -2,6 +2,21 @@
 
 These instructions apply to the entire repository.
 
+## Repository Scope
+
+- these instructions apply when the session is launched in this repository
+- if the user mentions another local repository or folder, treat it as external reference material unless the user explicitly says to move the work there
+- do not assume another repository inherits instructions from this repository
+
+## Template Role
+
+- treat this repository as the deployable template and implementation target unless the user explicitly says otherwise
+- when the user supplies a path to different source code, treat that code as reference input by default and make changes in this repository unless the user explicitly redirects the work
+- when the user points to another repository, inspect that repository to understand the app shape, product behavior, and capability needs, then propose or implement the corresponding changes in this repository
+- prefer translating the external app into this repository's existing platform patterns rather than copying code across verbatim
+- treat external repositories as read-only unless the user explicitly requests edits there
+- when the external app shape does not map cleanly to this repository, explain the gap, state the closest repo-native deployment shape, and ask the user to confirm before making broad changes
+
 ## Keep `AGENTS.md` and `CLAUDE.md` identical
 
 `REPO_INSTRUCTIONS.md` is the shared source of truth for repo guidance.
@@ -36,6 +51,7 @@ These instructions apply to the entire repository.
 ## Task Interpretation
 
 - interpret brief requests using this repo's existing patterns and contracts rather than taking them literally
+- when a request mentions external source code and asks how to build, make ready, or deploy it, interpret that as "understand the external app, then answer in terms of how this repository should implement or deploy it" unless the user explicitly redirects the work
 - read the relevant local contract docs before editing and follow them
 - prefer the smallest complete change that matches existing repo patterns
 - verify related workflows, infra, docs, and downstream dependencies when the request affects shared behavior

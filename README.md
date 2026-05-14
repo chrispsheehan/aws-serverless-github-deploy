@@ -45,7 +45,7 @@ Give me a site with a backend and a database
 ```
 
 ```text
-I'm building an app in ../sandbox/skill-test
+look at ../sandbox and tell me how to deploy
 ```
 
 ## Prerequisites
