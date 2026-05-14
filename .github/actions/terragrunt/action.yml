@@ -141,7 +141,7 @@ runs:
 
             ;;
           apply_plan)
-            terragrunt apply -auto-approve -compact-warnings "$PLAN_PATH"
+            terragrunt apply -auto-approve "$PLAN_PATH"
             ;;
           destroy)
             terragrunt destroy -auto-approve -compact-warnings -var-file=override_tg_vars.tfvars.json
