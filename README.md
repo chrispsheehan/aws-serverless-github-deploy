@@ -5,6 +5,7 @@ Lambda + ECS with CodeDeploy rollouts, plus provisioned concurrency controls for
 
 ## Sections
 
+- [For AI Agents](#for-ai-agents)
 - [Overview](#overview)
 - [Prerequisites](#prerequisites)
 - [Setup](#setup)
@@ -22,6 +23,22 @@ Lambda + ECS with CodeDeploy rollouts, plus provisioned concurrency controls for
 - runtime and infrastructure layouts designed to be extended without having to rediscover the whole repo each time
 
 Use [CONTRIBUTING.md](CONTRIBUTING.md) for expectations when changing the repo itself.
+
+## For AI Agents
+
+Example prompts:
+
+```text
+Tell me the repo-specific rules you are following for this task before making any changes.
+```
+
+```text
+Read the relevant local contract docs for the files you plan to touch, and summarize the constraints that apply before editing.
+```
+
+```text
+For workflow changes, read ./.github/docs/README.md, restate the applicable workflow contracts, and then make the change.
+```
 
 ## Prerequisites
 

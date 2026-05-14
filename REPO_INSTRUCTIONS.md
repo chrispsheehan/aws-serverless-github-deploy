@@ -23,6 +23,16 @@ These instructions apply to the entire repository.
 - workflow contracts: `.github/docs/README.md`
 - module contracts: `infra/modules/**/README.md` (shared contracts live under `infra/modules/aws/_shared/**/README.md`)
 - runtime behavior: `lambdas/**/README.md` and `containers/**/README.md`
+- before editing, read the relevant local contract docs for the files you plan to touch and follow those contracts
+
+## Task Interpretation
+
+- interpret brief requests using this repo's existing patterns and contracts rather than taking them literally
+- read the relevant local contract docs before editing and follow them
+- prefer the smallest complete change that matches existing repo patterns
+- verify related workflows, infra, docs, and downstream dependencies when the request affects shared behavior
+- state material assumptions when the intended shape is not fully explicit
+- when ambiguity is material or a wrong assumption could cause the repo shape or contract to drift, ask the user a clarifying question before editing
 
 ## CI OIDC Scope
 
