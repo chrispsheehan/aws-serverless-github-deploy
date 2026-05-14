@@ -33,14 +33,6 @@ add a new environment called qa
 ```
 
 ```text
-Give me a simple static website with an API backed by Lambda
-```
-
-```text
-Give me a site with a backend
-```
-
-```text
 Give me a site with a backend and a database
 ```
 
