@@ -14,21 +14,25 @@ plan_json_path="${PWD}/terragrunt.plan.json"
 plan_log_path="${PWD}/${TG_PLAN_LOG_FILENAME:-terragrunt.plan.log}"
 
 if [[ "${TG_ENABLE_PLAN_ARTIFACTS:-false}" != "true" ]]; then
+  echo "TG_ENABLE_PLAN_ARTIFACTS=false, skipping plan artifact ${mode}." >&2
   exit 0
 fi
 
-if [[ -z "${PLAN_RUN_ID:-}" ]]; then
-  exit 0
+if [[ -z "${PLAN_ARTIFACT_RUN_ID:-}" ]]; then
+  echo "PLAN_ARTIFACT_RUN_ID is required when TG_ENABLE_PLAN_ARTIFACTS=true." >&2
+  exit 1
 fi
 
 sanitized_dir="$(echo "$logical_tg_dir" | tr '/.' '--')"
-artifact_s3_prefix="s3://${plan_bucket}/${infra_plan_dir}/${environment}/${PLAN_RUN_ID}/terragrunt-plan-${sanitized_dir}"
+artifact_s3_prefix="s3://${plan_bucket}/${infra_plan_dir}/${environment}/${PLAN_ARTIFACT_RUN_ID}/terragrunt-plan-${sanitized_dir}"
 
 case "$mode" in
   download)
+    echo "Downloading plan artifacts from ${artifact_s3_prefix}" >&2
     aws s3 cp "${artifact_s3_prefix}/terragrunt.tfplan" "$plan_path"
     aws s3 cp "${artifact_s3_prefix}/terragrunt.plan.txt" "$plan_text_path"
     aws s3 cp "${artifact_s3_prefix}/terragrunt.plan.meta.json" "$plan_meta_path"
+    echo "Downloaded plan artifacts for ${logical_tg_dir}" >&2
 
     if [[ "$(jq -r '.contains_mocked_outputs // false' "$plan_meta_path")" == "true" ]]; then
       echo "Saved plan for '$logical_tg_dir' contains mocked outputs. Regenerate it after upstream real outputs exist." >&2
@@ -55,9 +59,11 @@ case "$mode" in
       '{tg_directory: $tg_directory, has_changes: $has_changes, contains_mocked_outputs: $contains_mocked_outputs}' \
       > "$plan_meta_path"
 
+    echo "Uploading plan artifacts for ${logical_tg_dir} to ${artifact_s3_prefix}" >&2
     aws s3 cp "$plan_path" "${artifact_s3_prefix}/terragrunt.tfplan"
     aws s3 cp "$plan_text_path" "${artifact_s3_prefix}/terragrunt.plan.txt"
     aws s3 cp "$plan_meta_path" "${artifact_s3_prefix}/terragrunt.plan.meta.json"
+    echo "Uploaded plan artifacts for ${logical_tg_dir}" >&2
     rm -f "$plan_json_path"
     ;;
   *)

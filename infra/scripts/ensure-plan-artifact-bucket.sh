@@ -8,16 +8,20 @@ if aws s3api head-bucket --bucket "$bucket_name" >/dev/null 2>&1; then
   exit 0
 fi
 
-if [ -t 0 ] && [ -t 1 ]; then
-  printf "Artifact bucket '%s' does not exist. Create it in %s? [y/N] " "$bucket_name" "$aws_region" >&2
-  read -r response
+if [ -r /dev/tty ] && [ -w /dev/tty ]; then
+  printf "Plan bucket '%s' does not exist. Create it in %s? [y/N] " "$bucket_name" "$aws_region" > /dev/tty
+  read -r response < /dev/tty
   case "$response" in
     [yY]|[yY][eE][sS]) ;;
     *)
-      echo "Artifact bucket creation declined." >&2
+      echo "Plan bucket creation declined." >&2
       exit 1
       ;;
   esac
+else
+  echo "Plan bucket '$bucket_name' does not exist and no interactive terminal is available for confirmation." >&2
+  echo "Create it manually or rerun from a terminal where Terragrunt hooks can prompt." >&2
+  exit 1
 fi
 
 if [ "$aws_region" = "us-east-1" ]; then

@@ -36,7 +36,7 @@ Shared artifact names also follow naming conventions from `infra/root.hcl`:
 - ECS ECR repository: `<artifact_base>-ecr`
 - saved Terragrunt plan artifacts: `s3://<plan_bucket>/terragrunt_plan/<environment>/<run_id>/...`
 - code-bucket lifecycle inputs: `code_artifact_expiration_days` for deployable code artifacts and `infra_plan_artifact_expiration_days` for `terragrunt_plan/` when the code-bucket module is still used for plan retention
-- during `terragrunt init`, the root hook ensures the dedicated saved-plan bucket exists; interactive runs prompt before creation and non-interactive runs create it automatically
+- during `terragrunt init` and saved-plan `plan`, the root hook ensures the dedicated saved-plan bucket exists; interactive runs prompt before creation and non-interactive runs fail if no prompt is possible
 
 So a stack at:
 
@@ -196,6 +196,18 @@ just --justfile justfile.ci tf-lint-check
 just --justfile justfile.deploy lambda-get-version
 just --justfile justfile.deploy frontend-build
 ```
+
+For a local saved-plan run that can upload plan artifacts through the normal repo wrapper, enable artifact mode, provide a unique run id, and pass the Terragrunt operation as one quoted argument:
+
+```sh
+TG_ENABLE_PLAN_ARTIFACTS=true \
+PLAN_ARTIFACT_RUN_ID="local-$(date +%s)" \
+just tg dev aws/oidc 'plan -out=terragrunt.tfplan'
+```
+
+The `tg` recipe treats the final argument as the Terragrunt operation string, so quoting lets you pass flags such as `-out=...` through the wrapper. The current saved-plan hook expects the binary plan filename to be `terragrunt.tfplan`; if you choose a different `-out` filename, the upload hook will not find it.
+
+Per-stack saved-plan bundles in S3 use the live stack identity rather than your full local filesystem path, for example `terragrunt-plan-dev-aws-oidc`.
 
 ## Naming Conventions
 

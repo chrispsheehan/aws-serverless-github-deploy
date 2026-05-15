@@ -23,6 +23,7 @@ locals {
   state_bucket     = "${local.base_reference}-tfstate"
   plan_bucket      = "${local.base_reference}-tfplan"
   state_key        = "${local.environment}/${local.provider}/${local.module}/terraform.tfstate"
+  plan_artifact_stack_key = "${local.environment}/${local.provider}/${local.module}"
   state_lock_table = "${local.project_name}-tf-lockid"
   # separate shared artifact resources when dev, otherwise ci
   artifact_base       = local.environment == "dev" ? "${local.base_reference}-${local.environment}" : "${local.base_reference}-ci"
@@ -38,11 +39,11 @@ terraform {
     ]
   }
 
-  before_hook "ensure_plan_bucket" {
-    commands = ["init"]
+  before_hook "ensure_plan_artifact_bucket" {
+    commands = ["init", "plan"]
     execute = [
       "bash",
-      "${local.infra_root_dir}/scripts/ensure-artifact-bucket.sh",
+      "${local.infra_root_dir}/scripts/ensure-plan-artifact-bucket.sh",
       local.plan_bucket,
       local.aws_region,
     ]
@@ -54,7 +55,7 @@ terraform {
       "bash",
       "${local.infra_root_dir}/scripts/handle-plan-artifact.sh",
       "download",
-      get_terragrunt_dir(),
+      local.plan_artifact_stack_key,
       local.plan_bucket,
       local.environment,
     ]
@@ -66,7 +67,7 @@ terraform {
       "bash",
       "${local.infra_root_dir}/scripts/handle-plan-artifact.sh",
       "upload",
-      get_terragrunt_dir(),
+      local.plan_artifact_stack_key,
       local.plan_bucket,
       local.environment,
     ]
