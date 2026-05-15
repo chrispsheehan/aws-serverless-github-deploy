@@ -72,6 +72,8 @@ jobs:
 
       - name: ${{ env.TG_ACTION_LABEL }} oidc role infra
         uses: ./.github/actions/terragrunt
+        env: 
+          TG_RESET_PLAN_ARTIFACT_BUCKET: "true" # this ensures that the plan artifact bucket is reset on every run, preventing stale artifacts from being used
         with:
           tg_directory: infra/live/${{ inputs.environment }}/aws/oidc
           tg_action: ${{ inputs.tg_action }}

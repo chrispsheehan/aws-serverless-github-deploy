@@ -36,7 +36,8 @@ Shared artifact names also follow naming conventions from `infra/root.hcl`:
 - ECS ECR repository: `<artifact_base>-ecr`
 - saved Terragrunt plan artifacts: `s3://<plan_bucket>/terragrunt_plan/<environment>/<run_id>/...`
 - plan-bucket retention: `infra_plan_artifact_expiration_days` applies an S3 lifecycle rule to `terragrunt_plan/` in the dedicated saved-plan bucket
-- during `terragrunt init` and saved-plan `plan`, the root hook ensures the dedicated saved-plan bucket exists; interactive runs prompt before creation, non-interactive runs fail if no prompt is possible, and successful checks also enforce the configured plan-artifact retention rule
+- during `terragrunt init` and saved-plan `plan`, the root hook ensures the dedicated saved-plan bucket exists; interactive runs prompt before creation and non-interactive runs fail if no prompt is possible
+- to reapply the configured `infra_plan_artifact_expiration_days` lifecycle rule locally for an existing bucket, rerun with `TG_RESET_PLAN_ARTIFACT_BUCKET=true`
 
 So a stack at:
 

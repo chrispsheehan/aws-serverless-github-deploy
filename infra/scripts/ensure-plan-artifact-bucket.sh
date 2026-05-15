@@ -5,6 +5,7 @@ bucket_name="${1:?bucket name is required}"
 aws_region="${2:?aws region is required}"
 retention_days="${3:-0}"
 plan_prefix="${INFRA_PLAN_DIR:-terragrunt_plan/}"
+reset_flag="${TG_RESET_PLAN_ARTIFACT_BUCKET:-false}"
 
 if [[ "$plan_prefix" != */ ]]; then
   plan_prefix="${plan_prefix}/"
@@ -29,7 +30,9 @@ ensure_lifecycle() {
 }
 
 if aws s3api head-bucket --bucket "$bucket_name" >/dev/null 2>&1; then
-  ensure_lifecycle
+  if [ "$reset_flag" = "true" ]; then
+    ensure_lifecycle
+  fi
   exit 0
 fi
 
