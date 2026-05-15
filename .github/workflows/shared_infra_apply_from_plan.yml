@@ -66,6 +66,18 @@ jobs:
           justfile_path: justfile.tg
           just_action: terragrunt-plan-base-s3-prefix
 
+      - name: Check requested plan artifact run id exists
+        shell: bash
+        env:
+          PLAN_ARTIFACT_S3_PREFIX: ${{ steps.plan_artifact_s3_prefix.outputs.just_outputs }}
+          PLAN_ARTIFACT_RUN_ID: ${{ inputs.plan_artifact_run_id }}
+        run: |
+          metadata_object="${PLAN_ARTIFACT_S3_PREFIX}/infra-plan-metadata/plan-metadata.json"
+          if ! aws s3 ls "$metadata_object" >/dev/null 2>&1; then
+            echo "::error title=Plan artifact run id not found::No saved plan metadata was found for plan_artifact_run_id '${PLAN_ARTIFACT_RUN_ID}' at '${metadata_object}'. Check the run id and make sure that earlier plan workflow completed and uploaded artifacts."
+            exit 1
+          fi
+
       - name: Download plan metadata from S3
         uses: ./.github/actions/just
         env:
