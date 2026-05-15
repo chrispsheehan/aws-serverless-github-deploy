@@ -12,6 +12,7 @@ locals {
 
   global_vars      = read_terragrunt_config(find_in_parent_folders("global_vars.hcl"))
   environment_vars = read_terragrunt_config(find_in_parent_folders("environment_vars.hcl"))
+  infra_root_dir   = abspath(dirname(find_in_parent_folders("root.hcl")))
 
   project_name = element(split("/", local.github_repo), 1)
 
@@ -20,6 +21,7 @@ locals {
   deploy_role_name = "${local.project_name}-${local.environment}-github-oidc-role"
   deploy_role_arn  = "arn:aws:iam::${local.aws_account_id}:role/${local.deploy_role_name}"
   state_bucket     = "${local.base_reference}-tfstate"
+  plan_bucket      = "${local.base_reference}-tfplan"
   state_key        = "${local.environment}/${local.provider}/${local.module}/terraform.tfstate"
   state_lock_table = "${local.project_name}-tf-lockid"
   # separate shared artifact resources when dev, otherwise ci
@@ -33,6 +35,40 @@ terraform {
     commands = ["init"]
     execute = [
       "bash", "-c", "echo STATE:${local.state_bucket}/${local.state_key} TABLE:${local.state_lock_table}"
+    ]
+  }
+
+  before_hook "ensure_plan_bucket" {
+    commands = ["init"]
+    execute = [
+      "bash",
+      "${local.infra_root_dir}/scripts/ensure-artifact-bucket.sh",
+      local.plan_bucket,
+      local.aws_region,
+    ]
+  }
+
+  before_hook "download_saved_plan" {
+    commands = ["apply"]
+    execute = [
+      "bash",
+      "${local.infra_root_dir}/scripts/handle-plan-artifact.sh",
+      "download",
+      get_terragrunt_dir(),
+      local.plan_bucket,
+      local.environment,
+    ]
+  }
+
+  after_hook "upload_saved_plan" {
+    commands = ["plan"]
+    execute = [
+      "bash",
+      "${local.infra_root_dir}/scripts/handle-plan-artifact.sh",
+      "upload",
+      get_terragrunt_dir(),
+      local.plan_bucket,
+      local.environment,
     ]
   }
 }
@@ -101,6 +137,7 @@ inputs = merge(
     deploy_role_name             = local.deploy_role_name
     deploy_role_arn              = local.deploy_role_arn
     state_bucket                 = local.state_bucket
+    plan_bucket                  = local.plan_bucket
     state_lock_table             = local.state_lock_table
     code_bucket                  = local.code_bucket
     ecr_repository_name          = local.ecr_repository_name

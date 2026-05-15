@@ -28,13 +28,15 @@ The root Terragrunt file derives state paths from the live stack path:
 - bucket: `<account>-<region>-<repo>-tfstate`
 - key: `<environment>/<provider>/<module>/terraform.tfstate`
 
-Shared artifact names also follow environment-aware conventions from `infra/root.hcl`:
+Shared artifact names also follow naming conventions from `infra/root.hcl`:
 
 - shared artifact base: `dev -> ...-dev`, otherwise `...-ci`
+- dedicated saved-plan bucket: `<account>-<region>-<repo>-tfplan`
 - code bucket: `<artifact_base>-code`
 - ECS ECR repository: `<artifact_base>-ecr`
-- saved Terragrunt plan artifacts: `s3://<code_bucket>/terragrunt_plan/<environment>/<run_id>/...`
-- code-bucket lifecycle inputs: `code_artifact_expiration_days` for deployable code artifacts and `infra_plan_artifact_expiration_days` for `terragrunt_plan/`
+- saved Terragrunt plan artifacts: `s3://<plan_bucket>/terragrunt_plan/<environment>/<run_id>/...`
+- code-bucket lifecycle inputs: `code_artifact_expiration_days` for deployable code artifacts and `infra_plan_artifact_expiration_days` for `terragrunt_plan/` when the code-bucket module is still used for plan retention
+- during `terragrunt init`, the root hook ensures the dedicated saved-plan bucket exists; interactive runs prompt before creation and non-interactive runs create it automatically
 
 So a stack at:
 
@@ -153,7 +155,7 @@ That `containers/lib` directory is helper code only and is not treated as a depl
 - build workflows produce Lambda zips and container images
 - `*_infra` wrappers need the inputs required to apply infra safely, such as directory-derived stack matrices and any artifact-derived bootstrap references
 - in `prod`, the `*_infra` wrappers read shared artifact resources from `ci` but only apply service and task stacks in `prod`
-- saved `plan` / `apply_plan` artifacts live in the shared code bucket under `terragrunt_plan/<environment>/<run_id>/...`; `dev` uses the `dev` code bucket, while non-`dev` environments reuse the shared `ci` code bucket
+- saved `plan` / `apply_plan` artifacts live in the dedicated plan bucket under `terragrunt_plan/<environment>/<run_id>/...`
 - deploy workflows:
   - publish Lambda versions and use Lambda CodeDeploy
   - optionally invoke the `migrations` Lambda when it is part of the Lambda deploy matrix

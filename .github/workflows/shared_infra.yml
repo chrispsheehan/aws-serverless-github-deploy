@@ -33,8 +33,8 @@ on:
         required: false
         type: string
         default: "apply"
-      plan_artifact_s3_prefix:
-        description: "Optional resolved S3 prefix used for saved plan artifacts"
+      plan_run_id:
+        description: "Optional unique run id used to derive saved plan artifact paths"
         required: false
         type: string
         default: ""
@@ -53,7 +53,8 @@ env:
   AWS_OIDC_ROLE_ARN: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/${{ vars.PROJECT_NAME }}-${{ inputs.environment }}-github-oidc-role
   AWS_REGION: ${{ vars.AWS_REGION }}
   DOMAIN_NAME: ${{ vars.DOMAIN_NAME }}
-  PLAN_ARTIFACT_S3_PREFIX: ${{ inputs.plan_artifact_s3_prefix }}
+  TG_ENABLE_PLAN_ARTIFACTS: ${{ (inputs.tg_action == 'plan' || inputs.tg_action == 'apply_plan') && 'true' || 'false' }}
+  PLAN_RUN_ID: ${{ inputs.plan_run_id }}
   TG_ACTION_LABEL: ${{ (inputs.tg_action == 'apply' || inputs.tg_action == 'apply_plan') && 'Apply' || inputs.tg_action == 'plan' && 'Plan' || inputs.tg_action == 'destroy' && 'Destroy' || inputs.tg_action == 'init' && 'Init' || 'Run' }}
 
 jobs:

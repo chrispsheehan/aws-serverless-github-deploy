@@ -117,6 +117,6 @@ These instructions apply to the entire repository.
 
 ## High-Signal Edit Warnings
 
-- before editing `justfile.destroy` or `justfile.tg`, print an explicit terminal warning in commentary (destroy/terragrunt command ownership boundary)
+- before editing `justfile.destroy`, print an explicit terminal warning in commentary (destroy command ownership boundary)
 - before editing `.github/workflows/shared_*.yml`, print an explicit terminal warning in commentary (shared CI workflow blast radius)
 - before editing `infra/modules/aws/_shared/**`, print an explicit terminal warning in commentary (shared-contract blast radius)

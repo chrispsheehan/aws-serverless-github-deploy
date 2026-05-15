@@ -28,7 +28,7 @@ inputs:
 outputs:
   tg_outputs:
     description: "All Terraform outputs in JSON format"
-    value: ${{ steps.tg_outputs.outputs.terraform_json || steps.tg_outputs_skip.outputs.terraform_json }}
+    value: ${{ steps.tg_outputs.outputs.terraform_json }}
 
 runs:
   using: "composite"
@@ -61,54 +61,12 @@ runs:
       run: |
         echo "$OVERRIDE_TG_VARS" | jq -c . > ${{ inputs.tg_directory }}/override_tg_vars.tfvars.json
 
-    - name: Download saved plan artifacts
-      if: inputs.tg_action == 'apply_plan'
-      uses: ./.github/actions/just
-      env:
-        TG_DIRECTORY: ${{ inputs.tg_directory }}
-      with:
-        aws_region: ${{ inputs.aws_region }}
-        justfile_path: justfile.tg
-        just_action: terragrunt-plan-download
-
-    - name: Verify plan artifact files exist
-      if: inputs.tg_action == 'apply_plan'
-      shell: bash
-      run: |
-        test -f "${{ inputs.tg_directory }}/terragrunt.tfplan" || {
-          echo "Expected plan file '${{ inputs.tg_directory }}/terragrunt.tfplan' was not found before apply_plan." >&2
-          exit 1
-        }
-        test -f "${{ inputs.tg_directory }}/terragrunt.plan.meta.json" || {
-          echo "Expected plan metadata file '${{ inputs.tg_directory }}/terragrunt.plan.meta.json' was not found before apply_plan." >&2
-          exit 1
-        }
-
-    - name: Check saved plan for mutating changes
-      if: inputs.tg_action == 'apply_plan'
-      id: apply_plan_guard
-      shell: bash
-      working-directory: ${{ inputs.tg_directory }}
-      run: |
-        PLAN_PATH="$(pwd)/terragrunt.tfplan"
-        PLAN_META_PATH="$(pwd)/terragrunt.plan.meta.json"
-
-        if [ "$(jq -r '.has_changes' "$PLAN_META_PATH")" != "true" ]; then
-          echo "::warning title=Empty saved plan::Saved plan '$PLAN_PATH' contains no mutating resource changes. Skipping apply."
-          echo "should_apply=false" >> "$GITHUB_OUTPUT"
-        elif [ "$(jq -r '.contains_mocked_outputs // false' "$PLAN_META_PATH")" = "true" ]; then
-          echo "::error title=Saved plan contains mocked outputs::Saved plan '$PLAN_PATH' was created while Terragrunt dependency mock outputs were in use. Regenerate the plan after upstream real outputs exist."
-          exit 1
-        else
-          echo "should_apply=true" >> "$GITHUB_OUTPUT"
-        fi
-
     - name: Action Terragrunt
-      if: inputs.tg_action != 'apply_plan' || steps.apply_plan_guard.outputs.should_apply == 'true'
       id: terragrunt_action
       shell: bash
       env:
         TF_IN_AUTOMATION: true
+        TG_PLAN_LOG_FILENAME: terragrunt.plan.log
       working-directory: ${{ inputs.tg_directory }}
       run: |
         PLAN_PATH="$(pwd)/terragrunt.tfplan"
@@ -156,29 +114,8 @@ runs:
             ;;
         esac
 
-    - name: Render plan sidecar artifacts
-      if: inputs.tg_action == 'plan'
-      uses: ./.github/actions/just
-      env:
-        TG_DIRECTORY: ${{ inputs.tg_directory }}
-        TG_PLAN_EXIT_CODE: ${{ steps.terragrunt_action.outputs.plan_exit_code }}
-        TG_PLAN_CONTAINS_MOCKED_OUTPUTS: ${{ steps.terragrunt_action.outputs.plan_contains_mocked_outputs }}
-      with:
-        justfile_path: justfile.tg
-        just_action: terragrunt-plan-render
-
-    - name: Upload saved plan artifacts
-      if: inputs.tg_action == 'plan'
-      uses: ./.github/actions/just
-      env:
-        TG_DIRECTORY: ${{ inputs.tg_directory }}
-      with:
-        aws_region: ${{ inputs.aws_region }}
-        justfile_path: justfile.tg
-        just_action: terragrunt-plan-upload
-
     - name: Capture Terraform Outputs
-      if: inputs.tg_action != 'destroy' && (inputs.tg_action != 'apply_plan' || steps.apply_plan_guard.outputs.should_apply == 'true')
+      if: inputs.tg_action != 'destroy'
       id: tg_outputs
       shell: bash
       working-directory: ${{ inputs.tg_directory }}
@@ -192,10 +129,3 @@ runs:
         fi
         echo "terraform_json=$TERRAGRUNT_OUTPUTS" >> "$GITHUB_OUTPUT"
         echo "✅ Terraform outputs captured successfully."
-
-    - name: Capture Terraform Outputs For Skipped Apply Plan
-      if: inputs.tg_action == 'apply_plan' && steps.apply_plan_guard.outputs.should_apply != 'true'
-      id: tg_outputs_skip
-      shell: bash
-      run: |
-        echo "terraform_json={}" >> "$GITHUB_OUTPUT"
