@@ -201,13 +201,21 @@ For a local saved-plan run that can upload plan artifacts through the normal rep
 
 ```sh
 TG_ENABLE_PLAN_ARTIFACTS=true \
-PLAN_ARTIFACT_RUN_ID="local-$(date +%s)" \
+PLAN_ARTIFACT_RUN_ID="local-example-run" \
 just tg dev aws/oidc 'plan -out=terragrunt.tfplan'
 ```
 
 The `tg` recipe treats the final argument as the Terragrunt operation string, so quoting lets you pass flags such as `-out=...` through the wrapper. The current saved-plan hook expects the binary plan filename to be `terragrunt.tfplan`; if you choose a different `-out` filename, the upload hook will not find it.
 
 Per-stack saved-plan bundles in S3 use the live stack identity rather than your full local filesystem path, for example `terragrunt-plan-dev-aws-oidc`.
+
+To apply that same saved plan later, reuse the same run id:
+
+```sh
+TG_ENABLE_PLAN_ARTIFACTS=true \
+PLAN_ARTIFACT_RUN_ID="local-example-ru" \
+just tg dev aws/oidc 'apply terragrunt.tfplan'
+```
 
 ## Naming Conventions
 

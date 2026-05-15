@@ -29,6 +29,12 @@ artifact_s3_prefix="s3://${plan_bucket}/${infra_plan_dir}/${environment}/${PLAN_
 case "$mode" in
   download)
     echo "Downloading plan artifacts from ${artifact_s3_prefix}" >&2
+    if ! aws s3 ls "${artifact_s3_prefix}/terragrunt.tfplan" >/dev/null 2>&1; then
+      echo "Saved plan artifact not found for ${logical_tg_dir} and PLAN_ARTIFACT_RUN_ID=${PLAN_ARTIFACT_RUN_ID}." >&2
+      echo "Expected plan bundle at ${artifact_s3_prefix}" >&2
+      exit 1
+    fi
+
     aws s3 cp "${artifact_s3_prefix}/terragrunt.tfplan" "$plan_path"
     aws s3 cp "${artifact_s3_prefix}/terragrunt.plan.txt" "$plan_text_path"
     aws s3 cp "${artifact_s3_prefix}/terragrunt.plan.meta.json" "$plan_meta_path"
