@@ -16,15 +16,19 @@ locals {
 
   project_name = element(split("/", local.github_repo), 1)
 
-  aws_region       = local.global_vars.inputs.aws_region
-  base_reference   = "${local.aws_account_id}-${local.aws_region}-${local.project_name}"
-  deploy_role_name = "${local.project_name}-${local.environment}-github-oidc-role"
-  deploy_role_arn  = "arn:aws:iam::${local.aws_account_id}:role/${local.deploy_role_name}"
-  state_bucket     = "${local.base_reference}-tfstate"
-  plan_bucket      = "${local.base_reference}-tfplan"
-  state_key        = "${local.environment}/${local.provider}/${local.module}/terraform.tfstate"
+  aws_region              = local.global_vars.inputs.aws_region
+  base_reference          = "${local.aws_account_id}-${local.aws_region}-${local.project_name}"
+  deploy_role_name        = "${local.project_name}-${local.environment}-github-oidc-role"
+  deploy_role_arn         = "arn:aws:iam::${local.aws_account_id}:role/${local.deploy_role_name}"
+  state_bucket            = "${local.base_reference}-tfstate"
+  plan_bucket             = "${local.base_reference}-tfplan"
+  state_key               = "${local.environment}/${local.provider}/${local.module}/terraform.tfstate"
   plan_artifact_stack_key = "${local.environment}/${local.provider}/${local.module}"
-  state_lock_table = "${local.project_name}-tf-lockid"
+  state_lock_table        = "${local.project_name}-tf-lockid"
+  plan_artifact_retention_days = try(
+    local.environment_vars.inputs.infra_plan_artifact_expiration_days,
+    1,
+  )
   # separate shared artifact resources when dev, otherwise ci
   artifact_base       = local.environment == "dev" ? "${local.base_reference}-${local.environment}" : "${local.base_reference}-ci"
   code_bucket         = "${local.artifact_base}-code"
@@ -46,6 +50,7 @@ terraform {
       "${local.infra_root_dir}/scripts/ensure-plan-artifact-bucket.sh",
       local.plan_bucket,
       local.aws_region,
+      tostring(local.plan_artifact_retention_days),
     ]
   }
 

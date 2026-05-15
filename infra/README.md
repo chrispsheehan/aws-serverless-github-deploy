@@ -35,8 +35,8 @@ Shared artifact names also follow naming conventions from `infra/root.hcl`:
 - code bucket: `<artifact_base>-code`
 - ECS ECR repository: `<artifact_base>-ecr`
 - saved Terragrunt plan artifacts: `s3://<plan_bucket>/terragrunt_plan/<environment>/<run_id>/...`
-- code-bucket lifecycle inputs: `code_artifact_expiration_days` for deployable code artifacts and `infra_plan_artifact_expiration_days` for `terragrunt_plan/` when the code-bucket module is still used for plan retention
-- during `terragrunt init` and saved-plan `plan`, the root hook ensures the dedicated saved-plan bucket exists; interactive runs prompt before creation and non-interactive runs fail if no prompt is possible
+- plan-bucket retention: `infra_plan_artifact_expiration_days` applies an S3 lifecycle rule to `terragrunt_plan/` in the dedicated saved-plan bucket
+- during `terragrunt init` and saved-plan `plan`, the root hook ensures the dedicated saved-plan bucket exists; interactive runs prompt before creation, non-interactive runs fail if no prompt is possible, and successful checks also enforce the configured plan-artifact retention rule
 
 So a stack at:
 
@@ -213,7 +213,7 @@ To apply that same saved plan later, reuse the same run id:
 
 ```sh
 TG_ENABLE_PLAN_ARTIFACTS=true \
-PLAN_ARTIFACT_RUN_ID="local-example-ru" \
+PLAN_ARTIFACT_RUN_ID="local-example-run" \
 just tg dev aws/oidc 'apply terragrunt.tfplan'
 ```
 
