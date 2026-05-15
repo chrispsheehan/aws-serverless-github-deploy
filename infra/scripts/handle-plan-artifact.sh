@@ -12,6 +12,7 @@ plan_text_path="${PWD}/terragrunt.plan.txt"
 plan_meta_path="${PWD}/terragrunt.plan.meta.json"
 plan_json_path="${PWD}/terragrunt.plan.json"
 plan_log_path="${PWD}/${TG_PLAN_LOG_FILENAME:-terragrunt.plan.log}"
+fallback_plan_log_path="${TG_PLAN_LOG_ABS_PATH:-}"
 
 if [[ "${TG_ENABLE_PLAN_ARTIFACTS:-false}" != "true" ]]; then
   echo "TG_ENABLE_PLAN_ARTIFACTS=false, skipping plan artifact ${mode}." >&2
@@ -55,6 +56,8 @@ case "$mode" in
 
     contains_mocked_outputs=false
     if [[ -f "$plan_log_path" ]] && grep -Fq "mock outputs provided and returning those in dependency output" "$plan_log_path"; then
+      contains_mocked_outputs=true
+    elif [[ -n "$fallback_plan_log_path" ]] && [[ -f "$fallback_plan_log_path" ]] && grep -Fq "mock outputs provided and returning those in dependency output" "$fallback_plan_log_path"; then
       contains_mocked_outputs=true
     fi
 

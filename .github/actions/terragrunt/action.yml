@@ -67,9 +67,10 @@ runs:
       env:
         TF_IN_AUTOMATION: true
         TG_PLAN_LOG_FILENAME: terragrunt.plan.log
+        TG_PLAN_LOG_ABS_PATH: ${{ github.workspace }}/${{ inputs.tg_directory }}/terragrunt.plan.log
       working-directory: ${{ inputs.tg_directory }}
       run: |
-        PLAN_PATH="$(pwd)/terragrunt.tfplan"
+        PLAN_PATH="terragrunt.tfplan"
         PLAN_LOG_PATH="$(pwd)/terragrunt.plan.log"
 
         case "${{ inputs.tg_action }}" in
@@ -94,8 +95,7 @@ runs:
 
             echo "plan_exit_code=$plan_exit_code" >> "$GITHUB_OUTPUT"
             echo "plan_contains_mocked_outputs=$plan_contains_mocked_outputs" >> "$GITHUB_OUTPUT"
-            echo "Terragrunt binary plan path: $PLAN_PATH"
-            ls -l "$PLAN_PATH"
+            echo "Terragrunt binary plan path in cache: $PLAN_PATH"
 
             ;;
           apply_plan)

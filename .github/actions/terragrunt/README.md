@@ -38,9 +38,9 @@ The Terragrunt install step is kept in this repo-local action rather than hidden
 - `apply`
   Runs `terragrunt apply -auto-approve`
 - `plan`
-  Runs `terragrunt plan -detailed-exitcode -out=<absolute stack path>/terragrunt.tfplan`. The shared Terragrunt root `after_hook` then renders `terragrunt.plan.txt`, writes `terragrunt.plan.meta.json`, and uploads the per-stack plan bundle to the derived plan bucket when `TG_ENABLE_PLAN_ARTIFACTS=true` and `PLAN_ARTIFACT_RUN_ID` is set.
+  Runs `terragrunt plan -detailed-exitcode -out=terragrunt.tfplan`. The shared Terragrunt root `after_hook` then renders `terragrunt.plan.txt`, writes `terragrunt.plan.meta.json`, and uploads the per-stack plan bundle to the derived plan bucket when `TG_ENABLE_PLAN_ARTIFACTS=true` and `PLAN_ARTIFACT_RUN_ID` is set.
 - `apply_plan`
-  Runs `terragrunt apply` against the absolute stack-path plan file. The shared Terragrunt root `before_hook` downloads the saved plan bundle into `tg_directory` when `TG_ENABLE_PLAN_ARTIFACTS=true` and `PLAN_ARTIFACT_RUN_ID` is set, and fails early if the saved metadata reports mocked dependency outputs.
+  Runs `terragrunt apply terragrunt.tfplan`. The shared Terragrunt root `before_hook` downloads the saved plan bundle into the Terragrunt working directory when `TG_ENABLE_PLAN_ARTIFACTS=true` and `PLAN_ARTIFACT_RUN_ID` is set, and fails early if the saved metadata reports mocked dependency outputs.
 - `destroy`
   Runs `terragrunt destroy -auto-approve`
 - `init`
