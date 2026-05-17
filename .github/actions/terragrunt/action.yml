@@ -110,6 +110,30 @@ runs:
                 err_line="$(grep -F \"contains mocked outputs. Regenerate it after upstream real outputs exist.\" \"$APPLY_LOG_PATH\" | head -n 1)"
                 echo "::error title=Saved plan contains mocked outputs::${err_line}"
               fi
+              if grep -Fq "Error: Saved plan is stale" "$APPLY_LOG_PATH" || grep -Fq "Saved plan is stale" "$APPLY_LOG_PATH"; then
+                err_line="$(grep -F \"Saved plan is stale\" \"$APPLY_LOG_PATH\" | head -n 1)"
+                echo "::error title=Saved plan is stale::${err_line}"
+              fi
+              if grep -Fq "Saved plan artifact not found for" "$APPLY_LOG_PATH"; then
+                err_line="$(grep -F \"Saved plan artifact not found for\" \"$APPLY_LOG_PATH\" | head -n 1)"
+                echo "::error title=Saved plan artifact missing::${err_line}"
+              fi
+              if grep -Fq "PLAN_ARTIFACT_RUN_ID is required when TG_ENABLE_PLAN_ARTIFACTS=true" "$APPLY_LOG_PATH"; then
+                err_line="$(grep -F \"PLAN_ARTIFACT_RUN_ID is required when TG_ENABLE_PLAN_ARTIFACTS=true\" \"$APPLY_LOG_PATH\" | head -n 1)"
+                echo "::error title=Missing PLAN_ARTIFACT_RUN_ID::${err_line}"
+              fi
+              if grep -Fq "Plan bucket '" "$APPLY_LOG_PATH" && grep -Fq "does not exist" "$APPLY_LOG_PATH"; then
+                err_line="$(grep -F \"Plan bucket '\" \"$APPLY_LOG_PATH\" | head -n 1)"
+                echo "::error title=Plan bucket missing::${err_line}"
+              fi
+              if grep -Fq "Plan bucket creation declined." "$APPLY_LOG_PATH"; then
+                err_line="$(grep -F \"Plan bucket creation declined.\" \"$APPLY_LOG_PATH\" | head -n 1)"
+                echo "::error title=Plan bucket creation declined::${err_line}"
+              fi
+              if grep -Fq "no interactive terminal is available for confirmation" "$APPLY_LOG_PATH"; then
+                err_line="$(grep -F \"no interactive terminal is available for confirmation\" \"$APPLY_LOG_PATH\" | head -n 1)"
+                echo "::error title=Plan bucket confirmation unavailable::${err_line}"
+              fi
               exit "$apply_exit_code"
             fi
             ;;
