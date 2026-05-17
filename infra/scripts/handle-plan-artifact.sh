@@ -42,7 +42,7 @@ case "$mode" in
     echo "Downloaded plan artifacts for ${logical_tg_dir}" >&2
 
     if [[ "$(jq -r '.contains_mocked_outputs // false' "$plan_meta_path")" == "true" ]]; then
-      echo "Saved plan for '$logical_tg_dir' contains mocked outputs. Regenerate it after upstream real outputs exist." >&2
+      echo "Saved plan for '${logical_tg_dir}' contains mocked outputs. Regenerate it after upstream real outputs exist." >&2
       exit 1
     fi
     ;;

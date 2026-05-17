@@ -99,7 +99,19 @@ runs:
 
             ;;
           apply_plan)
-            terragrunt apply -auto-approve "$PLAN_PATH"
+            set +e
+            APPLY_LOG_PATH="$(pwd)/terragrunt.apply.log"
+            terragrunt apply -auto-approve "$PLAN_PATH" 2>&1 | tee "$APPLY_LOG_PATH"
+            apply_exit_code=${PIPESTATUS[0]}
+            set -e
+
+            if [ "$apply_exit_code" -ne 0 ]; then
+              if grep -Fq "contains mocked outputs. Regenerate it after upstream real outputs exist." "$APPLY_LOG_PATH"; then
+                err_line="$(grep -F \"contains mocked outputs. Regenerate it after upstream real outputs exist.\" \"$APPLY_LOG_PATH\" | head -n 1)"
+                echo "::error title=Saved plan contains mocked outputs::${err_line}"
+              fi
+              exit "$apply_exit_code"
+            fi
             ;;
           destroy)
             terragrunt destroy -auto-approve -compact-warnings -var-file=override_tg_vars.tfvars.json
