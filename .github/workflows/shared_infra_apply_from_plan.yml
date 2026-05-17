@@ -34,7 +34,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Download plan metadata artifact
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v7
         with:
           name: infra-plan-metadata
           github-token: ${{ github.token }}
