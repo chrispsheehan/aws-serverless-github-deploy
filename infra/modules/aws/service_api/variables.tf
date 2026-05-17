@@ -81,7 +81,8 @@ variable "ecs_security_group_id" {
 }
 
 variable "task_definition_arn" {
-  type = string
+  type    = string
+  default = "arn:aws:ecs:eu-west-2:111111111111:task-definition/mock-task-api:1"
 }
 
 variable "cluster_id" {
