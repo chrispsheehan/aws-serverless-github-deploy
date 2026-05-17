@@ -3,7 +3,7 @@ include "root" {
 }
 
 locals {
-  frontend_runtime = read_terragrunt_config(find_in_parent_folders("dependencies/frontend_runtime.hcl"))
+  frontend_runtime = read_terragrunt_config(find_in_parent_folders("dependencies/frontend.hcl"))
 }
 
 terraform {

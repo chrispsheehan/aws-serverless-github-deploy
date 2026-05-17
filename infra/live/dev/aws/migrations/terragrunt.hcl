@@ -2,8 +2,11 @@ include "root" {
   path = find_in_parent_folders("root.hcl")
 }
 
+include "security" {
+  path = find_in_parent_folders("dependencies/security.hcl")
+}
+
 locals {
-  runtime_security = read_terragrunt_config(find_in_parent_folders("dependencies/lambda_runtime_security.hcl"))
   database         = read_terragrunt_config(find_in_parent_folders("dependencies/database.hcl"))
 }
 
@@ -11,4 +14,9 @@ terraform {
   source = "../../../../modules//aws//migrations"
 }
 
-inputs = merge(local.runtime_security.inputs, local.database.inputs)
+inputs = merge(
+  {
+    runtime_security_group_id = dependency.security.outputs.runtime_sg
+  },
+  local.database.inputs,
+)

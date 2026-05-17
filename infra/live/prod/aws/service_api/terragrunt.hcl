@@ -2,10 +2,13 @@ include "root" {
   path = find_in_parent_folders("root.hcl")
 }
 
+include "security" {
+  path = find_in_parent_folders("dependencies/security.hcl")
+}
+
 locals {
-  runtime_security = read_terragrunt_config(find_in_parent_folders("dependencies/ecs_runtime_security.hcl"))
   cluster          = read_terragrunt_config(find_in_parent_folders("dependencies/cluster.hcl"))
-  network_runtime  = read_terragrunt_config(find_in_parent_folders("dependencies/network_runtime.hcl"))
+  network_runtime  = read_terragrunt_config(find_in_parent_folders("dependencies/network.hcl"))
 }
 
 terraform {
@@ -13,7 +16,9 @@ terraform {
 }
 
 inputs = merge(
-  local.runtime_security.inputs,
+  {
+    ecs_security_group_id = dependency.security.outputs.ecs_sg
+  },
   local.cluster.inputs,
   local.network_runtime.inputs,
 )

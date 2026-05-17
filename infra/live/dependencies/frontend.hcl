@@ -28,3 +28,4 @@ inputs = {
   auth_hosted_ui_url       = dependency.cognito.outputs.hosted_ui_url
   auth_readonly_group_name = dependency.cognito.outputs.readonly_group_name
 }
+

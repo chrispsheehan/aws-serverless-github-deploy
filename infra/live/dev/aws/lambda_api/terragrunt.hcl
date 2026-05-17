@@ -3,7 +3,7 @@ include "root" {
 }
 
 locals {
-  network_runtime  = read_terragrunt_config(find_in_parent_folders("dependencies/network_runtime.hcl"))
+  network_runtime  = read_terragrunt_config(find_in_parent_folders("dependencies/network.hcl"))
   worker_messaging = read_terragrunt_config(find_in_parent_folders("dependencies/worker_messaging.hcl"))
 }
 
