@@ -1,12 +1,12 @@
-output "sns_topic_name" {
+output "worker_topic_name" {
   value = aws_sns_topic.worker_events.name
 }
 
-output "sns_topic_arn" {
+output "worker_topic_arn" {
   value = aws_sns_topic.worker_events.arn
 }
 
-output "sns_topic_publish_policy_arn" {
+output "worker_topic_publish_policy_arn" {
   value = aws_iam_policy.topic_publish.arn
 }
 
