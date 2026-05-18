@@ -175,8 +175,8 @@ jobs:
           tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.value }}
           tg_action: destroy
 
-  worker-messaging:
-    name: Worker Messaging
+  messaging:
+    name: Messaging
     runs-on: ubuntu-latest
     needs:
       - lambdas

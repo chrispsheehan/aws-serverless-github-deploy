@@ -1,6 +1,6 @@
 # `messaging`
 
-Shared worker messaging stack.
+Shared messaging stack.
 
 ## Owns
 

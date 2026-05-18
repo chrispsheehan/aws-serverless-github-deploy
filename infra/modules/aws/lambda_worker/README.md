@@ -5,7 +5,7 @@ Worker Lambda wrapper module.
 ## Owns
 
 - worker Lambda via `_shared/lambda`
-- Lambda worker event-source mapping onto the shared worker messaging queue
+- Lambda worker event-source mapping onto the shared messaging queue
 - DLQ alarming for the Lambda worker queue
 
 ## Key outputs
