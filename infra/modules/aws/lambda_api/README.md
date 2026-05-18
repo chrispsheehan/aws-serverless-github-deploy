@@ -25,3 +25,4 @@ Lambda-backed public HTTP API module.
 This module is Lambda-specific. The shared API surface and shared JWT authorizer now live in `network`.
 When accessed through the frontend CloudFront distribution, the public Lambda path is `/api/*` because CloudFront strips the leading `/api` prefix before forwarding to API Gateway.
 The packaged runtime can publish JSON payloads to the shared worker SNS topic via `POST /messages`, which fans the message out to both the Lambda and ECS worker queues.
+The public `GET /health` route is intentionally left unauthenticated so external uptime checks do not need a JWT, while the catch-all API routes remain JWT-protected.

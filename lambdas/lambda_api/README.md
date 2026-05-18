@@ -14,7 +14,7 @@ Public Lambda-backed HTTP API.
 - `GET /`
   Basic success response
 - `GET /health`
-  Health response
+  Health response. This route is intentionally unauthenticated at the API Gateway layer.
 - `GET /fail`
 - `GET /error`
   Forced 500 response for alarm and rollback testing

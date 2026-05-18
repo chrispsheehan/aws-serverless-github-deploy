@@ -47,6 +47,12 @@ resource "aws_apigatewayv2_route" "root" {
   authorizer_id      = var.network_http_api_authorizer_id
 }
 
+resource "aws_apigatewayv2_route" "health" {
+  api_id    = var.network_api_id
+  route_key = "GET /health"
+  target    = "integrations/${aws_apigatewayv2_integration.lambda_proxy.id}"
+}
+
 resource "aws_apigatewayv2_route" "proxy" {
   api_id             = var.network_api_id
   route_key          = "ANY /{proxy+}"
