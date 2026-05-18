@@ -3,7 +3,7 @@ include "root" {
 }
 
 locals {
-  network_runtime  = read_terragrunt_config(find_in_parent_folders("dependencies/network.hcl"))
+  network          = read_terragrunt_config(find_in_parent_folders("dependencies/network.hcl"))
   worker_messaging = read_terragrunt_config(find_in_parent_folders("dependencies/worker_messaging.hcl"))
 }
 
@@ -12,7 +12,7 @@ terraform {
 }
 
 inputs = merge(
-  local.network_runtime.inputs,
+  local.network.inputs,
   local.worker_messaging.inputs,
   {
     api_5xx_alarm_threshold           = 20.0

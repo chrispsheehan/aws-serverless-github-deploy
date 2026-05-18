@@ -9,7 +9,7 @@ include "security" {
 locals {
   worker_messaging = read_terragrunt_config(find_in_parent_folders("dependencies/worker_messaging.hcl"))
   cluster          = read_terragrunt_config(find_in_parent_folders("dependencies/cluster.hcl"))
-  network_runtime  = read_terragrunt_config(find_in_parent_folders("dependencies/network.hcl"))
+  network          = read_terragrunt_config(find_in_parent_folders("dependencies/network.hcl"))
 }
 
 terraform {
@@ -22,5 +22,5 @@ inputs = merge(
   },
   local.worker_messaging.inputs,
   local.cluster.inputs,
-  local.network_runtime.inputs,
+  local.network.inputs,
 )
