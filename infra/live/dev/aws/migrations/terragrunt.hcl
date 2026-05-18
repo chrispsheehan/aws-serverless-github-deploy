@@ -7,7 +7,7 @@ include "security" {
 }
 
 locals {
-  database         = read_terragrunt_config(find_in_parent_folders("dependencies/database.hcl"))
+  database = read_terragrunt_config(find_in_parent_folders("dependencies/database.hcl"))
 }
 
 terraform {
