@@ -80,7 +80,7 @@ stores state at:
   Owns the VPC-attached Lambda used to run schema migrations against the shared Aurora PostgreSQL stack.
 - `rds_reader_tagger`
   Owns the EventBridge rule and Lambda that sync cluster tags onto new Aurora reader instances created later by scale-out.
-- `worker_messaging`
+- `messaging`
   Owns the shared worker SNS topic plus the Lambda-worker and ECS-worker SQS queues used for fanout.
 - `task_*`
   Register ECS task definitions.
@@ -95,10 +95,10 @@ Current examples include:
   Shared CloudWatch dashboard shape for recent Lambda logs, ECS app logs, and ECS OTEL logs.
 - `rds_reader_tagger`
   Event-driven Aurora reader tag-sync shape: catch the RDS instance-created event, derive the parent cluster, and copy the cluster's non-AWS tags onto the new reader.
-- `worker_messaging`
+- `messaging`
   Shared worker fanout shape: one SNS topic publishes to two independent worker queues so Lambda and ECS consumers each receive the same event.
 - `task_worker` / `service_worker`
-  Internal ECS worker service shape, with the ECS worker queue owned by `worker_messaging` and a container health check based on a local worker heartbeat file.
+  Internal ECS worker service shape, with the ECS worker queue owned by `messaging` and a container health check based on a local worker heartbeat file.
 - `task_api` / `service_api`
   ECS API service shape exposed on the shared API Gateway at `/ecs` using `vpc_link` and `blue_green`, backed by a dedicated listener on the shared ALB. Through the frontend distribution it is reached at `/api/ecs/*`, while the Lambda API is reached at `/api/*`.
 
@@ -142,7 +142,7 @@ That `containers/lib` directory is helper code only and is not treated as a depl
 ### Design Guidelines
 
 - avoid making one runtime depend on another runtime's state ownership unnecessarily
-  - for example, shared worker fanout state is owned by `worker_messaging` rather than by `lambda_worker` or `task_worker`
+  - for example, shared worker fanout state is owned by `messaging` rather than by `lambda_worker` or `task_worker`
 
 - prefer explicit ownership boundaries between stacks
 

@@ -13,7 +13,7 @@ Lambda-backed public HTTP API module.
 ## Dependencies
 
 - shared API Gateway HTTP API, VPC link, and JWT authorizer from `network`
-- shared worker SNS topic from `worker_messaging`
+- shared worker SNS topic from `messaging`
 
 ## Key outputs
 

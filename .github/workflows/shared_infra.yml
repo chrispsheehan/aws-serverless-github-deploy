@@ -78,7 +78,7 @@ jobs:
           tg_directory: infra/live/${{ inputs.environment }}/aws/oidc
           tg_action: ${{ inputs.tg_action }}
 
-  worker_messaging:
+  messaging:
     needs: oidc
     runs-on: ubuntu-latest
     steps:
@@ -91,10 +91,10 @@ jobs:
           role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: ${{ env.TG_ACTION_LABEL }} worker messaging infra
+      - name: ${{ env.TG_ACTION_LABEL }} messaging infra
         uses: ./.github/actions/terragrunt
         with:
-          tg_directory: infra/live/${{ inputs.environment }}/aws/worker_messaging
+          tg_directory: infra/live/${{ inputs.environment }}/aws/messaging
           tg_action: ${{ inputs.tg_action }}
 
   observability:
@@ -247,7 +247,7 @@ jobs:
       - security
       - network
       - database
-      - worker_messaging
+      - messaging
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false # this is to prevent terraform lock issues
@@ -276,7 +276,7 @@ jobs:
       - cluster
       - network
       - database
-      - worker_messaging
+      - messaging
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

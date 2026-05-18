@@ -3,7 +3,7 @@ include "root" {
 }
 
 locals {
-  worker_messaging = read_terragrunt_config(find_in_parent_folders("dependencies/worker_messaging.hcl"))
+  messaging = read_terragrunt_config(find_in_parent_folders("dependencies/messaging.hcl"))
 }
 
 terraform {
@@ -11,7 +11,7 @@ terraform {
 }
 
 inputs = merge(
-  local.worker_messaging.inputs,
+  local.messaging.inputs,
   {
     sqs_dlq_alarm_threshold           = 5 # fail when there are 5 messages in the DLQ
     sqs_dlq_alarm_evaluation_periods  = 3

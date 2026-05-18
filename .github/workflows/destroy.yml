@@ -190,10 +190,10 @@ jobs:
           role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Destroy worker messaging infra
+      - name: Destroy messaging infra
         uses: ./.github/actions/terragrunt
         with:
-          tg_directory: infra/live/${{ inputs.environment }}/aws/worker_messaging
+          tg_directory: infra/live/${{ inputs.environment }}/aws/messaging
           tg_action: destroy
 
   database:

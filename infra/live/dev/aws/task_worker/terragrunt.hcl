@@ -3,12 +3,12 @@ include "root" {
 }
 
 locals {
-  worker_messaging = read_terragrunt_config(find_in_parent_folders("dependencies/worker_messaging.hcl"))
-  database         = read_terragrunt_config(find_in_parent_folders("dependencies/database.hcl"))
+  messaging = read_terragrunt_config(find_in_parent_folders("dependencies/messaging.hcl"))
+  database  = read_terragrunt_config(find_in_parent_folders("dependencies/database.hcl"))
 }
 
 terraform {
   source = "../../../../modules//aws//task_worker"
 }
 
-inputs = merge(local.worker_messaging.inputs, local.database.inputs)
+inputs = merge(local.messaging.inputs, local.database.inputs)

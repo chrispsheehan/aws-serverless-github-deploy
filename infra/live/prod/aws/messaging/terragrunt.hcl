@@ -3,5 +3,5 @@ include "root" {
 }
 
 terraform {
-  source = "../../../../modules//aws//worker_messaging"
+  source = "../../../../modules//aws//messaging"
 }

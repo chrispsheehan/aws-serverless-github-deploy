@@ -1,4 +1,4 @@
-# `worker_messaging`
+# `messaging`
 
 Shared worker messaging stack.
 

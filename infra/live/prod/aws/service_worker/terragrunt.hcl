@@ -7,9 +7,9 @@ include "security" {
 }
 
 locals {
-  worker_messaging = read_terragrunt_config(find_in_parent_folders("dependencies/worker_messaging.hcl"))
-  cluster          = read_terragrunt_config(find_in_parent_folders("dependencies/cluster.hcl"))
-  network          = read_terragrunt_config(find_in_parent_folders("dependencies/network.hcl"))
+  messaging = read_terragrunt_config(find_in_parent_folders("dependencies/messaging.hcl"))
+  cluster   = read_terragrunt_config(find_in_parent_folders("dependencies/cluster.hcl"))
+  network   = read_terragrunt_config(find_in_parent_folders("dependencies/network.hcl"))
 }
 
 terraform {
@@ -20,7 +20,7 @@ inputs = merge(
   {
     ecs_security_group_id = dependency.security.outputs.ecs_sg
   },
-  local.worker_messaging.inputs,
+  local.messaging.inputs,
   local.cluster.inputs,
   local.network.inputs,
 )
