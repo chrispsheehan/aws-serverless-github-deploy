@@ -30,7 +30,7 @@ EventBridge-triggered and directly invokable Lambda that syncs cluster tags onto
 
 ## Dependency Notes
 
-- reads the shared `database` remote state to get the expected Aurora cluster identifier
+- expects the live Terragrunt stack to pass the shared `database` cluster identifier through a `dependency` block
 - relies on the shared Lambda build and deploy flow for shipping the tagging code
 - when `rds_reader_tagger` is present in the Lambda deploy matrix, the reusable `deploy.yml` workflow invokes it once after Lambda rollout so existing readers are reconciled too
 - uses a shortened AWS resource-name prefix (`rds-tag-sync`) so the Lambda, IAM, CodeDeploy, and EventBridge resources stay within AWS name limits while the stack directory remains `rds_reader_tagger`

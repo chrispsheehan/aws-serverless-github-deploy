@@ -26,3 +26,23 @@ variable "otel_sample_rate" {
 variable "vpc_name" {
   type = string
 }
+
+variable "runtime_security_group_id" {
+  type = string
+}
+
+variable "database_readwrite_endpoint" {
+  type = string
+}
+
+variable "database_name" {
+  type = string
+}
+
+variable "database_port" {
+  type = number
+}
+
+variable "database_credentials_secret_arn" {
+  type = string
+}

@@ -16,6 +16,26 @@ variable "state_bucket" {
 }
 ### end of static vars set in root.hcl ###
 
+variable "load_balancer_sg" {
+  type = string
+}
+
+variable "api_vpc_link_sg" {
+  type = string
+}
+
+variable "vpc_endpoint_sg" {
+  type = string
+}
+
+variable "auth_user_pool_client_id" {
+  type = string
+}
+
+variable "auth_issuer_url" {
+  type = string
+}
+
 variable "vpc_name" {
   type = string
 }

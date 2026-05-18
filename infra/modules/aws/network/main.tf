@@ -2,7 +2,7 @@ resource "aws_lb" "this" {
   name               = local.load_balancer_name
   internal           = true
   load_balancer_type = "application"
-  security_groups    = [data.terraform_remote_state.security.outputs.load_balancer_sg]
+  security_groups    = [var.load_balancer_sg]
   subnets            = data.aws_subnets.private.ids
 }
 
@@ -14,7 +14,7 @@ resource "aws_apigatewayv2_api" "http_api" {
 resource "aws_apigatewayv2_vpc_link" "http_api" {
   name               = "${var.project_name}-${var.environment}-http-vpc-link"
   subnet_ids         = data.aws_subnets.private.ids
-  security_group_ids = [data.terraform_remote_state.security.outputs.api_vpc_link_sg]
+  security_group_ids = [var.api_vpc_link_sg]
 }
 
 resource "aws_apigatewayv2_stage" "default" {
@@ -30,8 +30,8 @@ resource "aws_apigatewayv2_authorizer" "cognito_jwt" {
   identity_sources = ["$request.header.Authorization"]
 
   jwt_configuration {
-    audience = [data.terraform_remote_state.cognito.outputs.user_pool_client_id]
-    issuer   = data.terraform_remote_state.cognito.outputs.issuer_url
+    audience = [var.auth_user_pool_client_id]
+    issuer   = var.auth_issuer_url
   }
 }
 
@@ -41,7 +41,7 @@ resource "aws_vpc_endpoint" "interface_endpoints" {
   vpc_id              = data.aws_vpc.this.id
   service_name        = "com.amazonaws.${var.aws_region}.${each.value}"
   vpc_endpoint_type   = "Interface"
-  security_group_ids  = [data.terraform_remote_state.security.outputs.vpc_endpoint_sg]
+  security_group_ids  = [var.vpc_endpoint_sg]
   subnet_ids          = data.aws_subnets.private.ids
   private_dns_enabled = true
 }

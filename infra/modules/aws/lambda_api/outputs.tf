@@ -1,13 +1,13 @@
 output "invoke_url" {
-  value = data.terraform_remote_state.network.outputs.api_invoke_url
+  value = var.network_api_invoke_url
 }
 
 output "api_id" {
-  value = data.terraform_remote_state.network.outputs.api_id
+  value = var.network_api_id
 }
 
 output "vpc_link_id" {
-  value = data.terraform_remote_state.network.outputs.vpc_link_id
+  value = var.network_vpc_link_id
 }
 
 output "cloudwatch_log_group" {

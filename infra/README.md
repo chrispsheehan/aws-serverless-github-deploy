@@ -28,13 +28,16 @@ The root Terragrunt file derives state paths from the live stack path:
 - bucket: `<account>-<region>-<repo>-tfstate`
 - key: `<environment>/<provider>/<module>/terraform.tfstate`
 
-Shared artifact names also follow environment-aware conventions from `infra/root.hcl`:
+Shared artifact names also follow naming conventions from `infra/root.hcl`:
 
 - shared artifact base: `dev -> ...-dev`, otherwise `...-ci`
+- dedicated saved-plan bucket: `<account>-<region>-<repo>-tfplan`
 - code bucket: `<artifact_base>-code`
 - ECS ECR repository: `<artifact_base>-ecr`
-- saved Terragrunt plan artifacts: `s3://<code_bucket>/terragrunt_plan/<environment>/<run_id>/...`
-- code-bucket lifecycle inputs: `code_artifact_expiration_days` for deployable code artifacts and `infra_plan_artifact_expiration_days` for `terragrunt_plan/`
+- saved Terragrunt plan artifacts: `s3://<plan_bucket>/terragrunt_plan/<environment>/<run_id>/...`
+- plan-bucket retention: `infra_plan_artifact_expiration_days` applies an S3 lifecycle rule to `terragrunt_plan/` in the dedicated saved-plan bucket
+- during `terragrunt init` and saved-plan `plan`, the root hook ensures the dedicated saved-plan bucket exists; interactive runs prompt before creation and non-interactive runs fail if no prompt is possible
+- to reapply the configured `infra_plan_artifact_expiration_days` lifecycle rule locally for an existing bucket, rerun with `TG_RESET_PLAN_ARTIFACT_BUCKET=true`
 
 So a stack at:
 
@@ -77,7 +80,7 @@ stores state at:
   Owns the VPC-attached Lambda used to run schema migrations against the shared Aurora PostgreSQL stack.
 - `rds_reader_tagger`
   Owns the EventBridge rule and Lambda that sync cluster tags onto new Aurora reader instances created later by scale-out.
-- `worker_messaging`
+- `messaging`
   Owns the shared worker SNS topic plus the Lambda-worker and ECS-worker SQS queues used for fanout.
 - `task_*`
   Register ECS task definitions.
@@ -92,10 +95,10 @@ Current examples include:
   Shared CloudWatch dashboard shape for recent Lambda logs, ECS app logs, and ECS OTEL logs.
 - `rds_reader_tagger`
   Event-driven Aurora reader tag-sync shape: catch the RDS instance-created event, derive the parent cluster, and copy the cluster's non-AWS tags onto the new reader.
-- `worker_messaging`
+- `messaging`
   Shared worker fanout shape: one SNS topic publishes to two independent worker queues so Lambda and ECS consumers each receive the same event.
 - `task_worker` / `service_worker`
-  Internal ECS worker service shape, with the ECS worker queue owned by `worker_messaging` and a container health check based on a local worker heartbeat file.
+  Internal ECS worker service shape, with the ECS worker queue owned by `messaging` and a container health check based on a local worker heartbeat file.
 - `task_api` / `service_api`
   ECS API service shape exposed on the shared API Gateway at `/ecs` using `vpc_link` and `blue_green`, backed by a dedicated listener on the shared ALB. Through the frontend distribution it is reached at `/api/ecs/*`, while the Lambda API is reached at `/api/*`.
 
@@ -104,16 +107,48 @@ That `containers/lib` directory is helper code only and is not treated as a depl
 
 ## Dependency Notes
 
-- many modules use `data.terraform_remote_state` to read outputs from other stacks
-- prefer using `data.terraform_remote_state` only for outputs that are expected to stay stable or change rarely; avoid using it as the normal handoff for values that change as part of the same rollout, because downstream plans can then drift from the upstream state they were planned against
-- because of that, workflow ordering matters for apply, deploy, and destroy
-- `service_api` consumes the shared JWT authorizer output from `network`, so `cognito` and `network` must exist before that ECS API service stack applies, and the service must destroy before `network` is torn down
-- on destroy, `network` can tear down once downstream consumers such as `frontend`, `service_*`, `task_*`, and `database` are gone
-- on destroy, `cluster` can tear down in parallel with `network` once `service_*`, `task_*`, and other real cluster consumers are gone; `frontend` is not a cluster dependency
-- on destroy, `security` must wait for VPC-attached lambdas such as `migrations` as well as `network`, otherwise the shared runtime security group can still be attached during Lambda ENI cleanup
-- avoid making one runtime depend on another runtime's state ownership unnecessarily; for example, shared worker fanout state is owned by `worker_messaging` rather than by `lambda_worker` or `task_worker`
-- some shared infrastructure, such as the landing-zone VPC and tagged private subnets, is discovered with `data` lookups and must already exist
-- frontend custom-domain deploys also require the matching Route53 hosted zone to already exist
+- modules use Terragrunt `dependency` blocks to consume outputs from other stacks instead of `data.terraform_remote_state`
+- this allows Terragrunt to understand the dependency graph explicitly and manage ordering for apply and destroy operations
+
+### Dependency Strategy
+
+- prefer `dependency` blocks for all cross-stack communication
+- use `mock_outputs` for dependencies during `plan`, `validate`, and other non-apply commands to allow independent iteration without requiring upstream stacks to be deployed
+- restrict mocks using `mock_outputs_allowed_terraform_commands` to ensure real outputs are always used during `apply`
+- treat saved `plan` artifacts as apply-intent only: Terraform will reuse the exact variable values captured in the plan file during `apply_plan`
+- for first deploys or other bootstrap-sensitive stacks, do not reuse a saved plan that captured `mock_outputs`; re-plan after the upstream real outputs exist before running `apply_plan`
+
+### When to Use Remote State
+
+- avoid using `data.terraform_remote_state` as the default mechanism for passing values between stacks
+- it may still be used for:
+  - infrastructure that is managed outside of Terragrunt
+  - globally stable/shared resources that rarely change
+  - cross-account or external dependencies where Terragrunt `dependency` is not practical
+
+### Workflow and Ordering
+
+- Terragrunt dependencies define ordering implicitly, but logical constraints still apply:
+
+  - `service_api` consumes the shared JWT authorizer output from `network`, so `cognito` and `network` must exist before the ECS API service stack applies
+  - the API service must be destroyed before `network` is torn down
+
+- on destroy:
+
+  - `network` can tear down once downstream consumers such as `frontend`, `service_*`, `task_*`, and `database` are gone
+  - `cluster` can tear down in parallel with `network` once `service_*`, `task_*`, and other cluster consumers are gone; `frontend` is not a cluster dependency
+  - `security` must wait for VPC-attached lambdas such as `migrations` as well as `network`, otherwise the shared runtime security group may still be attached during Lambda ENI cleanup
+
+### Design Guidelines
+
+- avoid making one runtime depend on another runtime's state ownership unnecessarily
+  - for example, shared worker fanout state is owned by `messaging` rather than by `lambda_worker` or `task_worker`
+
+- prefer explicit ownership boundaries between stacks
+
+- some shared infrastructure, such as the landing-zone VPC and tagged private subnets, is discovered via `data` lookups and must already exist
+
+- frontend custom-domain deploys require the matching Route53 hosted zone to already exist
 
 ## Deployment Model
 
@@ -121,7 +156,7 @@ That `containers/lib` directory is helper code only and is not treated as a depl
 - build workflows produce Lambda zips and container images
 - `*_infra` wrappers need the inputs required to apply infra safely, such as directory-derived stack matrices and any artifact-derived bootstrap references
 - in `prod`, the `*_infra` wrappers read shared artifact resources from `ci` but only apply service and task stacks in `prod`
-- saved `plan` / `apply_plan` artifacts live in the shared code bucket under `terragrunt_plan/<environment>/<run_id>/...`; `dev` uses the `dev` code bucket, while non-`dev` environments reuse the shared `ci` code bucket
+- saved `plan` / `apply_plan` artifacts live in the dedicated plan bucket under `terragrunt_plan/<environment>/<run_id>/...`
 - deploy workflows:
   - publish Lambda versions and use Lambda CodeDeploy
   - optionally invoke the `migrations` Lambda when it is part of the Lambda deploy matrix
@@ -161,6 +196,26 @@ Run the split files locally with:
 just --justfile justfile.ci tf-lint-check
 just --justfile justfile.deploy lambda-get-version
 just --justfile justfile.deploy frontend-build
+```
+
+For a local saved-plan run that can upload plan artifacts through the normal repo wrapper, enable artifact mode, provide a unique run id, and pass the Terragrunt operation as one quoted argument:
+
+```sh
+TG_ENABLE_PLAN_ARTIFACTS=true \
+PLAN_ARTIFACT_RUN_ID="local-example-run" \
+just tg dev aws/oidc 'plan -out=terragrunt.tfplan'
+```
+
+The `tg` recipe treats the final argument as the Terragrunt operation string, so quoting lets you pass flags such as `-out=...` through the wrapper. The current saved-plan hook expects the binary plan filename to be `terragrunt.tfplan`; if you choose a different `-out` filename, the upload hook will not find it.
+
+Per-stack saved-plan bundles in S3 use the live stack identity rather than your full local filesystem path, for example `terragrunt-plan-dev-aws-oidc`.
+
+To apply that same saved plan later, reuse the same run id:
+
+```sh
+TG_ENABLE_PLAN_ARTIFACTS=true \
+PLAN_ARTIFACT_RUN_ID="local-example-run" \
+just tg dev aws/oidc 'apply terragrunt.tfplan'
 ```
 
 ## Naming Conventions

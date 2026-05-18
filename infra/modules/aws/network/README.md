@@ -31,28 +31,20 @@ In the common ECS API shape used here:
 ## Dependencies
 
 - pre-existing tagged VPC and private subnets discovered with `data` lookups
-- shared security groups from `security`
-- `cognito` remote state for the shared JWT issuer and audience
+- shared security-group outputs from the `security` live stack
+- shared Cognito outputs from the `cognito` live stack for the JWT issuer and audience
+
+The live Terragrunt stack is expected to provide those upstream values as explicit module inputs. For plan and validate flows before upstream stacks exist, prefer Terragrunt `dependency` mocks in the live stack instead of reading cross-stack state directly inside the Terraform module.
 
 ## Bootstrap Notes
 
-This module is not bootstrap-independent. It reads multiple outputs from the `security` stack through remote state, including `vpc_endpoint_sg` for the interface VPC endpoints and `api_vpc_link_sg` for the shared API Gateway VPC link.
+This module still depends on upstream `security` and `cognito` stacks at apply time, but the bootstrap-sensitive contract should live in the Terragrunt wrapper rather than in Terraform `terraform_remote_state` blocks inside the module.
 
 That means:
 
-- `security` must be applied successfully before `network`
-- the `security` state file must contain the current outputs, not just an empty or partially initialized state
-- a failed or stale bootstrap of `security` can surface here as an `Unsupported attribute` error when Terraform tries to read `data.terraform_remote_state.security.outputs.*`
-
-If you see an error like:
-
-```text
-Error: Unsupported attribute
-data.terraform_remote_state.security.outputs is object with no attributes
-This object does not have an attribute named "vpc_endpoint_sg".
-```
-
-then the problem is usually not the `network` module itself. It means the upstream `security` stack has not produced readable outputs yet. In that case, apply `security` first and confirm its state includes `vpc_endpoint_sg`, `api_vpc_link_sg`, and the other expected outputs before retrying `network`.
+- `security` and `cognito` still need to exist for real applies
+- plan and validate flows can use Terragrunt `dependency` mocks when those upstream stacks are not available yet
+- if apply-time values are missing, fix the upstream stack or the live-stack dependency wiring rather than adding direct cross-stack remote-state reads back into the module
 
 ## Feasibility Constraints
 

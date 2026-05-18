@@ -15,8 +15,8 @@ module "lambda_api" {
 
   environment_variables = {
     DEBUG_DELAY_MS    = 500
-    WORKER_TOPIC_ARN  = data.terraform_remote_state.worker_messaging.outputs.sns_topic_arn
-    WORKER_TOPIC_NAME = data.terraform_remote_state.worker_messaging.outputs.sns_topic_name
+    WORKER_TOPIC_ARN  = var.worker_topic_arn
+    WORKER_TOPIC_NAME = var.worker_topic_name
   }
 
   additional_policy_arns = [
@@ -33,26 +33,32 @@ module "lambda_api" {
 }
 
 resource "aws_apigatewayv2_integration" "lambda_proxy" {
-  api_id                 = data.terraform_remote_state.network.outputs.api_id
+  api_id                 = var.network_api_id
   integration_type       = "AWS_PROXY"
   integration_uri        = module.lambda_api.alias_arn
   payload_format_version = "2.0"
 }
 
 resource "aws_apigatewayv2_route" "root" {
-  api_id             = data.terraform_remote_state.network.outputs.api_id
+  api_id             = var.network_api_id
   route_key          = "ANY /"
   target             = "integrations/${aws_apigatewayv2_integration.lambda_proxy.id}"
   authorization_type = "JWT"
-  authorizer_id      = data.terraform_remote_state.network.outputs.http_api_authorizer_id
+  authorizer_id      = var.network_http_api_authorizer_id
+}
+
+resource "aws_apigatewayv2_route" "health" {
+  api_id    = var.network_api_id
+  route_key = "GET /health"
+  target    = "integrations/${aws_apigatewayv2_integration.lambda_proxy.id}"
 }
 
 resource "aws_apigatewayv2_route" "proxy" {
-  api_id             = data.terraform_remote_state.network.outputs.api_id
+  api_id             = var.network_api_id
   route_key          = "ANY /{proxy+}"
   target             = "integrations/${aws_apigatewayv2_integration.lambda_proxy.id}"
   authorization_type = "JWT"
-  authorizer_id      = data.terraform_remote_state.network.outputs.http_api_authorizer_id
+  authorizer_id      = var.network_http_api_authorizer_id
 }
 
 resource "aws_lambda_permission" "allow_invoke" {
@@ -60,7 +66,7 @@ resource "aws_lambda_permission" "allow_invoke" {
   action        = "lambda:InvokeFunction"
   function_name = module.lambda_api.alias_arn
   principal     = "apigateway.amazonaws.com"
-  source_arn    = "${data.terraform_remote_state.network.outputs.api_execution_arn}/*/*" # all routes/stages
+  source_arn    = "${var.network_api_execution_arn}/*/*" # all routes/stages
 }
 
 resource "aws_cloudwatch_metric_alarm" "api_5xx_rate" {
@@ -97,8 +103,8 @@ resource "aws_cloudwatch_metric_alarm" "api_5xx_rate" {
       period      = 60 # most aws metrics are emitted at 1-minute intervals, so using a shorter period can lead to more volatile alarms
 
       dimensions = {
-        ApiId = data.terraform_remote_state.network.outputs.api_id
-        Stage = data.terraform_remote_state.network.outputs.api_stage_name
+        ApiId = var.network_api_id
+        Stage = var.network_api_stage_name
       }
     }
   }
@@ -115,8 +121,8 @@ resource "aws_cloudwatch_metric_alarm" "api_5xx_rate" {
       period      = 60
 
       dimensions = {
-        ApiId = data.terraform_remote_state.network.outputs.api_id
-        Stage = data.terraform_remote_state.network.outputs.api_stage_name
+        ApiId = var.network_api_id
+        Stage = var.network_api_stage_name
       }
     }
   }

@@ -11,19 +11,19 @@ module "service_worker" {
   vpc_id             = data.aws_vpc.this.id
   private_subnet_ids = data.aws_subnets.private.ids
 
-  cluster_id            = data.terraform_remote_state.cluster.outputs.cluster_id
-  cluster_name          = data.terraform_remote_state.cluster.outputs.cluster_name
-  ecs_security_group_id = data.terraform_remote_state.security.outputs.ecs_sg
+  cluster_id            = var.cluster_id
+  cluster_name          = var.cluster_name
+  ecs_security_group_id = var.ecs_security_group_id
 
-  default_target_group_arn  = data.terraform_remote_state.network.outputs.default_target_group_arn
-  default_http_listener_arn = data.terraform_remote_state.network.outputs.default_http_listener_arn
-  load_balancer_arn_suffix  = data.terraform_remote_state.network.outputs.load_balancer_arn_suffix
-  target_group_arn_suffix   = data.terraform_remote_state.network.outputs.target_group_arn_suffix
+  default_target_group_arn  = var.network_default_target_group_arn
+  default_http_listener_arn = var.network_default_http_listener_arn
+  load_balancer_arn_suffix  = var.network_load_balancer_arn_suffix
+  target_group_arn_suffix   = var.network_target_group_arn_suffix
 
-  api_id              = data.terraform_remote_state.network.outputs.api_id
-  vpc_link_id         = data.terraform_remote_state.network.outputs.vpc_link_id
-  internal_invoke_url = data.terraform_remote_state.network.outputs.internal_invoke_url
-  api_invoke_url      = data.terraform_remote_state.network.outputs.api_invoke_url
+  api_id              = var.network_api_id
+  vpc_link_id         = var.network_vpc_link_id
+  internal_invoke_url = var.network_internal_invoke_url
+  api_invoke_url      = var.network_api_invoke_url
 
   bootstrap             = var.bootstrap
   bootstrap_image_uri   = var.bootstrap_image_uri

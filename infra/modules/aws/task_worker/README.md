@@ -40,8 +40,8 @@ Concrete ECS worker task wrapper.
 
 ## Dependency Notes
 
-- reads queue details from `worker_messaging` remote state
-- reads database connection details from the shared `database` stack
+- expects the live Terragrunt stack to pass queue details from `messaging` through a `dependency` block
+- expects the live Terragrunt stack to pass shared `database` connection details as explicit inputs
 - publishes the task definition consumed by `service_worker`
 
-This module is the image-driven deployment unit for the ECS worker. It reads the ECS worker queue from the `worker_messaging` stack so the task definition and service can consume the same fanout event stream as the Lambda worker, and it reads the shared `database` stack so the worker can persist consumed messages to Aurora PostgreSQL.
+This module is the image-driven deployment unit for the ECS worker. It consumes the ECS worker queue contract owned by `messaging` and the shared `database` contract passed in from the live Terragrunt stack so the task definition and service can use the same fanout event stream and Aurora PostgreSQL connection details without the module reading sibling stack state directly.

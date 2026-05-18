@@ -10,7 +10,7 @@ This GitHub Action sets up **Terraform** and **Terragrunt** and runs a specified
 - Optionally passes Terragrunt variables via JSON tfvars
 - Supports `plan` mode for producing local saved plan files
 - Supports `init` mode for outputs-only reads
-- Uses the repo-local `./.github/actions/just` action for saved plan artifact upload and download
+- Relies on shared Terragrunt root hooks for per-stack saved plan artifact upload and download
 - Exports Terragrunt outputs as compact JSON when state exists
 
 The Terragrunt install step is kept in this repo-local action rather than hidden behind a third-party Terragrunt wrapper action so the repo can control the exact setup-action revision and react quickly to GitHub Actions runtime deprecations or nested dependency warnings.
@@ -38,9 +38,9 @@ The Terragrunt install step is kept in this repo-local action rather than hidden
 - `apply`
   Runs `terragrunt apply -auto-approve`
 - `plan`
-  Runs `terragrunt plan -detailed-exitcode -out=<absolute stack path>/terragrunt.tfplan`, then renders `terragrunt.plan.txt` and writes `terragrunt.plan.meta.json` via the repo `justfile.tg` recipe `terragrunt-plan-render`. It then uploads those files to S3 through the repo-local `./.github/actions/just` action using the AWS credentials already configured in the job.
+  Runs `terragrunt plan -detailed-exitcode -out=terragrunt.tfplan`. The shared Terragrunt root `after_hook` then renders `terragrunt.plan.txt`, writes `terragrunt.plan.meta.json`, and uploads the per-stack plan bundle to the derived plan bucket when `TG_ENABLE_PLAN_ARTIFACTS=true` and `PLAN_ARTIFACT_RUN_ID` is set.
 - `apply_plan`
-  Downloads the saved plan files into `tg_directory` via the repo-local `./.github/actions/just` action and `justfile.tg`, using the caller-provided `PLAN_ARTIFACT_S3_PREFIX` environment variable plus the stack-derived suffix from `tg_directory`. It then fails if the binary plan file or `terragrunt.plan.meta.json` is missing, reads `has_changes` from the saved metadata file, and skips apply with a GitHub Actions warning when the saved plan contains no mutating resource changes. Otherwise it runs `terragrunt apply` against the absolute stack-path plan file.
+  Runs `terragrunt apply terragrunt.tfplan`. The shared Terragrunt root `before_hook` downloads the saved plan bundle into the Terragrunt working directory when `TG_ENABLE_PLAN_ARTIFACTS=true` and `PLAN_ARTIFACT_RUN_ID` is set, and fails early if the saved metadata reports mocked dependency outputs.
 - `destroy`
   Runs `terragrunt destroy -auto-approve`
 - `init`
@@ -48,16 +48,17 @@ The Terragrunt install step is kept in this repo-local action rather than hidden
 
 ## Saved Plan Layout
 
-- One run-level metadata file is stored separately by the shared infra wrapper at:
-  - `<plan_artifact_s3_prefix>/infra-plan-metadata/plan-metadata.json`
+- One run-level metadata file is stored separately by the shared infra wrapper as a GitHub Actions artifact:
+  - artifact name: `infra-plan-metadata`
+  - file: `plan-metadata.json`
 - Each Terragrunt stack or module stores its own plan bundle at:
-  - `<plan_artifact_s3_prefix>/terragrunt-plan-<sanitized-tg-directory>/terragrunt.tfplan`
-  - `<plan_artifact_s3_prefix>/terragrunt-plan-<sanitized-tg-directory>/terragrunt.plan.txt`
-  - `<plan_artifact_s3_prefix>/terragrunt-plan-<sanitized-tg-directory>/terragrunt.plan.meta.json`
+  - `s3://<plan_bucket>/terragrunt_plan/<environment>/<plan_run_id>/terragrunt-plan-<sanitized-tg-directory>/terragrunt.tfplan`
+  - `s3://<plan_bucket>/terragrunt_plan/<environment>/<plan_run_id>/terragrunt-plan-<sanitized-tg-directory>/terragrunt.plan.txt`
+  - `s3://<plan_bucket>/terragrunt_plan/<environment>/<plan_run_id>/terragrunt-plan-<sanitized-tg-directory>/terragrunt.plan.meta.json`
 
 ## AWS Credentials
 
-Configure AWS credentials in the workflow job before calling this action. The action then reuses those ambient credentials for Terragrunt itself and for any saved-plan upload or download steps.
+Configure AWS credentials in the workflow job before calling this action. The action then reuses those ambient credentials for Terragrunt itself and for any Terragrunt-hook-driven saved-plan upload or download steps.
 
 ## Usage
 
@@ -164,4 +165,4 @@ jobs:
           tg_action: apply_plan
 ```
 
-This action expects the workflow to download `terragrunt.tfplan`, `terragrunt.plan.txt`, and `terragrunt.plan.meta.json` into `tg_directory` before calling `tg_action: apply_plan`.
+This action expects the workflow to set both `TG_ENABLE_PLAN_ARTIFACTS=true` and `PLAN_ARTIFACT_RUN_ID` when using cross-run saved plans so the shared Terragrunt root hooks can resolve the per-stack plan bundle location from the derived plan bucket and environment.

@@ -15,10 +15,10 @@ module "migrations" {
   lambda_name = local.lambda_name
 
   environment_variables = {
-    DB_HOST       = data.terraform_remote_state.database.outputs.readwrite_endpoint
-    DB_NAME       = data.terraform_remote_state.database.outputs.database_name
-    DB_PORT       = tostring(data.terraform_remote_state.database.outputs.database_port)
-    DB_SECRET_ARN = data.terraform_remote_state.database.outputs.credentials_secret_arn
+    DB_HOST       = var.database_readwrite_endpoint
+    DB_NAME       = var.database_name
+    DB_PORT       = tostring(var.database_port)
+    DB_SECRET_ARN = var.database_credentials_secret_arn
   }
 
   additional_policy_arns = [
@@ -27,6 +27,6 @@ module "migrations" {
 
   vpc_subnet_ids = data.aws_subnets.private.ids
   vpc_security_group_ids = [
-    data.terraform_remote_state.security.outputs.runtime_sg,
+    var.runtime_security_group_id,
   ]
 }

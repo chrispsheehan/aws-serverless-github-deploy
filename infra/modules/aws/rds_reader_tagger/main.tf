@@ -15,7 +15,7 @@ module "rds_reader_tagger" {
   lambda_name = local.lambda_name
 
   environment_variables = {
-    EXPECTED_CLUSTER_IDENTIFIER = data.terraform_remote_state.database.outputs.cluster_identifier
+    EXPECTED_CLUSTER_IDENTIFIER = var.database_cluster_identifier
   }
 
   additional_policy_arns = [

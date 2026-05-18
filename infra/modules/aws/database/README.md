@@ -27,15 +27,15 @@ Concrete Aurora PostgreSQL wrapper.
 
 ## Key outputs
 
-- `cluster_identifier`
-- `security_group_id`
-- `credentials_secret_arn`
-- `readonly_endpoint_ssm_name`
-- `readwrite_endpoint_ssm_name`
+- `database_cluster_identifier`
+- `database_security_group_id`
+- `database_credentials_secret_arn`
+- `database_readonly_endpoint_ssm_name`
+- `database_readwrite_endpoint_ssm_name`
 - `database_name`
 - `database_port`
-- `readonly_endpoint`
-- `readwrite_endpoint`
+- `database_readonly_endpoint`
+- `database_readwrite_endpoint`
 
 This module keeps repo-specific network lookup logic out of `_shared/database`. It selects public or private subnets by `tag:Name` based on `publicly_accessible` and passes the resulting subnet ids into the shared Aurora module.
 The database credentials outputs point at the Aurora-managed master secret rather than a repo-created fixed-name secret.

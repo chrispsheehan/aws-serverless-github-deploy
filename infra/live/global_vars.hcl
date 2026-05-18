@@ -24,7 +24,7 @@ locals {
     "secretsmanager:*",
     "kms:*",
     "acm:*",
-    "route53:*",
+    "route53:**",
     "cognito-idp:*",
     "tag:GetResources",
   ]

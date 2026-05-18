@@ -75,3 +75,56 @@ variable "bootstrap_image_uri" {
     error_message = "bootstrap_image_uri must be set when bootstrap is true."
   }
 }
+
+variable "ecs_security_group_id" {
+  type = string
+}
+
+variable "task_definition_arn" {
+  type    = string
+  default = "arn:aws:ecs:eu-west-2:111111111111:task-definition/mock-task-worker:1"
+}
+
+variable "ecs_worker_queue_name" {
+  type = string
+}
+
+variable "cluster_id" {
+  type = string
+}
+
+variable "cluster_name" {
+  type = string
+}
+
+variable "network_default_target_group_arn" {
+  type = string
+}
+
+variable "network_default_http_listener_arn" {
+  type = string
+}
+
+variable "network_load_balancer_arn_suffix" {
+  type = string
+}
+
+variable "network_target_group_arn_suffix" {
+  type = string
+}
+
+variable "network_api_id" {
+  type = string
+}
+
+variable "network_vpc_link_id" {
+  type = string
+}
+
+variable "network_internal_invoke_url" {
+  type = string
+}
+
+variable "network_api_invoke_url" {
+  type = string
+}

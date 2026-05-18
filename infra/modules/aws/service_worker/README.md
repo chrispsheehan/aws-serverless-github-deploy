@@ -15,7 +15,7 @@ Concrete ECS worker service wrapper.
 ## Inputs That Change Behavior
 
 - uses the worker task revision exported by `task_worker`
-- uses autoscaling inputs derived from the shared ECS worker queue owned by `worker_messaging`
+- uses autoscaling inputs derived from the shared ECS worker queue owned by `messaging`
 - uses placeholder values during bootstrap applies so the first service apply does not require pre-existing task state
 
 ## Outputs Consumers Rely On
@@ -35,12 +35,14 @@ Concrete ECS worker service wrapper.
 
 ## Dependency Notes
 
-- reads `task_worker` remote state
-- reads `worker_messaging` remote state
-- reads `cluster`, `network`, and `security` remote state
-- relies on `worker_messaging` owning the queue contract rather than duplicating queue state locally
+- expects the live Terragrunt stack to pass the `task_worker` task definition through a `dependency` block
+- expects the live Terragrunt stack to pass the shared ECS worker queue name through a `dependency` block to drive autoscaling
+- expects the live Terragrunt stack to pass the shared `cluster` and `network` outputs as explicit inputs
+- expects the live Terragrunt stack to pass the ECS runtime security group id as an explicit input
+- relies on `messaging` owning the queue contract rather than duplicating queue state locally
+- for bootstrap-friendly plan and validate flows, prefer Terragrunt dependency mocks in the live stack rather than sibling state reads inside the module
 
-It uses the shared ECS worker queue name exported by `worker_messaging` for service autoscaling.
+It uses the shared ECS worker queue name exported by `messaging` for service autoscaling.
 During bootstrap applies, it uses placeholder values instead of reading task outputs directly so the bootstrap path does not need a pre-existing task state file.
 
 ## Inherits Behavior From

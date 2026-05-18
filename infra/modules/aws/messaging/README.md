@@ -1,6 +1,6 @@
-# `worker_messaging`
+# `messaging`
 
-Shared worker messaging stack.
+Shared messaging stack.
 
 ## Owns
 
@@ -11,8 +11,9 @@ Shared worker messaging stack.
 
 ## Key outputs
 
-- `sns_topic_arn`
-- `sns_topic_publish_policy_arn`
+- `worker_topic_name`
+- `worker_topic_arn`
+- `worker_topic_publish_policy_arn`
 - `lambda_worker_queue_name`
 - `lambda_worker_queue_url`
 - `lambda_worker_queue_read_policy_arn`

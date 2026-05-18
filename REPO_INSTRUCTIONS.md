@@ -98,17 +98,27 @@ These instructions apply to the entire repository.
 - verify runtime type (Lambda/ECS), deploy mode, and (for ECS) connection type and load-balancer shape
 - verify required infra resources exist (CodeDeploy app/deployment group, listeners/target groups, alarms, VPC link if applicable)
 - when changing reusable workflow contracts, compare every caller `with:` block to the callee `workflow_call.inputs`
+- when adding or renaming Terraform module `output` values that are intended for Terragrunt `dependency.<name>.outputs` passthrough, verify every downstream consumer wrapper declares a `variable` with the exact same name
+- if that same-name output-to-variable contract does not hold yet, do not leave it implicit: either add the matching variables, or call out the mismatch explicitly before closing the task
 - check apply/deploy/destroy, and avoid unnecessary `terraform_remote_state` coupling (especially for fast-changing outputs)
+- for bootstrap-sensitive or plan-sensitive cross-stack contracts, prefer Terragrunt `dependency` inputs in the live stack and `mock_outputs` for non-mutating commands rather than reading upstream state directly inside Terraform modules
+- if CI plan failures are caused by missing upstream state, fix the contract shape first instead of papering over the issue with more direct `terraform_remote_state` reads
+- when the same Terragrunt dependency wiring or mocks are needed across environments, centralize that shared config under `infra/live/dependencies/` in a capability-scoped helper such as `network.hcl` and have environment stacks read it rather than duplicating the same blocks in `dev`, `prod`, or `ci`
+- keep this approach visible to users as well: when you introduce or expand this pattern, update the top-level `README.md` so the bootstrap-friendly mock strategy is documented outside agent-only instructions
+- if you intentionally add a Terraform `data "terraform_remote_state"` block, add a `# remote_state_reason: ...` comment immediately above it explaining why Terragrunt `dependency` plus `mock_outputs` is not practical for that case
+- if you intentionally add a Terraform `data "terraform_remote_state"` block, add a `# remote_state_reason: ...` comment immediately above it explaining why Terragrunt `dependency` plus `mock_outputs` is not practical for that case
 
 ## Terragrunt Plan Expectation
 
 - when a change touches `*.hcl`, Terraform modules, live Terragrunt stacks, or downstream dependencies that can affect Terraform evaluation or plan output, run the relevant `just tg <env> <module> plan` command before closing the task when feasible
 - choose the smallest relevant plan surface rather than defaulting to `run-all`; for example, plan only the affected `dev`, `ci`, or `prod` stack(s)
 - when shared modules or remote-state contracts change, consider the downstream consumer stacks too and run plans for the affected dependents, not just the module wrapper you edited
+- treat saved plans as apply-intent artifacts, not as general previews: only keep a `plan` you expect to apply, because Terraform reuses the exact planned variable values during `apply_plan`
+- be especially careful on first deploys or bootstrap-sensitive stacks that use Terragrunt `mock_outputs` for planability; if a saved plan captured mock values, discard it and create a fresh plan after the upstream real outputs exist
 - if a plan is not feasible because credentials, network, permissions, or state access are unavailable, say that explicitly in the final response and name the plan command that should be run manually
 
 ## High-Signal Edit Warnings
 
-- before editing `justfile.destroy` or `justfile.tg`, print an explicit terminal warning in commentary (destroy/terragrunt command ownership boundary)
+- before editing `justfile.destroy`, print an explicit terminal warning in commentary (destroy command ownership boundary)
 - before editing `.github/workflows/shared_*.yml`, print an explicit terminal warning in commentary (shared CI workflow blast radius)
 - before editing `infra/modules/aws/_shared/**`, print an explicit terminal warning in commentary (shared-contract blast radius)

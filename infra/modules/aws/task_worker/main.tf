@@ -24,23 +24,23 @@ module "task_worker" {
   additional_env_vars = [
     {
       name  = "AWS_SQS_QUEUE_URL"
-      value = data.terraform_remote_state.worker_messaging.outputs.ecs_worker_queue_url
+      value = var.ecs_worker_queue_url
     },
     {
       name  = "DB_HOST"
-      value = data.terraform_remote_state.database.outputs.readwrite_endpoint
+      value = var.database_readwrite_endpoint
     },
     {
       name  = "DB_NAME"
-      value = data.terraform_remote_state.database.outputs.database_name
+      value = var.database_name
     },
     {
       name  = "DB_PORT"
-      value = tostring(data.terraform_remote_state.database.outputs.database_port)
+      value = tostring(var.database_port)
     },
     {
       name  = "DB_SECRET_ARN"
-      value = data.terraform_remote_state.database.outputs.credentials_secret_arn
+      value = var.database_credentials_secret_arn
     },
     {
       name  = "HEARTBEAT_FILE"
@@ -48,7 +48,7 @@ module "task_worker" {
     }
   ]
   additional_runtime_policy_arns = [
-    data.terraform_remote_state.worker_messaging.outputs.ecs_worker_queue_read_policy_arn,
+    var.ecs_worker_queue_read_policy_arn,
     aws_iam_policy.database_secret_read.arn,
   ]
 

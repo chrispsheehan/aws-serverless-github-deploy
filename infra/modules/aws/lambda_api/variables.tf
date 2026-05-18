@@ -11,7 +11,7 @@ variable "environment" {
 
 variable "aws_region" {
   type        = string
-  description = "AWS region used for remote state lookups"
+  description = "AWS region used for provider resources"
 }
 
 variable "state_bucket" {
@@ -78,4 +78,36 @@ variable "api_5xx_alarm_datapoints_to_alarm" {
 variable "vpc_name" {
   type        = string
   description = "VPC name tag used to look up private subnets for the shared API Gateway VPC link"
+}
+
+variable "network_api_id" {
+  type = string
+}
+
+variable "network_api_invoke_url" {
+  type = string
+}
+
+variable "network_api_execution_arn" {
+  type = string
+}
+
+variable "network_api_stage_name" {
+  type = string
+}
+
+variable "network_vpc_link_id" {
+  type = string
+}
+
+variable "network_http_api_authorizer_id" {
+  type = string
+}
+
+variable "worker_topic_arn" {
+  type = string
+}
+
+variable "worker_topic_name" {
+  type = string
 }

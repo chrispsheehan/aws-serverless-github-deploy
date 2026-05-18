@@ -22,6 +22,10 @@ Lambda + ECS with CodeDeploy rollouts, plus provisioned concurrency controls for
 - shared deployment patterns for Lambda and ECS, with repo-local `just` commands for local and CI operations
 - runtime and infrastructure layouts designed to be extended without having to rediscover the whole repo each time
 
+## Bootstrap-Friendly Plans
+
+For cross-stack contracts that often block CI plans before upstream stacks exist, this repo prefers Terragrunt `dependency` wiring in the live stack plus `mock_outputs` for non-mutating commands such as `plan` and `validate`. The Terraform modules should consume explicit inputs rather than reaching back into sibling stack state directly when the contract needs bootstrap-friendly plan behavior.
+
 Use [CONTRIBUTING.md](CONTRIBUTING.md) for expectations when changing the repo itself.
 
 ## For AI Agents
@@ -160,7 +164,7 @@ just frontend
 
 That Vite server is also started automatically by `just start`. It proxies `/api/*` to the local Lambda API and `/api/ecs/*` to the local ECS API with the same prefix stripping the deployed CloudFront distribution performs. It also serves `auth-config.json` with no-cache headers locally so frontend auth config changes are picked up immediately. When `frontend/public/auth-config.json` has `"enabled": false`, the frontend runs in a local unauthenticated mode instead of redirecting to Cognito.
 
-The local ElasticMQ config now mirrors the shared AWS worker-messaging contract by exposing:
+The local ElasticMQ config now mirrors the shared AWS messaging contract by exposing:
 
 - `lambda-worker-queue` for the Lambda worker consumer
 - `ecs-worker-queue` for the ECS worker consumer

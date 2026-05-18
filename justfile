@@ -3,8 +3,6 @@ _default:
     @just --list
     @printf '\nCI recipes (`just --justfile justfile.ci --list`):\n'
     @just --justfile justfile.ci --list
-    @printf '\nTerragrunt recipes (`just --justfile justfile.tg --list`):\n'
-    @just --justfile justfile.tg --list
     @printf '\nDeploy recipes (`just --justfile justfile.deploy --list`):\n'
     @just --justfile justfile.deploy --list
     @printf '\nDestroy recipes (`just --justfile justfile.destroy --list`):\n'

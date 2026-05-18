@@ -2,28 +2,35 @@ include "root" {
   path = find_in_parent_folders("root.hcl")
 }
 
-inputs = {
-  sqs_dlq_alarm_threshold           = 1 # fail when any messages are in the DLQ (quick fail for testing)
-  sqs_dlq_alarm_evaluation_periods  = 1
-  sqs_dlq_alarm_datapoints_to_alarm = 1
-
-  deployment_config = {
-    strategy         = "canary"
-    percentage       = 50
-    interval_minutes = 3 # this should be > the CloudWatch alarm evaluation period to ensure we catch the alarm if it triggers
-  }
-
-  provisioned_config = {
-    sqs_scale = {
-      min                        = 1
-      max                        = 5
-      visible_messages           = 10
-      scale_in_cooldown_seconds  = 60
-      scale_out_cooldown_seconds = 60
-    }
-  }
+locals {
+  messaging = read_terragrunt_config(find_in_parent_folders("dependencies/messaging.hcl"))
 }
 
 terraform {
   source = "../../../../modules//aws//lambda_worker"
 }
+
+inputs = merge(
+  local.messaging.inputs,
+  {
+    sqs_dlq_alarm_threshold           = 1 # fail when any messages are in the DLQ (quick fail for testing)
+    sqs_dlq_alarm_evaluation_periods  = 1
+    sqs_dlq_alarm_datapoints_to_alarm = 1
+
+    deployment_config = {
+      strategy         = "canary"
+      percentage       = 50
+      interval_minutes = 3 # this should be > the CloudWatch alarm evaluation period to ensure we catch the alarm if it triggers
+    }
+
+    provisioned_config = {
+      sqs_scale = {
+        min                        = 1
+        max                        = 5
+        visible_messages           = 10
+        scale_in_cooldown_seconds  = 60
+        scale_out_cooldown_seconds = 60
+      }
+    }
+  },
+)
