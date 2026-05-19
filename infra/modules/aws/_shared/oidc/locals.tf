@@ -27,16 +27,6 @@ locals {
     "s3:PutObject",
     "s3:DeleteObject",
   ]
-  dyanamodb_state_actions = [
-    "dynamodb:ListTables",
-    "dynamodb:DescribeTable",
-    "dynamodb:GetItem",
-    "dynamodb:PutItem",
-    "dynamodb:DeleteItem",
-    "dynamodb:DescribeContinuousBackups",
-    "dynamodb:DescribeTimeToLive",
-    "dynamodb:ListTagsOfResource"
-  ]
   oidc_management_actions = [
     "iam:GetOpenIDConnectProvider"
   ]

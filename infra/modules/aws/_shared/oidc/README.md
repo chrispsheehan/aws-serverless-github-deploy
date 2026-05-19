@@ -19,7 +19,7 @@ This repo vendors the module locally so the live `aws/oidc` stacks do not depend
 ## Requirements
 
 - the AWS account must already contain the IAM OIDC provider for `https://token.actions.githubusercontent.com`
-- the Terragrunt caller must provide the state bucket and DynamoDB lock table names
+- the Terragrunt caller must provide the state bucket name
 - caller policy scope is controlled by `allowed_role_actions` and `allowed_role_resources`
 
 ## Repo Contract
@@ -58,7 +58,6 @@ The `ci` role is not the repo's general deploy role. If a workflow needs deploy 
 - `allowed_role_actions`
 - `allowed_role_resources`
 - `state_bucket`
-- `state_lock_table`
 
 In this repo, `deploy_role_name` is not set directly in each live `aws/oidc` stack. It is derived in `infra/root.hcl` and passed in through shared Terragrunt inputs:
 

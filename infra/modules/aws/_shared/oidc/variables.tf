@@ -13,11 +13,6 @@ variable "state_bucket" {
   type        = string
 }
 
-variable "state_lock_table" {
-  description = "Name of dynamo db terraform state lock table - used to allow state locking in ci deployments"
-  type        = string
-}
-
 variable "deploy_branches" {
   type        = list(string)
   description = "The target repo branches for OIDC access i.e main or feature/this"
@@ -44,7 +39,7 @@ variable "allow_deployments" {
 
 variable "allowed_role_actions" {
   type        = list(string)
-  description = "The action(s) to be allowed i.e. [ 's3:*', 'dynamodb:*/' ]"
+  description = "The action(s) to be allowed i.e. [ 's3:*', 'iam:*' ]"
   default     = []
 }
 
