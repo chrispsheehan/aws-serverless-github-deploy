@@ -38,7 +38,7 @@ The Terragrunt install step is kept in this repo-local action rather than hidden
 - `apply`
   Runs `terragrunt apply -auto-approve`
 - `plan`
-  Runs `terragrunt plan -detailed-exitcode -out=terragrunt.tfplan`. The shared Terragrunt root `after_hook` then renders `terragrunt.plan.txt`, writes `terragrunt.plan.meta.json`, and uploads the per-stack plan bundle to the derived plan bucket when `TG_ENABLE_PLAN_ARTIFACTS=true` and `PLAN_ARTIFACT_RUN_ID` is set.
+  Runs `terragrunt plan -detailed-exitcode -out=terragrunt.tfplan`. The shared Terragrunt root `after_hook` renders `terragrunt.plan.txt`, writes `terragrunt.plan.meta.json`, always uploads the metadata, and only uploads `terragrunt.tfplan` plus `terragrunt.plan.txt` when the metadata says the stack has changes.
 - `apply_plan`
   Runs `terragrunt apply terragrunt.tfplan`. The shared Terragrunt root `before_hook` downloads the saved plan bundle into the Terragrunt working directory when `TG_ENABLE_PLAN_ARTIFACTS=true` and `PLAN_ARTIFACT_RUN_ID` is set, and fails early if the saved metadata reports mocked dependency outputs.
 - `destroy`
@@ -52,9 +52,9 @@ The Terragrunt install step is kept in this repo-local action rather than hidden
   - artifact name: `infra-plan-metadata`
   - file: `plan-metadata.json`
 - Each Terragrunt stack or module stores its own plan bundle at:
-  - `s3://<plan_bucket>/terragrunt_plan/<environment>/<plan_run_id>/terragrunt-plan-<sanitized-tg-directory>/terragrunt.tfplan`
-  - `s3://<plan_bucket>/terragrunt_plan/<environment>/<plan_run_id>/terragrunt-plan-<sanitized-tg-directory>/terragrunt.plan.txt`
   - `s3://<plan_bucket>/terragrunt_plan/<environment>/<plan_run_id>/terragrunt-plan-<sanitized-tg-directory>/terragrunt.plan.meta.json`
+  - `s3://<plan_bucket>/terragrunt_plan/<environment>/<plan_run_id>/terragrunt-plan-<sanitized-tg-directory>/terragrunt.tfplan` only when changes exist
+  - `s3://<plan_bucket>/terragrunt_plan/<environment>/<plan_run_id>/terragrunt-plan-<sanitized-tg-directory>/terragrunt.plan.txt` only when changes exist
 
 ## AWS Credentials
 

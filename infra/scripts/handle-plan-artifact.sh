@@ -68,11 +68,17 @@ case "$mode" in
       '{tg_directory: $tg_directory, has_changes: $has_changes, contains_mocked_outputs: $contains_mocked_outputs}' \
       > "$plan_meta_path"
 
-    echo "Uploading plan artifacts for ${logical_tg_dir} to ${artifact_s3_prefix}" >&2
-    aws s3 cp "$plan_path" "${artifact_s3_prefix}/terragrunt.tfplan"
-    aws s3 cp "$plan_text_path" "${artifact_s3_prefix}/terragrunt.plan.txt"
+    echo "Uploading plan metadata for ${logical_tg_dir} to ${artifact_s3_prefix}" >&2
     aws s3 cp "$plan_meta_path" "${artifact_s3_prefix}/terragrunt.plan.meta.json"
-    echo "Uploaded plan artifacts for ${logical_tg_dir}" >&2
+
+    if [[ "$(jq -r '.has_changes' "$plan_meta_path")" == "true" ]]; then
+      aws s3 cp "$plan_path" "${artifact_s3_prefix}/terragrunt.tfplan"
+      aws s3 cp "$plan_text_path" "${artifact_s3_prefix}/terragrunt.plan.txt"
+      echo "Uploaded plan artifacts for ${logical_tg_dir}" >&2
+    else
+      echo "Plan for ${logical_tg_dir} has no changes. Uploaded metadata only." >&2
+    fi
+
     rm -f "$plan_json_path"
     ;;
   *)

@@ -157,6 +157,7 @@ That `containers/lib` directory is helper code only and is not treated as a depl
 - `*_infra` wrappers need the inputs required to apply infra safely, such as directory-derived stack matrices and any artifact-derived bootstrap references
 - in `prod`, the `*_infra` wrappers read shared artifact resources from `ci` but only apply service and task stacks in `prod`
 - saved `plan` / `apply_plan` artifacts live in the dedicated plan bucket under `terragrunt_plan/<environment>/<run_id>/...`
+- each saved-plan stack always uploads `terragrunt.plan.meta.json`; the binary `terragrunt.tfplan` and rendered `terragrunt.plan.txt` are uploaded only when the plan contains real changes
 - deploy workflows:
   - publish Lambda versions and use Lambda CodeDeploy
   - optionally invoke the `migrations` Lambda when it is part of the Lambda deploy matrix
