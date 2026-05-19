@@ -24,7 +24,6 @@ locals {
   plan_bucket             = "${local.base_reference}-tfplan"
   state_key               = "${local.environment}/${local.provider}/${local.module}/terraform.tfstate"
   plan_artifact_stack_key = "${local.environment}/${local.provider}/${local.module}"
-  state_lock_table        = "${local.project_name}-tf-lockid"
   plan_artifact_retention_days = try(
     local.environment_vars.inputs.infra_plan_artifact_expiration_days,
     1,
@@ -39,7 +38,7 @@ terraform {
   before_hook "print_locals" {
     commands = ["init"]
     execute = [
-      "bash", "-c", "echo STATE:${local.state_bucket}/${local.state_key} TABLE:${local.state_lock_table}"
+      "bash", "-c", "echo STATE:${local.state_bucket}/${local.state_key} LOCKFILE:${local.state_key}.tflock"
     ]
   }
 
@@ -82,11 +81,11 @@ terraform {
 remote_state {
   backend = "s3"
   config = {
-    bucket         = local.state_bucket
-    key            = local.state_key
-    region         = local.aws_region
-    dynamodb_table = local.state_lock_table
-    encrypt        = true
+    bucket       = local.state_bucket
+    key          = local.state_key
+    region       = local.aws_region
+    use_lockfile = true
+    encrypt      = true
   }
 }
 
@@ -144,7 +143,6 @@ inputs = merge(
     deploy_role_arn              = local.deploy_role_arn
     state_bucket                 = local.state_bucket
     plan_bucket                  = local.plan_bucket
-    state_lock_table             = local.state_lock_table
     code_bucket                  = local.code_bucket
     ecr_repository_name          = local.ecr_repository_name
   }

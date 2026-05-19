@@ -76,10 +76,6 @@ data "aws_s3_bucket" "tf_state_bucket" {
   bucket = var.state_bucket
 }
 
-data "aws_dynamodb_table" "tf_lock_table" {
-  name = var.state_lock_table
-}
-
 data "aws_iam_policy_document" "state_management" {
   statement {
     sid     = "AllowS3StateManagement"
@@ -87,14 +83,6 @@ data "aws_iam_policy_document" "state_management" {
     resources = [
       "${data.aws_s3_bucket.tf_state_bucket.arn}",
       "${data.aws_s3_bucket.tf_state_bucket.arn}/*"
-    ]
-  }
-
-  statement {
-    sid     = "AllowDynamodbLockManagemnt"
-    actions = local.dyanamodb_state_actions
-    resources = [
-      data.aws_dynamodb_table.tf_lock_table.arn
     ]
   }
 }
