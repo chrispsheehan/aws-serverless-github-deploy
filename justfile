@@ -152,14 +152,147 @@ tg-all op:
     terragrunt run-all {{op}}
 
 
-# Print the Terragrunt dependency graph for one environment/provider root as JSON.
-# Set TG_GRAPH_METADATA_PLAN_RUN_ID to join saved-plan metadata into the output.
+# Print the Terragrunt dependency graph through Graphviz JSON.
 tg-graph env provider='aws':
     #!/usr/bin/env bash
     set -euo pipefail
     cd {{justfile_directory()}}
+    if ! command -v dot >/dev/null 2>&1; then
+        echo "❌ graphviz 'dot' is not installed or not on PATH."
+        exit 1
+    fi
+
     terragrunt graph-dependencies --terragrunt-working-dir infra/live/{{env}}/{{provider}} \
-      | "{{justfile_directory()}}/infra/scripts/render-terragrunt-graph.sh" "{{env}}" "{{provider}}"
+      | dot -Tjson \
+      | jq .
+
+
+# Process a saved Graphviz JSON graph file into compact dependency JSON.
+# Set TG_GRAPH_METADATA_PLAN_RUN_ID and BUCKET_NAME to join saved-plan metadata.
+tg-graph-process graph_path env provider='aws':
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd {{justfile_directory()}}
+
+    if [[ ! -f "{{graph_path}}" ]]; then
+        echo "❌ Graph file '{{graph_path}}' does not exist."
+        exit 1
+    fi
+
+    infra_plan_dir="${INFRA_PLAN_DIR:-terragrunt_plan}"
+    plan_run_id="${TG_GRAPH_METADATA_PLAN_RUN_ID:-}"
+    aws_region="${AWS_REGION:-}"
+    bucket_name="${BUCKET_NAME:-}"
+
+    graph_json="$(
+      jq -c \
+        --arg environment "{{env}}" \
+        --arg provider "{{provider}}" \
+        '
+          . as $graph
+          | ($graph.objects // []) as $objects
+          | ($graph.edges // []) as $raw_edges
+          | ($objects | map(.name) | unique | sort) as $nodes
+          | ($raw_edges | map({from: $objects[.tail].name, to: $objects[.head].name})) as $edges
+          | {
+              environment: $environment,
+              provider: $provider,
+              nodes: $nodes,
+              edges: $edges,
+              dependencies: (
+                reduce $nodes[] as $node
+                  ({};
+                   .[$node] = (
+                     $edges
+                     | map(select(.from == $node) | .to)
+                     | unique
+                     | sort
+                   )
+                  )
+              )
+            }
+        ' \
+        "{{graph_path}}"
+    )"
+
+    if [[ -z "$plan_run_id" ]]; then
+        printf '%s\n' "$graph_json"
+        exit 0
+    fi
+
+    if [[ -z "$bucket_name" ]]; then
+        echo "❌ BUCKET_NAME is required when TG_GRAPH_METADATA_PLAN_RUN_ID is set."
+        exit 1
+    fi
+
+    metadata_dir="$(mktemp -d)"
+    trap 'rm -rf "$metadata_dir"' EXIT
+    run_prefix="s3://${bucket_name}/${infra_plan_dir}/{{env}}/${plan_run_id}/"
+
+    if [[ -n "$aws_region" ]]; then
+        aws s3 sync \
+          "$run_prefix" \
+          "$metadata_dir" \
+          --region "$aws_region" \
+          --exclude "*" \
+          --include "*/terragrunt.plan.meta.json" \
+          >/dev/null
+    else
+        aws s3 sync \
+          "$run_prefix" \
+          "$metadata_dir" \
+          --exclude "*" \
+          --include "*/terragrunt.plan.meta.json" \
+          >/dev/null
+    fi
+
+    metadata_files=()
+    while IFS= read -r -d '' file; do
+        metadata_files+=("$file")
+    done < <(find "$metadata_dir" -type f -name 'terragrunt.plan.meta.json' -print0 | sort -z)
+
+    if [[ "${#metadata_files[@]}" -eq 0 ]]; then
+        jq -n \
+          --arg environment "{{env}}" \
+          --arg provider "{{provider}}" \
+          --arg plan_run_id "$plan_run_id" \
+          '{environment: $environment, provider: $provider, plan_run_id: $plan_run_id, items: {}}'
+        exit 0
+    fi
+
+    jq -s \
+      --arg environment "{{env}}" \
+      --arg provider "{{provider}}" \
+      --arg plan_run_id "$plan_run_id" \
+      --argjson graph "$graph_json" \
+      '
+        def basename_from_tg_directory:
+          split("/") | last;
+
+        reduce (
+          .[]
+          | select(.tg_directory != null)
+        ) as $meta (
+          {
+            environment: $environment,
+            provider: $provider,
+            plan_run_id: $plan_run_id,
+            items: {}
+          };
+          ($meta.tg_directory | basename_from_tg_directory) as $stack
+          | if ($graph.nodes | index($stack)) == null then
+              .
+            else
+              .items[$stack] = (
+                $meta
+                + {
+                    dependencies: ($graph.dependencies[$stack] // [])
+                  }
+              )
+            end
+        )
+      ' \
+      "${metadata_files[@]}"
 
 
 # Open an ECS Exec shell in the worker debug container.

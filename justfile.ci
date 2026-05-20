@@ -12,6 +12,20 @@ EXTRA_CONTAINER_DIRECTORIES := `just --justfile justfile --evaluate EXTRA_CONTAI
 NON_SERVICE_CONTAINER_DIRECTORIES := `just --justfile justfile --evaluate NON_SERVICE_CONTAINER_DIRECTORIES`
 
 
+# Generate compact Terragrunt graph JSON for workflow matrix use.
+# Set TG_GRAPH_METADATA_PLAN_RUN_ID and BUCKET_NAME to join saved-plan metadata.
+tg-graph-json environment provider='aws':
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd "{{PROJECT_DIR}}"
+
+    tmp_graph="$(mktemp)"
+    trap 'rm -f "$tmp_graph"' EXIT
+
+    just --justfile "{{PROJECT_DIR}}/justfile" tg-graph "{{environment}}" "{{provider}}" > "$tmp_graph"
+    just --justfile "{{PROJECT_DIR}}/justfile" tg-graph-process "$tmp_graph" "{{environment}}" "{{provider}}"
+
+
 # Run `tflint` across Terraform module directories.
 tf-lint-check:
     #!/bin/bash

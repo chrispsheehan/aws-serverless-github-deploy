@@ -61,6 +61,7 @@ These instructions apply to the entire repository.
 - when a request mentions external source code and asks how to build, make ready, or deploy it, interpret that as "understand the external app, then answer in terms of how this repository should implement or deploy it" unless the user explicitly redirects the work
 - read the relevant local contract docs before editing and follow them
 - prefer the smallest complete change that matches existing repo patterns
+- remove stale code, temporary helpers, and abandoned experiment residue as part of the same change rather than leaving dead paths behind
 - verify related workflows, infra, docs, and downstream dependencies when the request affects shared behavior
 - state material assumptions when the intended shape is not fully explicit
 - when ambiguity is material or a wrong assumption could cause the repo shape or contract to drift, ask the user a clarifying question before editing

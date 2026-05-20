@@ -98,19 +98,30 @@ Given a Terragrunt file is found at `infra/live/dev/aws/lambda_api/terragrunt.hc
 just tg dev aws/lambda_api plan
 ```
 
-To print the Terragrunt dependency graph as JSON:
+The Terragrunt graph helpers require Graphviz locally because they convert DOT output with `dot -Tjson`:
 
 ```sh
-just tg-graph dev
+brew install graphviz
 ```
 
-To join that graph with saved-plan metadata for one plan run, set `TG_GRAPH_METADATA_PLAN_RUN_ID` before running the same command:
+To print the Terragrunt dependency graph as raw Graphviz JSON:
 
 ```sh
-AWS_REGION=eu-west-2 \
+just tg-graph dev > graph.json
+```
+
+To process that saved graph file into compact dependency JSON:
+
+```sh
+just tg-graph-process graph.json dev
+```
+
+To join the processed graph with saved-plan metadata for one plan run, set `TG_GRAPH_METADATA_PLAN_RUN_ID` and the plan bucket before running the processing command:
+
+```sh
 BUCKET_NAME=700060376888-eu-west-2-aws-serverless-github-deploy-tfplan \
 TG_GRAPH_METADATA_PLAN_RUN_ID=26105102715 \
-just tg-graph dev
+just tg-graph-process graph.json dev
 ```
 
 ### Publish A Worker Message
