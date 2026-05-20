@@ -1,6 +1,6 @@
 # Execute Terraform & Terragrunt
 
-This GitHub Action sets up **Terraform** and **Terragrunt** and runs a specified `terragrunt` action: `apply`, `plan`, `apply_plan`, `destroy`, or `init`. When the action needs AWS, the workflow job should configure credentials first.
+This GitHub Action sets up **Terraform** and **Terragrunt** and runs a specified `terragrunt` action: `apply`, `plan`, `apply_plan`, `destroy`, `init`, or `graph`. When the action needs AWS, the workflow job should configure credentials first.
 
 ## Features
 
@@ -10,6 +10,7 @@ This GitHub Action sets up **Terraform** and **Terragrunt** and runs a specified
 - Optionally passes Terragrunt variables via JSON tfvars
 - Supports `plan` mode for producing local saved plan files
 - Supports `init` mode for outputs-only reads
+- Supports `graph` mode for Graphviz JSON graph capture
 - Relies on shared Terragrunt root hooks for per-stack saved plan artifact upload and download
 - Exports Terragrunt outputs as compact JSON when state exists
 
@@ -24,7 +25,7 @@ The Terragrunt install step is kept in this repo-local action rather than hidden
 | `aws_region` | AWS region to use | No | `eu-west-2` |
 | `override_tg_vars` | Terragrunt variables in JSON, written to `override_tg_vars.tfvars.json` | No | `{}` |
 | `tg_directory` | Directory containing the Terragrunt config | Yes | — |
-| `tg_action` | Terragrunt action: `apply`, `plan`, `apply_plan`, `destroy`, or `init` | Yes | `apply` |
+| `tg_action` | Terragrunt action: `apply`, `plan`, `apply_plan`, `destroy`, `init`, or `graph` | Yes | `apply` |
 
 `override_tg_vars` is written for `apply`, `plan`, and `destroy`, but not for `init`.
 
@@ -33,6 +34,7 @@ The Terragrunt install step is kept in this repo-local action rather than hidden
 | Name | Description |
 |---|---|
 | `tg_outputs` | All Terraform outputs in compact JSON. If no state exists, returns `{}` |
+| `tg_graph_json` | Terragrunt dependency graph rendered as compact Graphviz JSON. Set only for `tg_action: graph` |
 ## Behavior
 
 - `apply`
@@ -45,6 +47,8 @@ The Terragrunt install step is kept in this repo-local action rather than hidden
   Runs `terragrunt destroy -auto-approve`
 - `init`
   Runs `terragrunt init -input=false -reconfigure` and then captures outputs
+- `graph`
+  Installs Graphviz in the action, runs `terragrunt graph-dependencies | dot -Tjson`, and exposes the compact JSON as `tg_graph_json`
 
 ## Saved Plan Layout
 

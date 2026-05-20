@@ -26,6 +26,21 @@ tg-graph-json environment provider='aws':
     just --justfile "{{PROJECT_DIR}}/justfile" tg-graph-process "$tmp_graph" "{{environment}}" "{{provider}}"
 
 
+# Generate only changed saved-plan graph items as a JSON array.
+# If TG_GRAPH_METADATA_PLAN_RUN_ID is empty, emit [].
+tg-graph-changed-items-json graph_path environment provider='aws':
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd "{{PROJECT_DIR}}"
+
+    if [[ -z "${TG_GRAPH_METADATA_PLAN_RUN_ID:-}" ]]; then
+        printf '[]\n'
+        exit 0
+    fi
+
+    just --justfile "{{PROJECT_DIR}}/justfile" tg-graph-changed-items "{{graph_path}}" "{{environment}}" "{{provider}}"
+
+
 # Run `tflint` across Terraform module directories.
 tf-lint-check:
     #!/bin/bash

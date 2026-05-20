@@ -21,7 +21,7 @@ inputs:
     description: "Module directory to perform action upon"
     required: true
   tg_action:
-    description: "Terragrunt action to perform (`apply`, `plan`, `apply_plan`, `destroy`, or `init` for outputs-only)"
+    description: "Terragrunt action to perform (`apply`, `plan`, `apply_plan`, `destroy`, `init` for outputs-only, or `graph` for Graphviz JSON)"
     required: true
     default: apply
 
@@ -29,6 +29,9 @@ outputs:
   tg_outputs:
     description: "All Terraform outputs in JSON format"
     value: ${{ steps.tg_outputs.outputs.terraform_json }}
+  tg_graph_json:
+    description: "Terragrunt dependency graph rendered as compact Graphviz JSON"
+    value: ${{ steps.tg_graph.outputs.graph_json }}
 
 runs:
   using: "composite"
@@ -52,6 +55,13 @@ runs:
     - name: Verify Terragrunt installation
       shell: bash
       run: terragrunt --version
+
+    - name: Install Graphviz
+      if: inputs.tg_action == 'graph'
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y graphviz
 
     - name: Normalize and write override_tg_vars
       if: inputs.tg_action == 'apply' || inputs.tg_action == 'plan' || inputs.tg_action == 'destroy'
@@ -142,14 +152,28 @@ runs:
             echo "Running init only (no infra changes)..."
             terragrunt init -input=false -reconfigure
             ;;
+          graph)
+            echo "Graph mode runs in the dedicated graph step."
+            ;;
           *)
-            echo "Unknown tg_action: '${{ inputs.tg_action }}' (expected: apply|plan|apply_plan|destroy|init)" >&2
+            echo "Unknown tg_action: '${{ inputs.tg_action }}' (expected: apply|plan|apply_plan|destroy|init|graph)" >&2
             exit 2
             ;;
         esac
 
+    - name: Capture Terragrunt graph JSON
+      if: inputs.tg_action == 'graph'
+      id: tg_graph
+      shell: bash
+      working-directory: ${{ inputs.tg_directory }}
+      run: |
+        echo "🕸️ Rendering Terragrunt dependency graph..."
+        graph_json="$(terragrunt graph-dependencies | dot -Tjson | jq -c .)"
+        echo "graph_json=$graph_json" >> "$GITHUB_OUTPUT"
+        echo "✅ Terragrunt graph captured."
+
     - name: Capture Terraform Outputs
-      if: inputs.tg_action != 'destroy'
+      if: inputs.tg_action != 'destroy' && inputs.tg_action != 'graph'
       id: tg_outputs
       shell: bash
       working-directory: ${{ inputs.tg_directory }}
