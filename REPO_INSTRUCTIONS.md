@@ -40,6 +40,12 @@ These instructions apply to the entire repository.
 - runtime behavior: `lambdas/**/README.md` and `containers/**/README.md`
 - before editing, read the relevant local contract docs for the files you plan to touch and follow those contracts
 
+## Script Ownership
+
+- reserve `infra/scripts/**` for Terraform or Terragrunt owned helper behavior that is part of the infra runtime contract
+- prefer implementing GitHub Actions or workflow-only helper logic directly in `justfile.ci` when practical
+- when a workflow-only helper needs more than a small recipe body, keep its ownership in the CI/workflow layer rather than under `infra/scripts/**`
+
 ## Context Loading Order
 
 - load context lazily and only as needed
