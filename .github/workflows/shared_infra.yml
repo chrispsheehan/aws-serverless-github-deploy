@@ -53,12 +53,13 @@ env:
   AWS_OIDC_ROLE_ARN: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/${{ vars.PROJECT_NAME }}-${{ inputs.environment }}-github-oidc-role
   AWS_REGION: ${{ vars.AWS_REGION }}
   DOMAIN_NAME: ${{ vars.DOMAIN_NAME }}
+  PLAN_BUCKET: ${{ vars.AWS_ACCOUNT_ID }}-${{ vars.AWS_REGION }}-${{ vars.PROJECT_NAME }}-tfplan
   TG_ENABLE_PLAN_ARTIFACTS: ${{ (inputs.tg_action == 'plan' || inputs.tg_action == 'apply_plan') && 'true' || 'false' }}
   PLAN_ARTIFACT_RUN_ID: ${{ inputs.plan_run_id }}
   TG_ACTION_LABEL: ${{ (inputs.tg_action == 'apply' || inputs.tg_action == 'apply_plan') && 'Apply' || inputs.tg_action == 'plan' && 'Plan' || inputs.tg_action == 'destroy' && 'Destroy' || inputs.tg_action == 'init' && 'Init' || 'Run' }}
 
 jobs:
-  oidc:
+  changed_items:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -70,233 +71,46 @@ jobs:
           role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: ${{ env.TG_ACTION_LABEL }} oidc role infra
-        uses: ./.github/actions/terragrunt
-        env: 
-          TG_RESET_PLAN_ARTIFACT_BUCKET: "true" # this ensures that the plan artifact bucket is reset on every run, preventing stale artifacts from being used
-        with:
-          tg_directory: infra/live/${{ inputs.environment }}/aws/oidc
-          tg_action: ${{ inputs.tg_action }}
-
-  messaging:
-    needs: oidc
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ inputs.infra_version }}
-
-      - uses: aws-actions/configure-aws-credentials@v6
-        with:
-          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: ${{ env.TG_ACTION_LABEL }} messaging infra
+      - name: Render Terragrunt graph
+        id: tg_graph
         uses: ./.github/actions/terragrunt
         with:
-          tg_directory: infra/live/${{ inputs.environment }}/aws/messaging
-          tg_action: ${{ inputs.tg_action }}
+          tg_directory: infra/live/${{ inputs.environment }}/aws
+          tg_action: graph
 
-  observability:
-    needs: oidc
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ inputs.infra_version }}
-
-      - uses: aws-actions/configure-aws-credentials@v6
-        with:
-          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: ${{ env.TG_ACTION_LABEL }} observability infra
-        uses: ./.github/actions/terragrunt
-        with:
-          tg_directory: infra/live/${{ inputs.environment }}/aws/observability
-          tg_action: ${{ inputs.tg_action }}
-
-  cognito:
-    needs: oidc
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ inputs.infra_version }}
-
-      - uses: aws-actions/configure-aws-credentials@v6
-        with:
-          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: ${{ env.TG_ACTION_LABEL }} cognito infra
-        uses: ./.github/actions/terragrunt
+      - name: Write graph JSON for filter helper
+        shell: bash
         env:
-          TF_VAR_domain_name: ${{ env.DOMAIN_NAME }}
-        with:
-          tg_directory: infra/live/${{ inputs.environment }}/aws/cognito
-          tg_action: ${{ inputs.tg_action }}
+          TG_GRAPH_JSON: ${{ steps.tg_graph.outputs.tg_graph_json }}
+        run: |
+          printf '%s\n' "$TG_GRAPH_JSON" > "$RUNNER_TEMP/terragrunt-graph.json"
 
-  frontend:
-    needs:
-      - network
-      - cognito
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ inputs.infra_version }}
-
-      - uses: aws-actions/configure-aws-credentials@v6
-        with:
-          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: ${{ env.TG_ACTION_LABEL }} frontend infra
-        uses: ./.github/actions/terragrunt
+      - name: Run changed-items helper
+        id: changed_items_json
+        uses: ./.github/actions/just
         env:
-          TF_VAR_domain_name: ${{ env.DOMAIN_NAME }}
+          TG_GRAPH_METADATA_PLAN_RUN_ID: ${{ inputs.plan_run_id }}
+          BUCKET_NAME: ${{ env.PLAN_BUCKET }}
         with:
-          tg_directory: infra/live/${{ inputs.environment }}/aws/frontend
-          tg_action: ${{ inputs.tg_action }}
+          aws_region: ${{ env.AWS_REGION }}
+          justfile_path: justfile.ci
+          just_action: tg-graph-changed-items-json $RUNNER_TEMP/terragrunt-graph.json ${{ inputs.environment }}
 
-  cluster:
-    needs: oidc
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ inputs.infra_version }}
-
-      - uses: aws-actions/configure-aws-credentials@v6
-        with:
-          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: ${{ env.TG_ACTION_LABEL }} cluster infra
-        uses: ./.github/actions/terragrunt
-        with:
-          tg_directory: infra/live/${{ inputs.environment }}/aws/cluster
-          tg_action: ${{ inputs.tg_action }}
-
-  security:
-    needs: oidc
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ inputs.infra_version }}
-
-      - uses: aws-actions/configure-aws-credentials@v6
-        with:
-          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: ${{ env.TG_ACTION_LABEL }} security infra
-        id: deploy-security
-        uses: ./.github/actions/terragrunt
-        with:
-          tg_directory: infra/live/${{ inputs.environment }}/aws/security
-          tg_action: ${{ inputs.tg_action }}
-
-  database:
-    needs:
-      - oidc
-      - security
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ inputs.infra_version }}
-
-      - uses: aws-actions/configure-aws-credentials@v6
-        with:
-          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: ${{ env.TG_ACTION_LABEL }} database infra
-        uses: ./.github/actions/terragrunt
-        with:
-          tg_directory: infra/live/${{ inputs.environment }}/aws/database
-          tg_action: ${{ inputs.tg_action }}
-
-  network:
-    needs:
-      - security
-      - cognito
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ inputs.infra_version }}
-
-      - uses: aws-actions/configure-aws-credentials@v6
-        with:
-          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: ${{ env.TG_ACTION_LABEL }} network infra
-        uses: ./.github/actions/terragrunt
-        with:
-          tg_directory: infra/live/${{ inputs.environment }}/aws/network
-          tg_action: ${{ inputs.tg_action }}
-
-  lambdas:
-    needs: 
-      - oidc
-      - security
-      - network
-      - database
-      - messaging
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false # this is to prevent terraform lock issues
-      matrix:
-        value: ${{ fromJson(inputs.lambda_matrix) }}
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ inputs.infra_version }}
-
-      - uses: aws-actions/configure-aws-credentials@v6
-        with:
-          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: ${{ env.TG_ACTION_LABEL }} ${{ matrix.value }} infra
-        uses: ./.github/actions/terragrunt
-        with:
-          tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.value }}
-          tg_action: ${{ inputs.tg_action }}
-
-  services:
-    needs:
-      - oidc
-      - security
-      - cluster
-      - network
-      - database
-      - messaging
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        value: ${{ fromJson(inputs.service_matrix) }}
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ inputs.infra_version }}
-
-      - uses: aws-actions/configure-aws-credentials@v6
-        with:
-          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: ${{ env.TG_ACTION_LABEL }} ${{ matrix.value }} bootstrap service infra
-        uses: ./.github/actions/terragrunt
+      - name: Print changed Terragrunt graph items
+        shell: bash
         env:
-          TF_VAR_bootstrap: "true"
-          TF_VAR_bootstrap_image_uri: ${{ inputs.bootstrap_image_uri }}
-        with:
-          tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.value }}
-          tg_action: ${{ inputs.tg_action }}
+          CHANGED_ITEMS_JSON: ${{ steps.changed_items_json.outputs.just_outputs }}
+        run: |
+          printf '%s\n' "$CHANGED_ITEMS_JSON" | tee changed-items.json
+          {
+            echo "## Changed Terragrunt Graph Items"
+            echo
+            echo '```json'
+            cat changed-items.json
+            echo
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # Previous shared infra rollout jobs are intentionally disabled for this
+  # temporary graph-debug shape. Restore the ordered per-stack jobs after the
+  # changed-items output is wired into the next iteration.
