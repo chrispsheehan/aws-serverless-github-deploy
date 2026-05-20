@@ -39,13 +39,12 @@ tg-graph-changed-items-json environment provider='aws':
         exit 0
     fi
 
+    tmp_graph="$(mktemp)"
+    trap 'rm -f "$tmp_graph"' EXIT
     if [[ -z "${TG_GRAPH_JSON:-}" ]]; then
         echo "❌ TG_GRAPH_JSON is required for tg-graph-changed-items-json."
         exit 1
     fi
-
-    tmp_graph="$(mktemp)"
-    trap 'rm -f "$tmp_graph"' EXIT
     printf '%s\n' "$TG_GRAPH_JSON" > "$tmp_graph"
 
     just --justfile "{{PROJECT_DIR}}/justfile" tg-graph-changed-items "$tmp_graph" "{{environment}}" "{{provider}}"

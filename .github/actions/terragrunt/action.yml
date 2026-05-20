@@ -30,7 +30,7 @@ outputs:
     description: "All Terraform outputs in JSON format"
     value: ${{ steps.tg_outputs.outputs.terraform_json }}
   tg_graph_json:
-    description: "Terragrunt dependency graph rendered as compact Graphviz JSON"
+    description: "Terragrunt run-all dependency graph rendered as compact Graphviz JSON"
     value: ${{ steps.tg_graph.outputs.graph_json }}
 
 runs:
@@ -167,8 +167,8 @@ runs:
       shell: bash
       working-directory: ${{ inputs.tg_directory }}
       run: |
-        echo "🕸️ Rendering Terragrunt dependency graph..."
-        graph_json="$(terragrunt graph-dependencies | dot -Tjson | jq -c .)"
+        echo "🕸️ Rendering Terragrunt run-all dependency graph..."
+        graph_json="$(terragrunt run-all graph-dependencies | dot -Tjson | jq -c .)"
         echo "graph_json=$graph_json" >> "$GITHUB_OUTPUT"
         echo "✅ Terragrunt graph captured."
 
