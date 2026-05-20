@@ -168,7 +168,7 @@ runs:
       working-directory: ${{ inputs.tg_directory }}
       run: |
         echo "🕸️ Rendering Terragrunt run-all dependency graph..."
-        graph_json="$(terragrunt run-all graph-dependencies | dot -Tjson | jq -c .)"
+        graph_json="$(terragrunt run-all graph-dependencies --terragrunt-non-interactive --terragrunt-include-external-dependencies | dot -Tjson | jq -c .)"
         echo "graph_json=$graph_json" >> "$GITHUB_OUTPUT"
         echo "✅ Terragrunt graph captured."
 

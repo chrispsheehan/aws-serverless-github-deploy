@@ -48,7 +48,7 @@ The Terragrunt install step is kept in this repo-local action rather than hidden
 - `init`
   Runs `terragrunt init -input=false -reconfigure` and then captures outputs
 - `graph`
-  Installs Graphviz in the action, runs `terragrunt run-all graph-dependencies | dot -Tjson`, and exposes the compact JSON as `tg_graph_json`
+  Installs Graphviz in the action, runs `terragrunt run-all graph-dependencies --terragrunt-non-interactive --terragrunt-include-external-dependencies | dot -Tjson`, and exposes the compact JSON as `tg_graph_json`
 
 ## Saved Plan Layout
 
