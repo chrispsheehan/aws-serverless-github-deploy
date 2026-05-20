@@ -48,7 +48,7 @@ The Terragrunt install step is kept in this repo-local action rather than hidden
 - `init`
   Runs `terragrunt init -input=false -reconfigure` and then captures outputs
 - `graph`
-  Runs `terragrunt run-all graph-dependencies --terragrunt-non-interactive --terragrunt-include-external-dependencies` and exposes the raw output as `tg_graph_output`
+  Runs `terragrunt run-all graph-dependencies --terragrunt-non-interactive --terragrunt-include-external-dependencies --terragrunt-log-level error` and exposes the raw output as `tg_graph_output`
 
 ## Saved Plan Layout
 

@@ -38,6 +38,10 @@ on:
         required: false
         type: string
         default: ""
+    outputs:
+      changed_items_json:
+        description: "Changed Terragrunt graph items JSON from the temporary graph-debug path"
+        value: ${{ jobs.changed_items.outputs.changed_items_json }}
 
 
 concurrency: # only run one instance of workflow at any one time
@@ -61,6 +65,8 @@ env:
 jobs:
   changed_items:
     runs-on: ubuntu-latest
+    outputs:
+      changed_items_json: ${{ steps.changed_items_json.outputs.just_outputs }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -88,7 +94,7 @@ jobs:
         with:
           aws_region: ${{ env.AWS_REGION }}
           justfile_path: justfile.ci
-          just_action: tg-graph-changed-items-json ${{ inputs.environment }}
+          just_action: tg-graph-output-to-json ${{ inputs.environment }}
 
       - name: Print changed Terragrunt graph items
         shell: bash

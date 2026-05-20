@@ -12,42 +12,87 @@ EXTRA_CONTAINER_DIRECTORIES := `just --justfile justfile --evaluate EXTRA_CONTAI
 NON_SERVICE_CONTAINER_DIRECTORIES := `just --justfile justfile --evaluate NON_SERVICE_CONTAINER_DIRECTORIES`
 
 
-# Generate compact Terragrunt graph JSON for workflow matrix use.
-# Set TG_GRAPH_METADATA_PLAN_RUN_ID and BUCKET_NAME to join saved-plan metadata.
-tg-graph-json environment provider='aws':
+# Convert raw Terragrunt graph output from TG_GRAPH_OUTPUT into compact JSON.
+tg-graph-output-to-json environment provider='aws':
     #!/usr/bin/env bash
     set -euo pipefail
     cd "{{PROJECT_DIR}}"
 
-    tmp_graph="$(mktemp)"
-    trap 'rm -f "$tmp_graph"' EXIT
-
-    just --justfile "{{PROJECT_DIR}}/justfile" tg-graph "{{environment}}" "{{provider}}" > "$tmp_graph"
-    just --justfile "{{PROJECT_DIR}}/justfile" tg-graph-process "$tmp_graph" "{{environment}}" "{{provider}}"
-
-
-# Generate only changed saved-plan graph items as a JSON array.
-# If TG_GRAPH_METADATA_PLAN_RUN_ID is empty, emit [].
-# Requires TG_GRAPH_OUTPUT to be set from the shared Terragrunt action output.
-tg-graph-changed-items-json environment provider='aws':
-    #!/usr/bin/env bash
-    set -euo pipefail
-    cd "{{PROJECT_DIR}}"
-
-    if [[ -z "${TG_GRAPH_METADATA_PLAN_RUN_ID:-}" ]]; then
-        printf '[]\n'
-        exit 0
-    fi
-
-    tmp_graph="$(mktemp)"
-    trap 'rm -f "$tmp_graph"' EXIT
     if [[ -z "${TG_GRAPH_OUTPUT:-}" ]]; then
-        echo "❌ TG_GRAPH_OUTPUT is required for tg-graph-changed-items-json."
+        echo "❌ TG_GRAPH_OUTPUT is required for tg-graph-output-to-json."
         exit 1
     fi
-    printf '%s\n' "$TG_GRAPH_OUTPUT" > "$tmp_graph"
 
-    just --justfile "{{PROJECT_DIR}}/justfile" tg-graph-changed-items "$tmp_graph" "{{environment}}" "{{provider}}"
+    tmp_nodes="$(mktemp)"
+    tmp_edges="$(mktemp)"
+    trap 'rm -f "$tmp_nodes" "$tmp_edges"' EXIT
+
+    awk -F'"' '
+      /->/ && NF >= 4 {
+        from = $2
+        to = $4
+        sub(".*/", "", from)
+        sub(".*/", "", to)
+        print from "\t" to
+        next
+      }
+      /^[[:space:]]*"/ && /;[[:space:]]*$/ && NF >= 2 {
+        node = $2
+        sub(".*/", "", node)
+        print node
+      }
+    ' <(printf '%s\n' "$TG_GRAPH_OUTPUT") \
+      | while IFS= read -r line; do
+          if [[ "$line" == *$'\t'* ]]; then
+            printf '%s\n' "$line" >> "$tmp_edges"
+          elif [[ -n "$line" ]]; then
+            printf '%s\n' "$line" >> "$tmp_nodes"
+          fi
+        done
+
+    {
+      cat "$tmp_nodes"
+      awk -F'\t' 'NF >= 2 { print $1; print $2 }' "$tmp_edges"
+    } \
+      | sort -u \
+      | while IFS= read -r node; do
+          [[ -n "$node" ]] || continue
+          deps="$(
+            awk -F'\t' -v target="$node" '$1 == target { print $2 }' "$tmp_edges" \
+              | sort -u \
+              | jq -R . \
+              | jq -s -c .
+          )"
+          printf '%s\t%s\n' "$node" "$deps"
+        done \
+      | jq -R -s --arg environment "{{environment}}" --arg provider "{{provider}}" '
+          split("\n")
+          | map(select(length > 0))
+          | map(split("\t"))
+          | map(select(length == 2))
+          | {
+              environment: $environment,
+              provider: $provider,
+              dependencies: (
+                reduce .[] as $pair
+                  ({};
+                   .[$pair[0]] = ($pair[1] | fromjson)
+                  )
+              )
+            }
+        ' \
+      | jq -c '
+          .dependencies as $deps
+          | . + {
+              nodes: ($deps | keys | sort),
+              edges: (
+                $deps
+                | to_entries
+                | map(.key as $from | .value[]? | {from: $from, to: .})
+                | sort_by(.from, .to)
+              )
+            }
+        '
 
 
 # Run `tflint` across Terraform module directories.

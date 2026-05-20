@@ -163,7 +163,7 @@ runs:
         echo "🕸️ Rendering Terragrunt run-all dependency graph..."
         {
           echo "graph_output<<EOF"
-          terragrunt run-all graph-dependencies --terragrunt-non-interactive --terragrunt-include-external-dependencies
+          terragrunt run-all graph-dependencies --terragrunt-non-interactive --terragrunt-include-external-dependencies --terragrunt-log-level error
           echo "EOF"
         } >> "$GITHUB_OUTPUT"
         echo "✅ Terragrunt graph captured."
