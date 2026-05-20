@@ -98,6 +98,21 @@ Given a Terragrunt file is found at `infra/live/dev/aws/lambda_api/terragrunt.hc
 just tg dev aws/lambda_api plan
 ```
 
+To print the Terragrunt dependency graph as JSON:
+
+```sh
+just tg-graph dev
+```
+
+To join that graph with saved-plan metadata for one plan run, set `TG_GRAPH_METADATA_PLAN_RUN_ID` before running the same command:
+
+```sh
+AWS_REGION=eu-west-2 \
+BUCKET_NAME=700060376888-eu-west-2-aws-serverless-github-deploy-tfplan \
+TG_GRAPH_METADATA_PLAN_RUN_ID=26105102715 \
+just tg-graph dev
+```
+
 ### Publish A Worker Message
 
 To publish directly to the shared worker SNS topic from your shell:

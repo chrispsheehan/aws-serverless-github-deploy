@@ -152,6 +152,16 @@ tg-all op:
     terragrunt run-all {{op}}
 
 
+# Print the Terragrunt dependency graph for one environment/provider root as JSON.
+# Set TG_GRAPH_METADATA_PLAN_RUN_ID to join saved-plan metadata into the output.
+tg-graph env provider='aws':
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd {{justfile_directory()}}
+    terragrunt graph-dependencies --terragrunt-working-dir infra/live/{{env}}/{{provider}} \
+      | "{{justfile_directory()}}/infra/scripts/render-terragrunt-graph.sh" "{{env}}" "{{provider}}"
+
+
 # Open an ECS Exec shell in the worker debug container.
 worker-debug-shell env:
     #!/usr/bin/env bash
