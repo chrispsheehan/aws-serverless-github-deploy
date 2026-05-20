@@ -111,6 +111,10 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
+
+
+  # do wave-1 2 3 4  jibs
+
   # Previous shared infra rollout jobs are intentionally disabled for this
   # temporary graph-debug shape. Restore the ordered per-stack jobs after the
   # changed-items output is wired into the next iteration.
