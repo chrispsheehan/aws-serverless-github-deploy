@@ -18,7 +18,7 @@ dependency "cognito" {
     auth_issuer_url          = "https://cognito-idp.eu-west-2.amazonaws.com/eu-west-2_mock"
   }
 
-  mock_outputs_allowed_terraform_commands = ["validate", "plan", "destroy", "init", "show"]
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "destroy", "init", "show", "graph-dependencies", "output-module-groups"]
 }
 
 inputs = {

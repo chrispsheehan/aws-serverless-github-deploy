@@ -6,7 +6,7 @@ dependency "cluster" {
     cluster_name = "mock-cluster"
   }
 
-  mock_outputs_allowed_terraform_commands = ["validate", "plan", "destroy", "init", "show"]
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "destroy", "init", "show", "graph-dependencies", "output-module-groups"]
 }
 
 inputs = {

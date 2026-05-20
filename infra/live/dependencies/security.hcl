@@ -10,5 +10,5 @@ dependency "security" {
     postgres_sg      = "sg-00000000000000006"
   }
 
-  mock_outputs_allowed_terraform_commands = ["validate", "plan", "destroy", "init", "show"]
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "destroy", "init", "show", "graph-dependencies", "output-module-groups"]
 }
