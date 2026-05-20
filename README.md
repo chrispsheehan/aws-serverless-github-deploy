@@ -116,6 +116,14 @@ To process that saved graph file into compact dependency JSON:
 just tg-graph-process graph.json dev
 ```
 
+To return only changed saved-plan items as an object array, set the saved-plan env vars and run:
+
+```sh
+BUCKET_NAME=700060376888-eu-west-2-aws-serverless-github-deploy-tfplan \
+TG_GRAPH_METADATA_PLAN_RUN_ID=26105102715 \
+just tg-graph-changed-items graph.json dev
+```
+
 To join the processed graph with saved-plan metadata for one plan run, set `TG_GRAPH_METADATA_PLAN_RUN_ID` and the plan bucket before running the processing command:
 
 ```sh

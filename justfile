@@ -295,6 +295,29 @@ tg-graph-process graph_path env provider='aws':
       "${metadata_files[@]}"
 
 
+# Return only changed saved-plan graph items as an object array.
+# Requires TG_GRAPH_METADATA_PLAN_RUN_ID and BUCKET_NAME so tg-graph-process
+# emits saved-plan metadata under `.items`.
+tg-graph-changed-items graph_path env provider='aws':
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd {{justfile_directory()}}
+
+    just tg-graph-process "{{graph_path}}" "{{env}}" "{{provider}}" \
+      | jq -c '
+          if (.items? | type) != "object" then
+            error("tg-graph-changed-items requires tg-graph-process metadata mode.")
+          else
+            .items
+            | to_entries
+            | map(
+                select(.value.has_changes == true)
+                | (.value + {stack: .key})
+              )
+          end
+        '
+
+
 # Open an ECS Exec shell in the worker debug container.
 worker-debug-shell env:
     #!/usr/bin/env bash
