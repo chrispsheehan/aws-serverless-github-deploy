@@ -10,7 +10,7 @@ This GitHub Action sets up **Terraform** and **Terragrunt** and runs a specified
 - Optionally passes Terragrunt variables via JSON tfvars
 - Supports `plan` mode for producing local saved plan files
 - Supports `init` mode for outputs-only reads
-- Supports `graph` mode for `terragrunt run-all graph-dependencies` rendered as Graphviz JSON
+- Supports `graph` mode for raw `terragrunt run-all graph-dependencies` output capture
 - Relies on shared Terragrunt root hooks for per-stack saved plan artifact upload and download
 - Exports Terragrunt outputs as compact JSON when state exists
 
@@ -34,7 +34,7 @@ The Terragrunt install step is kept in this repo-local action rather than hidden
 | Name | Description |
 |---|---|
 | `tg_outputs` | All Terraform outputs in compact JSON. If no state exists, returns `{}` |
-| `tg_graph_json` | Terragrunt `run-all graph-dependencies` rendered as compact Graphviz JSON. Set only for `tg_action: graph` |
+| `tg_graph_output` | Raw Terragrunt `run-all graph-dependencies` output. Set only for `tg_action: graph` |
 ## Behavior
 
 - `apply`
@@ -48,7 +48,7 @@ The Terragrunt install step is kept in this repo-local action rather than hidden
 - `init`
   Runs `terragrunt init -input=false -reconfigure` and then captures outputs
 - `graph`
-  Installs Graphviz in the action, runs `terragrunt run-all graph-dependencies --terragrunt-non-interactive --terragrunt-include-external-dependencies | dot -Tjson`, and exposes the compact JSON as `tg_graph_json`
+  Runs `terragrunt run-all graph-dependencies --terragrunt-non-interactive --terragrunt-include-external-dependencies` and exposes the raw output as `tg_graph_output`
 
 ## Saved Plan Layout
 

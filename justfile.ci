@@ -28,7 +28,7 @@ tg-graph-json environment provider='aws':
 
 # Generate only changed saved-plan graph items as a JSON array.
 # If TG_GRAPH_METADATA_PLAN_RUN_ID is empty, emit [].
-# Requires TG_GRAPH_JSON to be set from the shared Terragrunt action output.
+# Requires TG_GRAPH_OUTPUT to be set from the shared Terragrunt action output.
 tg-graph-changed-items-json environment provider='aws':
     #!/usr/bin/env bash
     set -euo pipefail
@@ -41,11 +41,11 @@ tg-graph-changed-items-json environment provider='aws':
 
     tmp_graph="$(mktemp)"
     trap 'rm -f "$tmp_graph"' EXIT
-    if [[ -z "${TG_GRAPH_JSON:-}" ]]; then
-        echo "❌ TG_GRAPH_JSON is required for tg-graph-changed-items-json."
+    if [[ -z "${TG_GRAPH_OUTPUT:-}" ]]; then
+        echo "❌ TG_GRAPH_OUTPUT is required for tg-graph-changed-items-json."
         exit 1
     fi
-    printf '%s\n' "$TG_GRAPH_JSON" > "$tmp_graph"
+    printf '%s\n' "$TG_GRAPH_OUTPUT" > "$tmp_graph"
 
     just --justfile "{{PROJECT_DIR}}/justfile" tg-graph-changed-items "$tmp_graph" "{{environment}}" "{{provider}}"
 

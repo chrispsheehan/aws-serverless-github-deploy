@@ -152,22 +152,18 @@ tg-all op:
     terragrunt run-all {{op}}
 
 
-# Print the Terragrunt dependency graph through Graphviz JSON.
+# Print the raw Terragrunt run-all dependency graph.
 tg-graph env provider='aws':
     #!/usr/bin/env bash
     set -euo pipefail
-    cd {{justfile_directory()}}
-    if ! command -v dot >/dev/null 2>&1; then
-        echo "❌ graphviz 'dot' is not installed or not on PATH."
-        exit 1
-    fi
+    cd {{justfile_directory()}}/infra/live/{{env}}/{{provider}}
 
-    terragrunt graph-dependencies --terragrunt-working-dir infra/live/{{env}}/{{provider}} \
-      | dot -Tjson \
-      | jq .
+    terragrunt run-all graph-dependencies \
+      --terragrunt-non-interactive \
+      --terragrunt-include-external-dependencies
 
 
-# Process a saved Graphviz JSON graph file into compact dependency JSON.
+# Process a saved raw Terragrunt graph file into compact dependency JSON.
 # Set TG_GRAPH_METADATA_PLAN_RUN_ID and BUCKET_NAME to join saved-plan metadata.
 tg-graph-process graph_path env provider='aws':
     #!/usr/bin/env bash
@@ -183,36 +179,85 @@ tg-graph-process graph_path env provider='aws':
     plan_run_id="${TG_GRAPH_METADATA_PLAN_RUN_ID:-}"
     aws_region="${AWS_REGION:-}"
     bucket_name="${BUCKET_NAME:-}"
+    tmp_nodes="$(mktemp)"
+    tmp_edges="$(mktemp)"
+    trap 'rm -f "$tmp_nodes" "$tmp_edges"' EXIT
+
+    awk -F'"' '
+      /->/ {
+        if (NF >= 4) {
+          print $2 "\t" $4
+        }
+        next
+      }
+      /^[[:space:]]*"/ && /;[[:space:]]*$/ {
+        if (NF >= 2) {
+          print $2
+        }
+      }
+    ' "{{graph_path}}" \
+      | while IFS= read -r line; do
+          if [[ "$line" == *$'\t'* ]]; then
+            printf '%s\n' "$line" >> "$tmp_edges"
+          elif [[ -n "$line" ]]; then
+            printf '%s\n' "$line" >> "$tmp_nodes"
+          fi
+        done
+
+    nodes_json="$(
+      {
+        cat "$tmp_nodes"
+        awk -F'\t' 'NF >= 2 { print $1; print $2 }' "$tmp_edges"
+      } \
+        | jq -R -s '
+            split("\n")
+            | map(select(length > 0))
+            | map(split("/") | last)
+            | unique
+            | sort
+          '
+    )"
+
+    edges_json="$(
+      jq -R -s '
+        split("\n")
+        | map(select(length > 0))
+        | map(split("\t"))
+        | map(select(length == 2))
+        | map({
+            from: (.[0] | split("/") | last),
+            to: (.[1] | split("/") | last)
+          })
+        | unique
+        | sort_by(.from, .to)
+      ' "$tmp_edges"
+    )"
 
     graph_json="$(
-      jq -c \
+      jq -cn \
         --arg environment "{{env}}" \
         --arg provider "{{provider}}" \
+        --argjson nodes "$nodes_json" \
+        --argjson edges "$edges_json" \
         '
-          . as $graph
-          | ($graph.objects // []) as $objects
-          | ($graph.edges // []) as $raw_edges
-          | ($objects | map(.name) | unique | sort) as $nodes
-          | ($raw_edges | map({from: $objects[.tail].name, to: $objects[.head].name})) as $edges
-          | {
-              environment: $environment,
-              provider: $provider,
-              nodes: $nodes,
-              edges: $edges,
-              dependencies: (
-                reduce $nodes[] as $node
-                  ({};
-                   .[$node] = (
-                     $edges
-                     | map(select(.from == $node) | .to)
-                     | unique
-                     | sort
-                   )
-                  )
-              )
-            }
-        ' \
-        "{{graph_path}}"
+          {
+            environment: $environment,
+            provider: $provider,
+            nodes: $nodes,
+            edges: $edges,
+            dependencies: (
+              reduce $nodes[] as $node
+                ({};
+                 .[$node] = (
+                   $edges
+                   | map(select(.from == $node) | .to)
+                   | unique
+                   | sort
+                 )
+                )
+            )
+          }
+        '
     )"
 
     if [[ -z "$plan_run_id" ]]; then

@@ -21,7 +21,7 @@ inputs:
     description: "Module directory to perform action upon"
     required: true
   tg_action:
-    description: "Terragrunt action to perform (`apply`, `plan`, `apply_plan`, `destroy`, `init` for outputs-only, or `graph` for Graphviz JSON)"
+    description: "Terragrunt action to perform (`apply`, `plan`, `apply_plan`, `destroy`, `init` for outputs-only, or `graph` for raw run-all graph output)"
     required: true
     default: apply
 
@@ -29,9 +29,9 @@ outputs:
   tg_outputs:
     description: "All Terraform outputs in JSON format"
     value: ${{ steps.tg_outputs.outputs.terraform_json }}
-  tg_graph_json:
-    description: "Terragrunt run-all dependency graph rendered as compact Graphviz JSON"
-    value: ${{ steps.tg_graph.outputs.graph_json }}
+  tg_graph_output:
+    description: "Raw Terragrunt run-all dependency graph output"
+    value: ${{ steps.tg_graph.outputs.graph_output }}
 
 runs:
   using: "composite"
@@ -55,13 +55,6 @@ runs:
     - name: Verify Terragrunt installation
       shell: bash
       run: terragrunt --version
-
-    - name: Install Graphviz
-      if: inputs.tg_action == 'graph'
-      shell: bash
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y graphviz
 
     - name: Normalize and write override_tg_vars
       if: inputs.tg_action == 'apply' || inputs.tg_action == 'plan' || inputs.tg_action == 'destroy'
@@ -168,8 +161,11 @@ runs:
       working-directory: ${{ inputs.tg_directory }}
       run: |
         echo "🕸️ Rendering Terragrunt run-all dependency graph..."
-        graph_json="$(terragrunt run-all graph-dependencies --terragrunt-non-interactive --terragrunt-include-external-dependencies | dot -Tjson | jq -c .)"
-        echo "graph_json=$graph_json" >> "$GITHUB_OUTPUT"
+        {
+          echo "graph_output<<EOF"
+          terragrunt run-all graph-dependencies --terragrunt-non-interactive --terragrunt-include-external-dependencies
+          echo "EOF"
+        } >> "$GITHUB_OUTPUT"
         echo "✅ Terragrunt graph captured."
 
     - name: Capture Terraform Outputs

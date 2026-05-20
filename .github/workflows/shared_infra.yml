@@ -82,7 +82,7 @@ jobs:
         id: changed_items_json
         uses: ./.github/actions/just
         env:
-          TG_GRAPH_JSON: ${{ steps.tg_graph.outputs.tg_graph_json }}
+          TG_GRAPH_OUTPUT: ${{ steps.tg_graph.outputs.tg_graph_output }}
           TG_GRAPH_METADATA_PLAN_RUN_ID: ${{ inputs.plan_run_id }}
           BUCKET_NAME: ${{ env.PLAN_BUCKET }}
         with:

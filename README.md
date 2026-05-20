@@ -98,16 +98,19 @@ Given a Terragrunt file is found at `infra/live/dev/aws/lambda_api/terragrunt.hc
 just tg dev aws/lambda_api plan
 ```
 
-The Terragrunt graph helpers require Graphviz locally because they convert DOT output with `dot -Tjson`:
-
-```sh
-brew install graphviz
-```
-
-To print the Terragrunt dependency graph as raw Graphviz JSON:
+To print the Terragrunt `run-all` dependency graph as raw Terragrunt output:
 
 ```sh
 just tg-graph dev > graph.json
+```
+
+That runs the same non-interactive Terragrunt graph command used in CI:
+
+```sh
+cd infra/live/dev/aws
+terragrunt run-all graph-dependencies \
+  --terragrunt-non-interactive \
+  --terragrunt-include-external-dependencies
 ```
 
 To process that saved graph file into compact dependency JSON:
