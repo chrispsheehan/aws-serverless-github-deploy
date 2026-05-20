@@ -98,10 +98,16 @@ Given a Terragrunt file is found at `infra/live/dev/aws/lambda_api/terragrunt.hc
 just tg dev aws/lambda_api plan
 ```
 
-To print the Terragrunt `run-all` dependency graph as raw Terragrunt output:
+To return the direct dependencies for every module as a JSON object:
 
 ```sh
-just tg-graph dev > graph.json
+just tg-all-module-dependencies dev
+```
+
+If you only need the raw Terragrunt graph output:
+
+```sh
+just tg-graph dev > graph.txt
 ```
 
 That runs the same non-interactive Terragrunt graph command used in CI:

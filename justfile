@@ -162,6 +162,72 @@ tg-graph env provider='aws':
       --terragrunt-non-interactive \
       --terragrunt-include-external-dependencies
 
+# Return the direct Terragrunt dependencies for all modules as a JSON object.
+tg-all-module-dependencies env provider='aws':
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd {{justfile_directory()}}/infra/live/{{env}}/{{provider}}
+
+    tmp_graph="$(mktemp)"
+    tmp_nodes="$(mktemp)"
+    tmp_edges="$(mktemp)"
+    trap 'rm -f "$tmp_graph" "$tmp_nodes" "$tmp_edges"' EXIT
+
+    terragrunt run-all graph-dependencies \
+      --terragrunt-non-interactive \
+      --terragrunt-include-external-dependencies \
+      > "$tmp_graph"
+
+    awk -F'"' '
+      /->/ && NF >= 4 {
+        from = $2
+        to = $4
+        sub(".*/", "", from)
+        sub(".*/", "", to)
+        print from "\t" to
+        next
+      }
+      /^[[:space:]]*"/ && /;[[:space:]]*$/ && NF >= 2 {
+        node = $2
+        sub(".*/", "", node)
+        print node
+      }
+    ' "$tmp_graph" \
+      | while IFS= read -r line; do
+          if [[ "$line" == *$'\t'* ]]; then
+            printf '%s\n' "$line" >> "$tmp_edges"
+          elif [[ -n "$line" ]]; then
+            printf '%s\n' "$line" >> "$tmp_nodes"
+          fi
+        done
+
+    {
+      cat "$tmp_nodes"
+      awk -F'\t' 'NF >= 2 { print $1; print $2 }' "$tmp_edges"
+    } \
+      | sort -u \
+      | while IFS= read -r node; do
+          [[ -n "$node" ]] || continue
+          deps="$(
+            awk -F'\t' -v target="$node" '$1 == target { print $2 }' "$tmp_edges" \
+              | sort -u \
+              | jq -R . \
+              | jq -s -c .
+          )"
+          printf '%s\t%s\n' "$node" "$deps"
+        done \
+      | jq -R -s '
+          split("\n")
+          | map(select(length > 0))
+          | map(split("\t"))
+          | map(select(length == 2))
+          | reduce .[] as $pair
+              ({};
+               .[$pair[0]] = ($pair[1] | fromjson)
+              )
+        ' \
+      | jq -c .
+
 
 # Process a saved raw Terragrunt graph file into compact dependency JSON.
 # Set TG_GRAPH_METADATA_PLAN_RUN_ID and BUCKET_NAME to join saved-plan metadata.
