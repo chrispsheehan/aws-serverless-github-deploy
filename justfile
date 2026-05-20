@@ -164,14 +164,20 @@ tg-graph env provider='aws':
       --terragrunt-log-level error
 
 
-# Run tg-graph once locally and feed the raw output into the CI parser.
-tg-graph-json env provider='aws':
+# Run tg-graph once locally and feed the raw output through the CI graph and
+# wave processors.
+tg-graph-waves env provider='aws':
     #!/usr/bin/env bash
     set -euo pipefail
     cd {{justfile_directory()}}
 
-    TG_GRAPH_OUTPUT="$(just tg-graph "{{env}}" "{{provider}}")" \
-      just --justfile "{{justfile_directory()}}/justfile.ci" tg-graph-output-to-json "{{env}}" "{{provider}}"
+    tg_graph_json="$(
+      TG_GRAPH_OUTPUT="$(just tg-graph "{{env}}" "{{provider}}")" \
+        just --justfile "{{justfile_directory()}}/justfile.ci" tg-graph-output-to-json "{{env}}" "{{provider}}"
+    )"
+
+    TG_GRAPH_JSON="$tg_graph_json" \
+      just --justfile "{{justfile_directory()}}/justfile.ci" tg-graph-json-to-waves
 
 
 # Open an ECS Exec shell in the worker debug container.

@@ -104,10 +104,10 @@ To return the direct dependencies for every module as a JSON object:
 just tg-all-module-dependencies dev
 ```
 
-To test the JSON processor locally through the same split used by CI, run:
+To test the wave-matrix processor locally through the same split used by CI, run:
 
 ```sh
-just tg-graph-json dev
+just tg-graph-waves dev
 ```
 
 If you only need the raw Terragrunt graph output:
