@@ -78,23 +78,17 @@ jobs:
           tg_directory: infra/live/${{ inputs.environment }}/aws
           tg_action: graph
 
-      - name: Write graph JSON for filter helper
-        shell: bash
-        env:
-          TG_GRAPH_JSON: ${{ steps.tg_graph.outputs.tg_graph_json }}
-        run: |
-          printf '%s\n' "$TG_GRAPH_JSON" > "$RUNNER_TEMP/terragrunt-graph.json"
-
       - name: Run changed-items helper
         id: changed_items_json
         uses: ./.github/actions/just
         env:
+          TG_GRAPH_JSON: ${{ steps.tg_graph.outputs.tg_graph_json }}
           TG_GRAPH_METADATA_PLAN_RUN_ID: ${{ inputs.plan_run_id }}
           BUCKET_NAME: ${{ env.PLAN_BUCKET }}
         with:
           aws_region: ${{ env.AWS_REGION }}
           justfile_path: justfile.ci
-          just_action: tg-graph-changed-items-json $RUNNER_TEMP/terragrunt-graph.json ${{ inputs.environment }}
+          just_action: tg-graph-changed-items-json ${{ inputs.environment }}
 
       - name: Print changed Terragrunt graph items
         shell: bash
