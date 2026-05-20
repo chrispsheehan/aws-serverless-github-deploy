@@ -12,6 +12,77 @@ EXTRA_CONTAINER_DIRECTORIES := `just --justfile justfile --evaluate EXTRA_CONTAI
 NON_SERVICE_CONTAINER_DIRECTORIES := `just --justfile justfile --evaluate NON_SERVICE_CONTAINER_DIRECTORIES`
 
 
+# Print the Terragrunt dependency graph for one environment/provider root as JSON.
+tg-graph env provider='aws':
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd "{{PROJECT_DIR}}"
+    graph_output="$(
+      terragrunt graph-dependencies --terragrunt-working-dir infra/live/{{env}}/{{provider}}
+    )"
+
+    nodes_json="$(
+      printf '%s\n' "$graph_output" \
+        | awk '
+            /->/ { next }
+            /digraph[[:space:]]*\{/ { next }
+            /\}/ { next }
+            /"/ {
+              match($0, /"[^"]+"/)
+              if (RSTART > 0) {
+                print substr($0, RSTART + 1, RLENGTH - 2)
+              }
+            }
+          ' \
+        | sort -u \
+        | jq -Rsc 'split("\n") | map(select(length > 0))'
+    )"
+
+    edges_json="$(
+      printf '%s\n' "$graph_output" \
+        | awk '
+            /->/ {
+              match($0, /"[^"]+"/)
+              from = substr($0, RSTART + 1, RLENGTH - 2)
+              remainder = substr($0, RSTART + RLENGTH)
+              match(remainder, /"[^"]+"/)
+              to = substr(remainder, RSTART + 1, RLENGTH - 2)
+              print from "\t" to
+            }
+          ' \
+        | jq -Rsc '
+            split("\n")
+            | map(select(length > 0))
+            | map(split("\t"))
+            | map({from: .[0], to: .[1]})
+          '
+    )"
+
+    jq -n \
+      --arg environment "{{env}}" \
+      --arg provider "{{provider}}" \
+      --argjson nodes "$nodes_json" \
+      --argjson edges "$edges_json" \
+      '
+        {
+          environment: $environment,
+          provider: $provider,
+          nodes: $nodes,
+          edges: $edges,
+          dependencies: (
+            reduce $nodes[] as $node
+              ({};
+               .[$node] = (
+                 $edges
+                 | map(select(.from == $node) | .to)
+                 | sort
+               )
+              )
+          )
+        }
+      '
+
+
 # Run `tflint` across Terraform module directories.
 tf-lint-check:
     #!/bin/bash

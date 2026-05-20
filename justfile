@@ -152,13 +152,6 @@ tg-all op:
     terragrunt run-all {{op}}
 
 
-# Print the Terragrunt dependency graph for one environment/provider root.
-tg-graph env provider='aws':
-    #!/usr/bin/env bash
-    cd {{justfile_directory()}}
-    terragrunt graph-dependencies --terragrunt-working-dir infra/live/{{env}}/{{provider}}
-
-
 # Open an ECS Exec shell in the worker debug container.
 worker-debug-shell env:
     #!/usr/bin/env bash
