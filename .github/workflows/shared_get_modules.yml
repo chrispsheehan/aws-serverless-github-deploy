@@ -38,7 +38,7 @@ jobs:
   generate_waves:
     runs-on: ubuntu-latest
     outputs:
-      waves_json: ${{ steps.waves_json.outputs.just_outputs }}
+      waves_json: ${{ steps.filtered_waves.outputs.waves_json }}
       wave_0_modules: ${{ steps.wave_outputs.outputs.wave_0_modules }}
       wave_1_modules: ${{ steps.wave_outputs.outputs.wave_1_modules }}
       wave_2_modules: ${{ steps.wave_outputs.outputs.wave_2_modules }}
@@ -77,11 +77,24 @@ jobs:
           justfile_path: justfile.ci
           just_action: tg-graph-json-to-waves
 
+      - name: Exclude task modules from wave matrix
+        id: filtered_waves
+        shell: bash
+        env:
+          RAW_WAVES_JSON: ${{ steps.waves_json.outputs.just_outputs }}
+        run: |
+          echo "waves_json=$(jq -c '
+            map(.modules |= map(select(. != "task_api" and . != "task_worker")))
+            | map(select(.modules | length > 0))
+            | to_entries
+            | map({wave: .key, modules: .value.modules})
+          ' <<<"$RAW_WAVES_JSON")" >> "$GITHUB_OUTPUT"
+
       - name: Expose wave module arrays
         id: wave_outputs
         shell: bash
         env:
-          WAVES_JSON: ${{ steps.waves_json.outputs.just_outputs }}
+          WAVES_JSON: ${{ steps.filtered_waves.outputs.waves_json }}
         run: |
           echo "wave_0_modules=$(jq -c '.[0].modules // []' <<<"$WAVES_JSON")" >> "$GITHUB_OUTPUT"
           echo "wave_1_modules=$(jq -c '.[1].modules // []' <<<"$WAVES_JSON")" >> "$GITHUB_OUTPUT"
@@ -90,7 +103,7 @@ jobs:
       - name: Print Terragrunt wave matrix
         shell: bash
         env:
-          WAVES_JSON: ${{ steps.waves_json.outputs.just_outputs }}
+          WAVES_JSON: ${{ steps.filtered_waves.outputs.waves_json }}
         run: |
           printf '%s\n' "$WAVES_JSON" | tee waves.json
           {
