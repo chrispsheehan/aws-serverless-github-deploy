@@ -11,23 +11,11 @@ on:
         description: "Version of infrastructure (terraform) to be deployed"
         required: true
         type: string
-      code_bucket:
-        description: "Bucket containing build artifacts"
-        required: true
-        type: string
       bootstrap_image_uri:
         description: "Bootstrap ECS image URI"
         required: false
         type: string
         default: ""
-      lambda_matrix:
-        required: false
-        type: string
-        default: "[]"
-      service_matrix:
-        required: false
-        type: string
-        default: "[]"
       tg_action:
         description: "Terragrunt action to run across the infra graph"
         required: false

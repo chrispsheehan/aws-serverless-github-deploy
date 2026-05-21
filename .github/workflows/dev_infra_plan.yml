@@ -15,7 +15,4 @@ jobs:
     with:
       environment: dev
       infra_version: ${{ github.sha }}
-      code_bucket: ""
-      lambda_matrix: "[]"
       bootstrap_image_uri: ""
-      service_matrix: "[]"

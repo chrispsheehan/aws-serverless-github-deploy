@@ -107,6 +107,7 @@ These instructions apply to the entire repository.
 - verify required infra resources exist (CodeDeploy app/deployment group, listeners/target groups, alarms, VPC link if applicable)
 - before adding a Terragrunt `dependency` or `dependencies` path, verify the target live stack actually exists in that environment/repo slice
 - when changing reusable workflow contracts, compare every caller `with:` block to the callee `workflow_call.inputs`
+- when a workflow input, output, or metadata field is no longer consumed, remove it from the shared contract and callers in the same change rather than leaving dead plumbing behind
 - when adding or renaming Terraform module `output` values that are intended for Terragrunt `dependency.<name>.outputs` passthrough, verify every downstream consumer wrapper declares a `variable` with the exact same name
 - if that same-name output-to-variable contract does not hold yet, do not leave it implicit: either add the matching variables, or call out the mismatch explicitly before closing the task
 - check apply/deploy/destroy, and avoid unnecessary `terraform_remote_state` coupling (especially for fast-changing outputs)
