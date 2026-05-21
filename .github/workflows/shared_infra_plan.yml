@@ -86,6 +86,17 @@ jobs:
           tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}
           tg_action: ${{ inputs.tg_action }}
 
+      - name: Upload plan files
+        if: ${{ success() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: terragrunt-plan-${{ inputs.environment }}-${{ matrix.module }}
+          path: |
+            infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}/terragrunt.plan.meta.json
+            infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}/terragrunt.tfplan
+            infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}/terragrunt.plan.txt
+          if-no-files-found: warn
+
   wave_1:
     needs:
       - generate_waves
@@ -112,6 +123,16 @@ jobs:
         with:
           tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}
           tg_action: ${{ inputs.tg_action }}
+      - name: Upload plan files
+        if: ${{ success() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: terragrunt-plan-${{ inputs.environment }}-${{ matrix.module }}
+          path: |
+            infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}/terragrunt.plan.meta.json
+            infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}/terragrunt.tfplan
+            infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}/terragrunt.plan.txt
+          if-no-files-found: warn
 
   wave_2:
     needs:
@@ -139,6 +160,16 @@ jobs:
         with:
           tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}
           tg_action: ${{ inputs.tg_action }}
+      - name: Upload plan files
+        if: ${{ success() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: terragrunt-plan-${{ inputs.environment }}-${{ matrix.module }}
+          path: |
+            infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}/terragrunt.plan.meta.json
+            infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}/terragrunt.tfplan
+            infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}/terragrunt.plan.txt
+          if-no-files-found: warn
 
   plan_context:
     name: Plan Context
