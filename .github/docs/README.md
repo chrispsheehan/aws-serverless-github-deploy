@@ -111,7 +111,7 @@ flowchart LR
 - `dev_infra_apply.yml`
   Entry point for dev infra apply. It currently calls the shared infra workflow directly with empty placeholder values for `code_bucket`, `lambda_matrix`, `bootstrap_image_uri`, and `service_matrix`, because the temporary wave-placeholder executor does not yet consume the old discovery/artifact inputs.
 - `dev_infra_plan.yml`
-  Entry point for dev infra plan. It discovers runtime directories, prepares dev artifact references, and then runs the shared infra wrapper in direct-input `plan` mode.
+  Entry point for dev infra plan. It currently calls the shared infra plan wrapper directly with empty placeholder values for `code_bucket`, `lambda_matrix`, `bootstrap_image_uri`, and `service_matrix`, because the temporary wave-placeholder executor does not yet consume the old discovery/artifact inputs.
 - `dev_infra_plan_and_apply.yml`
   Entry point for dev infra plan-then-apply. It captures the current workflow `run_id` as plan context, runs the shared infra wrapper in direct-input `plan` mode so that the wrapper emits both plan artifacts and `infra-plan-metadata`, and then reruns the same ordered infra graph in metadata-backed `apply_plan` mode.
 - `prod_infra_plan.yml`
