@@ -61,6 +61,7 @@ jobs:
     with:
       environment: ${{ inputs.environment }}
       infra_version: ${{ inputs.infra_version }}
+      ignore_task_modules: true
 
   wave_0:
     needs: generate_waves

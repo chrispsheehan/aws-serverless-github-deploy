@@ -11,6 +11,11 @@ on:
         description: "Version of infrastructure (terraform) to inspect"
         required: true
         type: string
+      ignore_task_modules:
+        description: "Whether to exclude task_* modules from emitted waves"
+        required: false
+        type: boolean
+        default: false
     outputs:
       waves_json:
         description: "Dependency-safe Terragrunt wave matrix JSON"
@@ -77,18 +82,23 @@ jobs:
           justfile_path: justfile.ci
           just_action: tg-graph-json-to-waves
 
-      - name: Exclude task modules from wave matrix
+      - name: Optionally exclude task modules from wave matrix
         id: filtered_waves
         shell: bash
         env:
           RAW_WAVES_JSON: ${{ steps.waves_json.outputs.just_outputs }}
+          IGNORE_TASK_MODULES: ${{ inputs.ignore_task_modules }}
         run: |
           echo "waves_json=$(jq -c '
-            map(.modules |= map(select(. != "task_api" and . != "task_worker")))
+            if $ignore_tasks then
+              map(.modules |= map(select(startswith("task_") | not)))
+            else
+              .
+            end
             | map(select(.modules | length > 0))
             | to_entries
             | map({wave: .key, modules: .value.modules})
-          ' <<<"$RAW_WAVES_JSON")" >> "$GITHUB_OUTPUT"
+          ' --argjson ignore_tasks "$IGNORE_TASK_MODULES" <<<"$RAW_WAVES_JSON")" >> "$GITHUB_OUTPUT"
 
       - name: Expose wave module arrays
         id: wave_outputs
