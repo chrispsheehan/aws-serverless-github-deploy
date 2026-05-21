@@ -64,6 +64,7 @@ jobs:
 
   wave_0:
     needs: generate_waves
+    name: 0 / ${{ matrix.module }}
     if: ${{ needs.generate_waves.outputs.wave_0_modules != '[]' }}
     runs-on: ubuntu-latest
     strategy:
@@ -90,6 +91,7 @@ jobs:
     needs:
       - generate_waves
       - wave_0
+    name: 1 / ${{ matrix.module }}
     if: ${{ always() && needs.generate_waves.outputs.wave_1_modules != '[]' && (needs.wave_0.result == 'success' || needs.wave_0.result == 'skipped') }}
     runs-on: ubuntu-latest
     strategy:
@@ -116,6 +118,7 @@ jobs:
     needs:
       - generate_waves
       - wave_1
+    name: 2 / ${{ matrix.module }}
     if: ${{ always() && needs.generate_waves.outputs.wave_2_modules != '[]' && (needs.wave_1.result == 'success' || needs.wave_1.result == 'skipped') }}
     runs-on: ubuntu-latest
     strategy:
