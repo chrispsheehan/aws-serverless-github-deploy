@@ -82,7 +82,7 @@ flowchart LR
 ### Infra And Code Rollout
 
 - `shared_infra_plan.yml`
-  Plan wrapper around `shared_infra.yml`. It takes resolved workflow inputs directly, uploads one run-level `plan-metadata.json` file as a GitHub Actions artifact named `infra-plan-metadata`, and then calls `shared_infra.yml` with `tg_action: plan` plus `plan_run_id: ${{ github.run_id }}`. After the plan completes, it prints the current workflow `github.run_id` into both the logs and the GitHub Actions step summary as `plan_artifact_run_id`, and exposes that value as a reusable-workflow output.
+  Plan wrapper around `shared_infra.yml`. It takes resolved workflow inputs directly, uploads one run-level `plan-metadata.json` file as a GitHub Actions artifact named `infra-plan-metadata`, starts `shared_get_modules.yml` in parallel to derive the current wave outputs, and then calls `shared_infra.yml` with `tg_action: plan` plus `plan_run_id: ${{ github.run_id }}`. After the plan completes, it prints the current workflow `github.run_id` into both the logs and the GitHub Actions step summary as `plan_artifact_run_id`, and exposes that value as a reusable-workflow output.
 - `shared_infra_apply.yml`
   Direct-input apply wrapper around `shared_infra.yml`. It takes resolved workflow inputs directly and calls `shared_infra.yml` with `tg_action: apply`.
 - `shared_infra_apply_from_plan.yml`
