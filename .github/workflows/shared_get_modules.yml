@@ -1,0 +1,103 @@
+name: Shared Get Modules
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: environment reference i.e. 'prod' or 'dev'
+        required: true
+        type: string
+      infra_version:
+        description: "Version of infrastructure (terraform) to inspect"
+        required: true
+        type: string
+    outputs:
+      waves_json:
+        description: "Dependency-safe Terragrunt wave matrix JSON"
+        value: ${{ jobs.generate_waves.outputs.waves_json }}
+      wave_0_modules:
+        description: "Wave 0 module array"
+        value: ${{ jobs.generate_waves.outputs.wave_0_modules }}
+      wave_1_modules:
+        description: "Wave 1 module array"
+        value: ${{ jobs.generate_waves.outputs.wave_1_modules }}
+      wave_2_modules:
+        description: "Wave 2 module array"
+        value: ${{ jobs.generate_waves.outputs.wave_2_modules }}
+
+permissions:
+  id-token: write
+  contents: read
+  actions: read
+
+env:
+  AWS_OIDC_ROLE_ARN: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/${{ vars.PROJECT_NAME }}-${{ inputs.environment }}-github-oidc-role
+  AWS_REGION: ${{ vars.AWS_REGION }}
+
+jobs:
+  generate_waves:
+    runs-on: ubuntu-latest
+    outputs:
+      waves_json: ${{ steps.waves_json.outputs.just_outputs }}
+      wave_0_modules: ${{ steps.wave_outputs.outputs.wave_0_modules }}
+      wave_1_modules: ${{ steps.wave_outputs.outputs.wave_1_modules }}
+      wave_2_modules: ${{ steps.wave_outputs.outputs.wave_2_modules }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.infra_version }}
+
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Render Terragrunt graph
+        id: tg_graph
+        uses: ./.github/actions/terragrunt
+        with:
+          tg_directory: infra/live/${{ inputs.environment }}/aws
+          tg_action: graph
+
+      - name: Convert graph output to compact JSON
+        id: tg_graph_json
+        uses: ./.github/actions/just
+        env:
+          TG_GRAPH_OUTPUT: ${{ steps.tg_graph.outputs.tg_graph_output }}
+        with:
+          justfile_path: justfile.ci
+          just_action: tg-graph-output-to-json ${{ inputs.environment }}
+
+      - name: Build wave matrix JSON
+        id: waves_json
+        uses: ./.github/actions/just
+        env:
+          TG_GRAPH_JSON: ${{ steps.tg_graph_json.outputs.just_outputs }}
+        with:
+          justfile_path: justfile.ci
+          just_action: tg-graph-json-to-waves
+
+      - name: Expose wave module arrays
+        id: wave_outputs
+        shell: bash
+        env:
+          WAVES_JSON: ${{ steps.waves_json.outputs.just_outputs }}
+        run: |
+          echo "wave_0_modules=$(jq -c '.[0].modules // []' <<<"$WAVES_JSON")" >> "$GITHUB_OUTPUT"
+          echo "wave_1_modules=$(jq -c '.[1].modules // []' <<<"$WAVES_JSON")" >> "$GITHUB_OUTPUT"
+          echo "wave_2_modules=$(jq -c '.[2].modules // []' <<<"$WAVES_JSON")" >> "$GITHUB_OUTPUT"
+
+      - name: Print Terragrunt wave matrix
+        shell: bash
+        env:
+          WAVES_JSON: ${{ steps.waves_json.outputs.just_outputs }}
+        run: |
+          printf '%s\n' "$WAVES_JSON" | tee waves.json
+          {
+            echo "## Terragrunt Wave Matrix"
+            echo
+            echo '```json'
+            cat waves.json
+            echo
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

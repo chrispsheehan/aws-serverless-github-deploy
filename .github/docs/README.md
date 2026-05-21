@@ -136,6 +136,8 @@ flowchart LR
 - `shared_directories_get.yml`
   Derives the directory-based matrices used by wrapper workflows and PR action-test discovery.
   The distinction between `service_dirs` and `container_dirs` is intentional: `service_dirs` contains deployable ECS service image directories only, while `container_dirs` also includes shared ECS sidecar image targets such as `debug` and `otel_collector`. ECS artifact builds that feed `shared_build.yml` should use `container_dirs` for `ecs_matrix`, because ECS task deploys need the shared sidecar images as well as the service images. Workflows that only need app service names or task/service stack derivation should use `service_dirs`.
+- `shared_get_modules.yml`
+  Reusable module-discovery workflow for infra waves. It renders the Terragrunt graph for the target environment, converts that graph into compact JSON, derives dependency-safe waves, and exposes `waves_json`, `wave_0_modules`, `wave_1_modules`, and `wave_2_modules` as reusable-workflow outputs.
 
 ## Feasibility Checks
 
