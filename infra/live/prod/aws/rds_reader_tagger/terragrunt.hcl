@@ -16,22 +16,11 @@ dependency "database" {
   mock_outputs_allowed_terraform_commands = ["validate", "plan", "destroy", "init", "show", "graph-dependencies", "output-module-groups"]
 }
 
-dependency "code_bucket" {
-  config_path = "${get_original_terragrunt_dir()}/../code_bucket"
-
-  mock_outputs = {
-    bucket = "mock-code-bucket"
-  }
-
-  mock_outputs_allowed_terraform_commands = ["validate", "plan", "destroy", "init", "show", "graph-dependencies", "output-module-groups"]
-}
-
 terraform {
   source = "../../../../modules//aws//rds_reader_tagger"
 }
 
 inputs = {
-  code_bucket                     = dependency.code_bucket.outputs.bucket
   database_credentials_secret_arn = dependency.database.outputs.database_credentials_secret_arn
   database_readwrite_endpoint     = dependency.database.outputs.database_readwrite_endpoint
   database_name                   = dependency.database.outputs.database_name

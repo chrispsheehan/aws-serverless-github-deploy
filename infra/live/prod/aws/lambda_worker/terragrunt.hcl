@@ -23,24 +23,11 @@ dependency "messaging" {
   mock_outputs_allowed_terraform_commands = ["validate", "plan", "destroy", "init", "show", "graph-dependencies", "output-module-groups"]
 }
 
-dependency "code_bucket" {
-  config_path = "${get_original_terragrunt_dir()}/../code_bucket"
-
-  mock_outputs = {
-    bucket = "mock-code-bucket"
-  }
-
-  mock_outputs_allowed_terraform_commands = ["validate", "plan", "destroy", "init", "show", "graph-dependencies", "output-module-groups"]
-}
-
 terraform {
   source = "../../../../modules//aws//lambda_worker"
 }
 
 inputs = merge(
-  {
-    code_bucket = dependency.code_bucket.outputs.bucket
-  },
   dependency.messaging.outputs,
   {
     sqs_dlq_alarm_threshold           = 5 # fail when there are 5 messages in the DLQ

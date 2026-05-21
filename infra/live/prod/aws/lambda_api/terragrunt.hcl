@@ -44,24 +44,11 @@ dependency "messaging" {
   mock_outputs_allowed_terraform_commands = ["validate", "plan", "destroy", "init", "show", "graph-dependencies", "output-module-groups"]
 }
 
-dependency "code_bucket" {
-  config_path = "${get_original_terragrunt_dir()}/../code_bucket"
-
-  mock_outputs = {
-    bucket = "mock-code-bucket"
-  }
-
-  mock_outputs_allowed_terraform_commands = ["validate", "plan", "destroy", "init", "show", "graph-dependencies", "output-module-groups"]
-}
-
 terraform {
   source = "../../../../modules//aws//lambda_api"
 }
 
 inputs = merge(
-  {
-    code_bucket = dependency.code_bucket.outputs.bucket
-  },
   {
     network_default_target_group_arn  = dependency.network.outputs.default_target_group_arn
     network_load_balancer_arn         = dependency.network.outputs.load_balancer_arn
