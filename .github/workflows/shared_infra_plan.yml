@@ -86,7 +86,7 @@ jobs:
         uses: ./.github/actions/terragrunt
         with:
           tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}
-          tg_action: ${{ inputs.tg_action }}
+          tg_action: plan
 
       - name: Upload plan files
         if: ${{ success() }}
@@ -124,7 +124,7 @@ jobs:
         uses: ./.github/actions/terragrunt
         with:
           tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}
-          tg_action: ${{ inputs.tg_action }}
+          tg_action: plan
       - name: Upload plan files
         if: ${{ success() }}
         uses: actions/upload-artifact@v7
@@ -161,7 +161,7 @@ jobs:
         uses: ./.github/actions/terragrunt
         with:
           tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}
-          tg_action: ${{ inputs.tg_action }}
+          tg_action: plan
       - name: Upload plan files
         if: ${{ success() }}
         uses: actions/upload-artifact@v7
