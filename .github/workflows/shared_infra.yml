@@ -69,8 +69,20 @@ jobs:
       matrix:
         module: ${{ fromJson(needs.generate_waves.outputs.wave_0_modules) }}
     steps:
-      - name: ${{ matrix.module }}
-        run: echo "${{ matrix.module }}"
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.infra_version }}
+
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: ${{ env.TG_ACTION_LABEL }} ${{ matrix.module }} infra
+        uses: ./.github/actions/terragrunt
+        with:
+          tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}
+          tg_action: ${{ inputs.tg_action }}
 
   wave_1:
     needs:
@@ -83,8 +95,20 @@ jobs:
       matrix:
         module: ${{ fromJson(needs.generate_waves.outputs.wave_1_modules) }}
     steps:
-      - name: ${{ matrix.module }}
-        run: echo "${{ matrix.module }}"
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.infra_version }}
+
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: ${{ env.TG_ACTION_LABEL }} ${{ matrix.module }} infra
+        uses: ./.github/actions/terragrunt
+        with:
+          tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}
+          tg_action: ${{ inputs.tg_action }}
 
   wave_2:
     needs:
@@ -97,9 +121,21 @@ jobs:
       matrix:
         module: ${{ fromJson(needs.generate_waves.outputs.wave_2_modules) }}
     steps:
-      - name: ${{ matrix.module }}
-        run: echo "${{ matrix.module }}"
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.infra_version }}
 
-  # Placeholder wave jobs intentionally stop at logging module arrays. Replace
-  # them with real per-wave deployment fanout once the runtime override contract
-  # is restored for every stack type.
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: ${{ env.TG_ACTION_LABEL }} ${{ matrix.module }} infra
+        uses: ./.github/actions/terragrunt
+        with:
+          tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}
+          tg_action: ${{ inputs.tg_action }}
+
+  # Wave jobs currently apply the graph-derived module order directly through the
+  # shared Terragrunt action. Keep any runtime-specific override shaping explicit
+  # if a stack later needs more than the raw module path and tg_action.
