@@ -109,7 +109,7 @@ flowchart LR
 ### Wrapper Workflows
 
 - `dev_infra_apply.yml`
-  Entry point for dev infra apply.
+  Entry point for dev infra apply. It currently calls the shared infra workflow directly with empty placeholder values for `code_bucket`, `lambda_matrix`, `bootstrap_image_uri`, and `service_matrix`, because the temporary wave-placeholder executor does not yet consume the old discovery/artifact inputs.
 - `dev_infra_plan.yml`
   Entry point for dev infra plan. It discovers runtime directories, prepares dev artifact references, and then runs the shared infra wrapper in direct-input `plan` mode.
 - `dev_infra_plan_and_apply.yml`
