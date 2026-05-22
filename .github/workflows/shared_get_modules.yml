@@ -21,6 +21,11 @@ on:
         required: false
         type: boolean
         default: false
+      ignore_oidc_module:
+        description: "Whether to exclude the oidc module from emitted waves"
+        required: false
+        type: boolean
+        default: false
     outputs:
       waves_json:
         description: "Dependency-safe Terragrunt wave matrix JSON"
@@ -98,6 +103,7 @@ jobs:
           RAW_WAVES_JSON: ${{ steps.waves_json.outputs.just_outputs }}
           IGNORE_TASK_MODULES: ${{ inputs.ignore_task_modules }}
           IGNORE_SHARED_ARTIFACT_MODULES: ${{ inputs.ignore_shared_artifact_modules }}
+          IGNORE_OIDC_MODULE: ${{ inputs.ignore_oidc_module }}
         run: |
           echo "waves_json=$(jq -c '
             if $ignore_tasks then
@@ -110,10 +116,15 @@ jobs:
               else
                 .
               end
+            | if $ignore_oidc_module then
+                map(.modules |= map(select(. != "oidc")))
+              else
+                .
+              end
             | map(select(.modules | length > 0))
             | to_entries
             | map({wave: .key, modules: .value.modules})
-          ' --argjson ignore_tasks "$IGNORE_TASK_MODULES" --argjson ignore_shared_artifact_modules "$IGNORE_SHARED_ARTIFACT_MODULES" <<<"$RAW_WAVES_JSON")" >> "$GITHUB_OUTPUT"
+          ' --argjson ignore_tasks "$IGNORE_TASK_MODULES" --argjson ignore_shared_artifact_modules "$IGNORE_SHARED_ARTIFACT_MODULES" --argjson ignore_oidc_module "$IGNORE_OIDC_MODULE" <<<"$RAW_WAVES_JSON")" >> "$GITHUB_OUTPUT"
 
       - name: Expose wave module arrays
         id: wave_outputs

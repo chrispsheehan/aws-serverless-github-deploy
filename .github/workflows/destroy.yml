@@ -38,6 +38,7 @@ jobs:
       environment: ${{ inputs.environment }}
       infra_version: ${{ github.sha }}
       ignore_shared_artifact_modules: ${{ inputs.environment == 'prod' && !inputs.allow_prod_cleanup }}
+      ignore_oidc_module: true
 
   wave_3:
     name: 3 / ${{ matrix.module }}
