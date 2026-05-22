@@ -14,7 +14,7 @@ dependency "security" {
     postgres_sg      = "sg-00000000000000006"
   }
 
-  mock_outputs_merge_strategy_with_state = "shallow"
+  mock_outputs_merge_strategy_with_state  = "shallow"
   mock_outputs_allowed_terraform_commands = ["validate", "plan", "destroy", "init", "show", "graph-dependencies", "output-module-groups"]
 }
 
@@ -29,7 +29,7 @@ dependency "database" {
     database_cluster_identifier     = "mock-database-cluster"
   }
 
-  mock_outputs_merge_strategy_with_state = "shallow"
+  mock_outputs_merge_strategy_with_state  = "shallow"
   mock_outputs_allowed_terraform_commands = ["validate", "plan", "destroy", "init", "show", "graph-dependencies", "output-module-groups"]
 }
 
@@ -40,7 +40,7 @@ dependency "code_bucket" {
     bucket = "mock-code-bucket"
   }
 
-  mock_outputs_merge_strategy_with_state = "shallow"
+  mock_outputs_merge_strategy_with_state  = "shallow"
   mock_outputs_allowed_terraform_commands = ["validate", "plan", "destroy", "init", "show", "graph-dependencies", "output-module-groups"]
 }
 

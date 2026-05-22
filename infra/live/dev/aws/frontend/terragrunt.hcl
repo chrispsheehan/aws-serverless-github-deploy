@@ -9,7 +9,7 @@ dependency "network" {
     api_invoke_url = "https://mockapi123.execute-api.eu-west-2.amazonaws.com"
   }
 
-  mock_outputs_merge_strategy_with_state = "shallow"
+  mock_outputs_merge_strategy_with_state  = "shallow"
   mock_outputs_allowed_terraform_commands = ["validate", "plan", "destroy", "init", "show", "graph-dependencies", "output-module-groups"]
 }
 
@@ -23,7 +23,7 @@ dependency "cognito" {
     auth_readonly_group_name = "readonly"
   }
 
-  mock_outputs_merge_strategy_with_state = "shallow"
+  mock_outputs_merge_strategy_with_state  = "shallow"
   mock_outputs_allowed_terraform_commands = ["validate", "plan", "destroy", "init", "show", "graph-dependencies", "output-module-groups"]
 }
 

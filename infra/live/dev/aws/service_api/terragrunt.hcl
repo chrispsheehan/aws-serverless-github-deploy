@@ -15,7 +15,7 @@ dependency "ecr" {
     repository_arn  = "arn:aws:ecr:eu-west-2:111111111111:repository/mock-ecr"
   }
 
-  mock_outputs_merge_strategy_with_state = "shallow"
+  mock_outputs_merge_strategy_with_state  = "shallow"
   mock_outputs_allowed_terraform_commands = ["validate", "plan", "destroy", "init", "show", "graph-dependencies", "output-module-groups"]
 }
 
@@ -31,7 +31,7 @@ dependency "security" {
     postgres_sg      = "sg-00000000000000006"
   }
 
-  mock_outputs_merge_strategy_with_state = "shallow"
+  mock_outputs_merge_strategy_with_state  = "shallow"
   mock_outputs_allowed_terraform_commands = ["validate", "plan", "destroy", "init", "show", "graph-dependencies", "output-module-groups"]
 }
 
@@ -43,7 +43,7 @@ dependency "cluster" {
     cluster_name = "mock-cluster"
   }
 
-  mock_outputs_merge_strategy_with_state = "shallow"
+  mock_outputs_merge_strategy_with_state  = "shallow"
   mock_outputs_allowed_terraform_commands = ["validate", "plan", "destroy", "init", "show", "graph-dependencies", "output-module-groups"]
 }
 
@@ -65,7 +65,7 @@ dependency "network" {
     http_api_authorizer_id    = "auth-mock123"
   }
 
-  mock_outputs_merge_strategy_with_state = "shallow"
+  mock_outputs_merge_strategy_with_state  = "shallow"
   mock_outputs_allowed_terraform_commands = ["validate", "plan", "destroy", "init", "show", "graph-dependencies", "output-module-groups"]
 }
 

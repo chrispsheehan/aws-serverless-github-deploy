@@ -24,7 +24,7 @@ dependency "messaging" {
     ecs_worker_queue_read_policy_arn     = "arn:aws:iam::111111111111:policy/mock-ecs-worker-queue-read"
   }
 
-  mock_outputs_merge_strategy_with_state = "shallow"
+  mock_outputs_merge_strategy_with_state  = "shallow"
   mock_outputs_allowed_terraform_commands = ["validate", "plan", "destroy", "init", "show", "graph-dependencies", "output-module-groups"]
 }
 
