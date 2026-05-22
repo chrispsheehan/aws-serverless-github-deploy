@@ -82,11 +82,11 @@ runs:
 
         case "${{ inputs.tg_action }}" in
           apply)
-            terragrunt apply -auto-approve -compact-warnings -var-file=override_tg_vars.tfvars.json
+            terragrunt --terragrunt-non-interactive apply -auto-approve -compact-warnings -var-file=override_tg_vars.tfvars.json
             ;;
           plan)
             set +e
-            terragrunt plan -input=false -lock=false -detailed-exitcode -compact-warnings -out="$PLAN_PATH" -var-file=override_tg_vars.tfvars.json 2>&1 | tee "$PLAN_LOG_PATH"
+            terragrunt --terragrunt-non-interactive plan -input=false -lock=false -detailed-exitcode -compact-warnings -out="$PLAN_PATH" -var-file=override_tg_vars.tfvars.json 2>&1 | tee "$PLAN_LOG_PATH"
             plan_exit_code=${PIPESTATUS[0]}
             set -e
 
@@ -139,7 +139,7 @@ runs:
 
             set +e
             APPLY_LOG_PATH="$(pwd)/terragrunt.apply.log"
-            terragrunt apply -auto-approve "$PLAN_PATH" 2>&1 | tee "$APPLY_LOG_PATH"
+            terragrunt --terragrunt-non-interactive apply -auto-approve "$PLAN_PATH" 2>&1 | tee "$APPLY_LOG_PATH"
             apply_exit_code=${PIPESTATUS[0]}
             set -e
 
@@ -165,11 +165,11 @@ runs:
             fi
             ;;
           destroy)
-            terragrunt destroy -auto-approve -compact-warnings -var-file=override_tg_vars.tfvars.json
+            terragrunt --terragrunt-non-interactive destroy -auto-approve -compact-warnings -var-file=override_tg_vars.tfvars.json
             ;;
           init)
             echo "Running init only (no infra changes)..."
-            terragrunt init -input=false -reconfigure
+            terragrunt --terragrunt-non-interactive init -input=false -reconfigure
             ;;
           graph)
             echo "Graph mode runs in the dedicated graph step."
