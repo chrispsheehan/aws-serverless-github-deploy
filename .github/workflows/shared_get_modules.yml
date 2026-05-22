@@ -16,6 +16,11 @@ on:
         required: false
         type: boolean
         default: false
+      ignore_shared_artifact_modules:
+        description: "Whether to exclude shared artifact modules such as code_bucket and ecr from emitted waves"
+        required: false
+        type: boolean
+        default: false
     outputs:
       waves_json:
         description: "Dependency-safe Terragrunt wave matrix JSON"
@@ -92,6 +97,7 @@ jobs:
         env:
           RAW_WAVES_JSON: ${{ steps.waves_json.outputs.just_outputs }}
           IGNORE_TASK_MODULES: ${{ inputs.ignore_task_modules }}
+          IGNORE_SHARED_ARTIFACT_MODULES: ${{ inputs.ignore_shared_artifact_modules }}
         run: |
           echo "waves_json=$(jq -c '
             if $ignore_tasks then
@@ -99,10 +105,15 @@ jobs:
             else
               .
             end
+            | if $ignore_shared_artifact_modules then
+                map(.modules |= map(select(. != "code_bucket" and . != "ecr")))
+              else
+                .
+              end
             | map(select(.modules | length > 0))
             | to_entries
             | map({wave: .key, modules: .value.modules})
-          ' --argjson ignore_tasks "$IGNORE_TASK_MODULES" <<<"$RAW_WAVES_JSON")" >> "$GITHUB_OUTPUT"
+          ' --argjson ignore_tasks "$IGNORE_TASK_MODULES" --argjson ignore_shared_artifact_modules "$IGNORE_SHARED_ARTIFACT_MODULES" <<<"$RAW_WAVES_JSON")" >> "$GITHUB_OUTPUT"
 
       - name: Expose wave module arrays
         id: wave_outputs

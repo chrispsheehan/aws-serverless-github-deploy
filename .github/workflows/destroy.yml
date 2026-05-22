@@ -37,64 +37,17 @@ jobs:
     with:
       environment: ${{ inputs.environment }}
       infra_version: ${{ github.sha }}
-
-  prepare_waves:
-    name: Prepare Destroy Waves
-    needs: generate_waves
-    runs-on: ubuntu-latest
-    outputs:
-      waves_json: ${{ steps.filter.outputs.waves_json }}
-      wave_0_modules: ${{ steps.filter.outputs.wave_0_modules }}
-      wave_1_modules: ${{ steps.filter.outputs.wave_1_modules }}
-      wave_2_modules: ${{ steps.filter.outputs.wave_2_modules }}
-      wave_3_modules: ${{ steps.filter.outputs.wave_3_modules }}
-    steps:
-      - name: Filter destroy waves
-        id: filter
-        shell: bash
-        env:
-          RAW_WAVES_JSON: ${{ needs.generate_waves.outputs.waves_json }}
-          ENVIRONMENT: ${{ inputs.environment }}
-          ALLOW_PROD_CLEANUP: ${{ inputs.allow_prod_cleanup }}
-        run: |
-          FILTERED_WAVES_JSON="$(jq -c '
-            if $environment == "prod" and ($allow_prod_cleanup | not) then
-              map(.modules |= map(select(. != "code_bucket" and . != "ecr")))
-            else
-              .
-            end
-            | map(select(.modules | length > 0))
-          ' --arg environment "$ENVIRONMENT" --argjson allow_prod_cleanup "$ALLOW_PROD_CLEANUP" <<<"$RAW_WAVES_JSON")"
-
-          echo "waves_json=$FILTERED_WAVES_JSON" >> "$GITHUB_OUTPUT"
-          echo "wave_0_modules=$(jq -c '.[0].modules // []' <<<"$FILTERED_WAVES_JSON")" >> "$GITHUB_OUTPUT"
-          echo "wave_1_modules=$(jq -c '.[1].modules // []' <<<"$FILTERED_WAVES_JSON")" >> "$GITHUB_OUTPUT"
-          echo "wave_2_modules=$(jq -c '.[2].modules // []' <<<"$FILTERED_WAVES_JSON")" >> "$GITHUB_OUTPUT"
-          echo "wave_3_modules=$(jq -c '.[3].modules // []' <<<"$FILTERED_WAVES_JSON")" >> "$GITHUB_OUTPUT"
-
-      - name: Print destroy wave matrix
-        shell: bash
-        env:
-          WAVES_JSON: ${{ steps.filter.outputs.waves_json }}
-        run: |
-          {
-            echo "## Destroy Wave Matrix"
-            echo
-            echo '```json'
-            printf '%s\n' "$WAVES_JSON" | jq .
-            echo
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
+      ignore_shared_artifact_modules: ${{ inputs.environment == 'prod' && !inputs.allow_prod_cleanup }}
 
   wave_3:
     name: 3 / ${{ matrix.module }}
-    needs: prepare_waves
-    if: ${{ needs.prepare_waves.outputs.wave_3_modules != '[]' }}
+    needs: generate_waves
+    if: ${{ needs.generate_waves.outputs.wave_3_modules != '[]' }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        module: ${{ fromJson(needs.prepare_waves.outputs.wave_3_modules) }}
+        module: ${{ fromJson(needs.generate_waves.outputs.wave_3_modules) }}
     steps:
       - uses: actions/checkout@v6
 
@@ -116,14 +69,14 @@ jobs:
   wave_2:
     name: 2 / ${{ matrix.module }}
     needs:
-      - prepare_waves
+      - generate_waves
       - wave_3
-    if: ${{ always() && needs.prepare_waves.outputs.wave_2_modules != '[]' && (needs.wave_3.result == 'success' || needs.wave_3.result == 'skipped') }}
+    if: ${{ always() && needs.generate_waves.outputs.wave_2_modules != '[]' && (needs.wave_3.result == 'success' || needs.wave_3.result == 'skipped') }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        module: ${{ fromJson(needs.prepare_waves.outputs.wave_2_modules) }}
+        module: ${{ fromJson(needs.generate_waves.outputs.wave_2_modules) }}
     steps:
       - uses: actions/checkout@v6
 
@@ -141,14 +94,14 @@ jobs:
   wave_1:
     name: 1 / ${{ matrix.module }}
     needs:
-      - prepare_waves
+      - generate_waves
       - wave_2
-    if: ${{ always() && needs.prepare_waves.outputs.wave_1_modules != '[]' && (needs.wave_2.result == 'success' || needs.wave_2.result == 'skipped') }}
+    if: ${{ always() && needs.generate_waves.outputs.wave_1_modules != '[]' && (needs.wave_2.result == 'success' || needs.wave_2.result == 'skipped') }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        module: ${{ fromJson(needs.prepare_waves.outputs.wave_1_modules) }}
+        module: ${{ fromJson(needs.generate_waves.outputs.wave_1_modules) }}
     steps:
       - uses: actions/checkout@v6
 
@@ -166,14 +119,14 @@ jobs:
   wave_0:
     name: 0 / ${{ matrix.module }}
     needs:
-      - prepare_waves
+      - generate_waves
       - wave_1
-    if: ${{ always() && needs.prepare_waves.outputs.wave_0_modules != '[]' && (needs.wave_1.result == 'success' || needs.wave_1.result == 'skipped') }}
+    if: ${{ always() && needs.generate_waves.outputs.wave_0_modules != '[]' && (needs.wave_1.result == 'success' || needs.wave_1.result == 'skipped') }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        module: ${{ fromJson(needs.prepare_waves.outputs.wave_0_modules) }}
+        module: ${{ fromJson(needs.generate_waves.outputs.wave_0_modules) }}
     steps:
       - uses: actions/checkout@v6
 
