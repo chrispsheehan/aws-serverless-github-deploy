@@ -30,6 +30,13 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Download all artifacts from plan run
+        uses: actions/download-artifact@v7
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.plan_artifact_run_id }}
+          path: downloaded-artifacts
+
       - name: Download plan metadata artifact
         uses: actions/download-artifact@v7
         with:
