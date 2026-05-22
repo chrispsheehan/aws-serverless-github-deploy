@@ -42,7 +42,7 @@ The Terragrunt install step is kept in this repo-local action rather than hidden
 - `plan`
   Runs `terragrunt plan -detailed-exitcode -out=<live stack>/terragrunt.tfplan`. The action writes `terragrunt.plan.meta.json` into the live stack directory for every plan run, including `has_changes` and `contains_mocked_outputs`, and writes `terragrunt.plan.txt` alongside the binary plan when the plan has changes.
 - `apply_plan`
-  Runs `terragrunt apply <live stack>/terragrunt.tfplan`. The calling workflow is expected to download that stack's saved plan artifact into the live stack directory before invoking `apply_plan`.
+  Runs `terragrunt apply <live stack>/terragrunt.tfplan`. The calling workflow is expected to download that stack's saved plan artifact into the live stack directory before invoking `apply_plan`. The action also requires `terragrunt.plan.meta.json` to be present there. If that metadata file is missing, or if it says `contains_mocked_outputs: true`, the action fails before apply and tells the operator to regenerate the plan from real upstream outputs.
 - `destroy`
   Runs `terragrunt destroy -auto-approve`
 - `init`

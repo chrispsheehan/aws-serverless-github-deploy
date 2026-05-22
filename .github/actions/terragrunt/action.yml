@@ -125,6 +125,18 @@ runs:
               exit 1
             fi
 
+            if [ ! -f "$PLAN_META_PATH" ]; then
+              echo "::error title=Missing saved plan metadata::Expected '${PLAN_META_PATH}' to exist before apply_plan."
+              exit 1
+            fi
+
+            plan_contains_mocked_outputs="$(jq -r '.contains_mocked_outputs // false' "$PLAN_META_PATH")"
+
+            if [ "$plan_contains_mocked_outputs" = "true" ]; then
+              echo "::error title=Saved plan contains mocked outputs::Saved plan metadata indicates mocked outputs were used. Regenerate it after upstream real outputs exist."
+              exit 1
+            fi
+
             set +e
             APPLY_LOG_PATH="$(pwd)/terragrunt.apply.log"
             terragrunt apply -auto-approve "$PLAN_PATH" 2>&1 | tee "$APPLY_LOG_PATH"
