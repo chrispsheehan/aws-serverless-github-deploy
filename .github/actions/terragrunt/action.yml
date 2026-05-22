@@ -106,7 +106,7 @@ runs:
               '{tg_directory: $tg_directory, contains_mocked_outputs: $contains_mocked_outputs}' \
               > "$PLAN_META_PATH"
 
-            terraform show -no-color "$PLAN_PATH" > "$PLAN_TEXT_PATH"
+            terragrunt show -no-color "$PLAN_PATH" > "$PLAN_TEXT_PATH"
 
             echo "plan_exit_code=$plan_exit_code" >> "$GITHUB_OUTPUT"
             echo "plan_contains_mocked_outputs=$plan_contains_mocked_outputs" >> "$GITHUB_OUTPUT"
