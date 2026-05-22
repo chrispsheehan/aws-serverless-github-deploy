@@ -40,6 +40,7 @@ jobs:
       ignore_task_modules: true
 
   metadata:
+    needs: generate_waves
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -52,7 +53,8 @@ jobs:
           cat > plan-metadata.json <<EOF
           {
             "infra_version": "${{ inputs.infra_version }}",
-            "bootstrap_image_uri": "${{ inputs.bootstrap_image_uri }}"
+            "bootstrap_image_uri": "${{ inputs.bootstrap_image_uri }}",
+            "waves": ${{ needs.generate_waves.outputs.waves_json }}
           }
           EOF
 
