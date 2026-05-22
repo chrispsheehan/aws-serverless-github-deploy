@@ -96,36 +96,11 @@ jobs:
           run-id: ${{ inputs.plan_artifact_run_id }}
           path: infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}
 
-      - name: Print saved plan files
-        shell: bash
-        run: |
-          PLAN_DIR="infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}"
-          META_PATH="$PLAN_DIR/terragrunt.plan.meta.json"
-          TEXT_PATH="$PLAN_DIR/terragrunt.plan.txt"
-          BINARY_PATH="$PLAN_DIR/terragrunt.tfplan"
-
-          echo "=== ${META_PATH} ==="
-          if [ -f "$META_PATH" ]; then
-            cat "$META_PATH"
-          else
-            echo "missing"
-          fi
-          echo
-
-          echo "=== ${TEXT_PATH} ==="
-          if [ -f "$TEXT_PATH" ]; then
-            cat "$TEXT_PATH"
-          else
-            echo "missing"
-          fi
-          echo
-
-          echo "=== ${BINARY_PATH} ==="
-          if [ -f "$BINARY_PATH" ]; then
-            ls -lh "$BINARY_PATH"
-          else
-            echo "missing"
-          fi
+      - name: Apply ${{ matrix.module }} infra from saved plan
+        uses: ./.github/actions/terragrunt
+        with:
+          tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}
+          tg_action: apply_plan
 
   wave_1:
     needs:
@@ -156,36 +131,11 @@ jobs:
           run-id: ${{ inputs.plan_artifact_run_id }}
           path: infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}
 
-      - name: Print saved plan files
-        shell: bash
-        run: |
-          PLAN_DIR="infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}"
-          META_PATH="$PLAN_DIR/terragrunt.plan.meta.json"
-          TEXT_PATH="$PLAN_DIR/terragrunt.plan.txt"
-          BINARY_PATH="$PLAN_DIR/terragrunt.tfplan"
-
-          echo "=== ${META_PATH} ==="
-          if [ -f "$META_PATH" ]; then
-            cat "$META_PATH"
-          else
-            echo "missing"
-          fi
-          echo
-
-          echo "=== ${TEXT_PATH} ==="
-          if [ -f "$TEXT_PATH" ]; then
-            cat "$TEXT_PATH"
-          else
-            echo "missing"
-          fi
-          echo
-
-          echo "=== ${BINARY_PATH} ==="
-          if [ -f "$BINARY_PATH" ]; then
-            ls -lh "$BINARY_PATH"
-          else
-            echo "missing"
-          fi
+      - name: Apply ${{ matrix.module }} infra from saved plan
+        uses: ./.github/actions/terragrunt
+        with:
+          tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}
+          tg_action: apply_plan
 
   wave_2:
     needs:
@@ -216,36 +166,11 @@ jobs:
           run-id: ${{ inputs.plan_artifact_run_id }}
           path: infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}
 
-      - name: Print saved plan files
-        shell: bash
-        run: |
-          PLAN_DIR="infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}"
-          META_PATH="$PLAN_DIR/terragrunt.plan.meta.json"
-          TEXT_PATH="$PLAN_DIR/terragrunt.plan.txt"
-          BINARY_PATH="$PLAN_DIR/terragrunt.tfplan"
-
-          echo "=== ${META_PATH} ==="
-          if [ -f "$META_PATH" ]; then
-            cat "$META_PATH"
-          else
-            echo "missing"
-          fi
-          echo
-
-          echo "=== ${TEXT_PATH} ==="
-          if [ -f "$TEXT_PATH" ]; then
-            cat "$TEXT_PATH"
-          else
-            echo "missing"
-          fi
-          echo
-
-          echo "=== ${BINARY_PATH} ==="
-          if [ -f "$BINARY_PATH" ]; then
-            ls -lh "$BINARY_PATH"
-          else
-            echo "missing"
-          fi
+      - name: Apply ${{ matrix.module }} infra from saved plan
+        uses: ./.github/actions/terragrunt
+        with:
+          tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}
+          tg_action: apply_plan
 
   wave_3:
     needs:
@@ -276,33 +201,8 @@ jobs:
           run-id: ${{ inputs.plan_artifact_run_id }}
           path: infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}
 
-      - name: Print saved plan files
-        shell: bash
-        run: |
-          PLAN_DIR="infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}"
-          META_PATH="$PLAN_DIR/terragrunt.plan.meta.json"
-          TEXT_PATH="$PLAN_DIR/terragrunt.plan.txt"
-          BINARY_PATH="$PLAN_DIR/terragrunt.tfplan"
-
-          echo "=== ${META_PATH} ==="
-          if [ -f "$META_PATH" ]; then
-            cat "$META_PATH"
-          else
-            echo "missing"
-          fi
-          echo
-
-          echo "=== ${TEXT_PATH} ==="
-          if [ -f "$TEXT_PATH" ]; then
-            cat "$TEXT_PATH"
-          else
-            echo "missing"
-          fi
-          echo
-
-          echo "=== ${BINARY_PATH} ==="
-          if [ -f "$BINARY_PATH" ]; then
-            ls -lh "$BINARY_PATH"
-          else
-            echo "missing"
-          fi
+      - name: Apply ${{ matrix.module }} infra from saved plan
+        uses: ./.github/actions/terragrunt
+        with:
+          tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}
+          tg_action: apply_plan
