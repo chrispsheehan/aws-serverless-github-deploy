@@ -122,33 +122,25 @@ jobs:
         run: |
           printf '%s\n' "$WAVES_JSON" | tee waves.json
           jq -r '
-            def wave_id($wave): "wave_" + ($wave | tostring);
             def node_id($module): "module_" + ($module | gsub("[^A-Za-z0-9_]"; "_"));
-            def wave_label($wave): "Wave " + ($wave | tostring);
             def module_label($module): $module;
 
-            [
+            . as $waves
+            | [
               "flowchart LR",
               (
-                .[]
-                | "  " + wave_id(.wave) + "[\"" + wave_label(.wave) + "\"]"
-              ),
-              (
-                .[]
-                | .wave as $wave
+                $waves[]
                 | .modules[]
                 | "  " + node_id(.) + "[\"" + module_label(.) + "\"]"
               ),
               (
-                .[]
-                | .wave as $wave
-                | .modules[]
-                | "  " + wave_id($wave) + " --> " + node_id(.)
-              ),
-              (
-                [ .[] | .wave ] | sort | .[] as $wave
-                | select($wave > 0)
-                | "  " + wave_id($wave - 1) + " --> " + wave_id($wave)
+                $waves
+                | to_entries[]
+                | select(.key > 0)
+                | .value.modules[] as $current
+                | .key as $wave_index
+                | $waves[$wave_index - 1].modules[]?
+                | "  " + node_id(.) + " --> " + node_id($current)
               )
             ]
             | .[]
