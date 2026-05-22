@@ -73,8 +73,12 @@ runs:
         TG_PLAN_LOG_ABS_PATH: ${{ github.workspace }}/${{ inputs.tg_directory }}/terragrunt.plan.log
       working-directory: ${{ inputs.tg_directory }}
       run: |
-        PLAN_PATH="terragrunt.tfplan"
-        PLAN_LOG_PATH="$(pwd)/terragrunt.plan.log"
+        PLAN_DIR="${{ github.workspace }}/${{ inputs.tg_directory }}"
+        PLAN_PATH="${PLAN_DIR}/terragrunt.tfplan"
+        PLAN_TEXT_PATH="${PLAN_DIR}/terragrunt.plan.txt"
+        PLAN_META_PATH="${PLAN_DIR}/terragrunt.plan.meta.json"
+        PLAN_JSON_PATH="${PLAN_DIR}/terragrunt.plan.json"
+        PLAN_LOG_PATH="${PLAN_DIR}/terragrunt.plan.log"
 
         case "${{ inputs.tg_action }}" in
           apply)
@@ -96,12 +100,25 @@ runs:
               echo "::warning title=Mock outputs used during plan::Terragrunt used dependency mock outputs while creating a saved plan. This plan artifact should not be used with apply_plan until a fresh plan is created from real upstream outputs."
             fi
 
+            jq -n \
+              --arg tg_directory "${{ inputs.tg_directory }}" \
+              --argjson contains_mocked_outputs "$plan_contains_mocked_outputs" \
+              '{tg_directory: $tg_directory, contains_mocked_outputs: $contains_mocked_outputs}' \
+              > "$PLAN_META_PATH"
+
+            terraform show -no-color "$PLAN_PATH" > "$PLAN_TEXT_PATH"
+
             echo "plan_exit_code=$plan_exit_code" >> "$GITHUB_OUTPUT"
             echo "plan_contains_mocked_outputs=$plan_contains_mocked_outputs" >> "$GITHUB_OUTPUT"
-            echo "Terragrunt binary plan path in cache: $PLAN_PATH"
+            echo "Terragrunt binary plan path: $PLAN_PATH"
 
             ;;
           apply_plan)
+            if [ ! -f "$PLAN_PATH" ]; then
+              echo "::error title=Missing saved plan artifact::Expected '${PLAN_PATH}' to exist before apply_plan."
+              exit 1
+            fi
+
             set +e
             APPLY_LOG_PATH="$(pwd)/terragrunt.apply.log"
             terragrunt apply -auto-approve "$PLAN_PATH" 2>&1 | tee "$APPLY_LOG_PATH"
@@ -126,15 +143,6 @@ runs:
                 emit_error "Saved plan is stale" "Saved plan is stale"
               fi
 
-              emit_error "Saved plan artifact missing" "Saved plan artifact not found for"
-              emit_error "Missing PLAN_ARTIFACT_RUN_ID" "PLAN_ARTIFACT_RUN_ID is required when TG_ENABLE_PLAN_ARTIFACTS=true"
-
-              if grep -Fq "Plan bucket" "$APPLY_LOG_PATH" && grep -Fq "does not exist" "$APPLY_LOG_PATH"; then
-                emit_error "Plan bucket missing" "Plan bucket"
-              fi
-
-              emit_error "Plan bucket creation declined" "Plan bucket creation declined."
-              emit_error "Plan bucket confirmation unavailable" "no interactive terminal is available for confirmation"
               exit "$apply_exit_code"
             fi
             ;;

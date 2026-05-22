@@ -11,7 +11,7 @@ This GitHub Action sets up **Terraform** and **Terragrunt** and runs a specified
 - Supports `plan` mode for producing local saved plan files
 - Supports `init` mode for outputs-only reads
 - Supports `graph` mode for raw `terragrunt run-all graph-dependencies` output capture
-- Relies on shared Terragrunt root hooks for per-stack saved plan artifact upload and download
+- Writes saved plan files into the live stack directory so workflows can upload and download them with GitHub artifacts
 - Exports Terragrunt outputs as compact JSON when state exists
 
 The Terragrunt install step is kept in this repo-local action rather than hidden behind a third-party Terragrunt wrapper action so the repo can control the exact setup-action revision and react quickly to GitHub Actions runtime deprecations or nested dependency warnings.
@@ -40,9 +40,9 @@ The Terragrunt install step is kept in this repo-local action rather than hidden
 - `apply`
   Runs `terragrunt apply -auto-approve`
 - `plan`
-  Runs `terragrunt plan -detailed-exitcode -out=terragrunt.tfplan`. The shared Terragrunt root `after_hook` renders `terragrunt.plan.txt`, writes `terragrunt.plan.meta.json`, always uploads the metadata, and only uploads `terragrunt.tfplan` plus `terragrunt.plan.txt` when the metadata says the stack has changes.
+  Runs `terragrunt plan -detailed-exitcode -out=<live stack>/terragrunt.tfplan`. The action writes `terragrunt.plan.meta.json` into the live stack directory for every plan run and writes `terragrunt.plan.txt` alongside the binary plan when the plan has changes.
 - `apply_plan`
-  Runs `terragrunt apply terragrunt.tfplan`. The shared Terragrunt root `before_hook` downloads the saved plan bundle into the Terragrunt working directory when `TG_ENABLE_PLAN_ARTIFACTS=true` and `PLAN_ARTIFACT_RUN_ID` is set, and fails early if the saved metadata reports mocked dependency outputs.
+  Runs `terragrunt apply <live stack>/terragrunt.tfplan`. The calling workflow is expected to download that stack's saved plan artifact into the live stack directory before invoking `apply_plan`.
 - `destroy`
   Runs `terragrunt destroy -auto-approve`
 - `init`
@@ -55,10 +55,10 @@ The Terragrunt install step is kept in this repo-local action rather than hidden
 - One run-level metadata file is stored separately by the shared infra wrapper as a GitHub Actions artifact:
   - artifact name: `infra-plan-metadata`
   - file: `plan-metadata.json`
-- Each Terragrunt stack or module stores its own plan bundle at:
-  - `s3://<plan_bucket>/terragrunt_plan/<environment>/<plan_run_id>/terragrunt-plan-<sanitized-tg-directory>/terragrunt.plan.meta.json`
-  - `s3://<plan_bucket>/terragrunt_plan/<environment>/<plan_run_id>/terragrunt-plan-<sanitized-tg-directory>/terragrunt.tfplan` only when changes exist
-  - `s3://<plan_bucket>/terragrunt_plan/<environment>/<plan_run_id>/terragrunt-plan-<sanitized-tg-directory>/terragrunt.plan.txt` only when changes exist
+- Each Terragrunt stack or module stores its own plan bundle as a GitHub Actions artifact named `terragrunt-plan-<environment>-<module>`:
+  - `terragrunt.plan.meta.json`
+  - `terragrunt.tfplan` only when changes exist
+  - `terragrunt.plan.txt` only when changes exist
 
 ## AWS Credentials
 
@@ -143,7 +143,7 @@ jobs:
           tg_action: plan
 ```
 
-### Apply From Uploaded Plan In S3
+### Apply From Downloaded GitHub Artifact
 
 ```yaml
 jobs:
@@ -169,4 +169,4 @@ jobs:
           tg_action: apply_plan
 ```
 
-This action expects the workflow to set both `TG_ENABLE_PLAN_ARTIFACTS=true` and `PLAN_ARTIFACT_RUN_ID` when using cross-run saved plans so the shared Terragrunt root hooks can resolve the per-stack plan bundle location from the derived plan bucket and environment.
+This action expects the workflow to download the matching per-stack plan artifact into the live stack directory before using `tg_action: apply_plan`.

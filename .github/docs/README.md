@@ -148,17 +148,16 @@ Run these checks on every CI, workflow, or deploy-contract change.
 - compare every caller `with:` block against the callee `workflow_call.inputs`
 - compare expected outputs against actual `jobs.<job>.outputs.*`
 - verify optional inputs are intentionally omitted, not accidentally missing
-- the repo-local `./.github/actions/terragrunt` action supports `tg_action: plan` for producing the binary plan locally; the shared Terragrunt root `after_hook` then renders `terragrunt.plan.txt` and writes `terragrunt.plan.meta.json`
-- shared Terragrunt root hooks now always upload per-stack `terragrunt.plan.meta.json` on saved `plan`, but only upload `terragrunt.tfplan` and `terragrunt.plan.txt` when the metadata reports real changes; `apply_plan` still downloads the normal plan bundle when one exists
+- the repo-local `./.github/actions/terragrunt` action supports `tg_action: plan` for producing the binary plan in the live stack directory, writes `terragrunt.plan.meta.json` there for every saved plan, and writes `terragrunt.plan.txt` alongside the binary plan when the plan has changes
+- `apply_plan` now expects the calling workflow job to download the matching per-stack GitHub artifact into the live stack directory before invoking Terragrunt
 - both repo-local composite actions, `./.github/actions/just` and `./.github/actions/terragrunt`, now assume AWS credentials are already configured in the current job when they need AWS access. The repo pattern is to run `aws-actions/configure-aws-credentials` at the top of each AWS-using job and then call the local actions without extra auth inputs
 - `./.github/actions/just` installs the requested `just` version through `extractions/setup-crate@v2` in the same minimal composite-action shape as `extractions/setup-just`, rather than depending on `extractions/setup-just` itself
 - `./.github/actions/terragrunt` installs the requested Terragrunt version through `jdx/mise-action@v4`, while Terraform stays pinned separately through `hashicorp/setup-terraform`
 - saved infra-plan storage is intentionally split into two levels:
   - one run-level metadata artifact named `infra-plan-metadata` containing `plan-metadata.json`
-  - one per-stack plan bundle under `s3://<plan_bucket>/terragrunt_plan/<environment>/<plan_run_id>/terragrunt-plan-<sanitized-tg-directory>/`
-- the dedicated plan bucket is repo-wide, derived as `<account>-<region>-<repo>-tfplan`, and plan uniqueness comes from `terragrunt_plan/<environment>/<plan_run_id>/...`
+  - one per-stack GitHub artifact named `terragrunt-plan-<environment>-<module>`
 - `./.github/actions/terragrunt` derives its plan artifact name from `tg_directory`, so callers do not need to pass artifact naming inputs
-- if `apply_plan` is used across separate workflow runs, pass the earlier workflow `run_id` through `plan_artifact_run_id`; the shared wrappers recover both metadata and per-stack plan files from the dedicated plan bucket under `terragrunt_plan/<environment>/<run_id>/...`
+- if `apply_plan` is used across separate workflow runs, pass the earlier workflow `run_id` through `plan_artifact_run_id`; the shared wrappers recover both metadata and per-stack plan files from GitHub artifacts in that earlier run
 - if a cross-run apply should not ask the operator to re-enter versions or recompute artifact resolution, store both the input versions and the resolved reusable-workflow outputs in a metadata artifact during plan and recover them in the apply wrapper from the earlier `run_id`
 - keep `shared_infra.yml` as the pure graph executor and prefer handling metadata creation/recovery in the dedicated plan/apply wrappers
 - when using `./.github/actions/just`, check whether the caller needs the repo-root `justfile` or an explicit `justfile_path`
@@ -235,7 +234,7 @@ These are the workflows most users trigger directly.
 - `prod_infra_apply.yml`
   Resolves released artifacts from `ci` and applies prod infrastructure.
 - `prod_infra_apply_from_plan.yml`
-  Reapplies the ordered prod infra graph from plan artifacts created by a prior `prod_infra_plan` run, using the shared `plan_artifact_run_id` contract end-to-end. `shared_infra_apply_from_plan.yml` reads the matching metadata artifact before delegating to `shared_infra.yml`.
+  Reapplies the ordered prod infra graph from plan artifacts created by a prior `prod_infra_plan` run, using the shared `plan_artifact_run_id` contract end-to-end. `shared_infra_apply_from_plan.yml` reads the matching metadata artifact first, then each apply job downloads its matching per-stack GitHub artifact before invoking `apply_plan`.
 - `dev_code_deploy.yml`
   Discovers directories, builds fresh dev artifacts, resolves deploy inputs, and deploys code to dev.
 - `prod_code_deploy.yml`

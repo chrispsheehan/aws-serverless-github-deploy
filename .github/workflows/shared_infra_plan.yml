@@ -30,8 +30,6 @@ env:
   AWS_OIDC_ROLE_ARN: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/${{ vars.PROJECT_NAME }}-${{ inputs.environment }}-github-oidc-role
   AWS_REGION: ${{ vars.AWS_REGION }}
   TG_ACTION_LABEL: "Plan"
-  TG_ENABLE_PLAN_ARTIFACTS: "true"
-  PLAN_ARTIFACT_RUN_ID: ${{ github.run_id }}
 
 jobs:
   generate_waves:

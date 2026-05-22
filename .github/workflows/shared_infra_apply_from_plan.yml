@@ -52,14 +52,3 @@ jobs:
         run: |
           echo "infra_version=$(jq -r '.infra_version' plan-metadata.json)" >> "$GITHUB_OUTPUT"
           echo "bootstrap_image_uri=$(jq -r '.bootstrap_image_uri' plan-metadata.json)" >> "$GITHUB_OUTPUT"
-
-  infra:
-    needs:
-      - metadata
-    uses: ./.github/workflows/shared_infra.yml
-    with:
-      environment: ${{ inputs.environment }}
-      infra_version: ${{ needs.metadata.outputs.infra_version }}
-      bootstrap_image_uri: ${{ needs.metadata.outputs.bootstrap_image_uri }}
-      tg_action: apply_plan
-      plan_run_id: ${{ inputs.plan_artifact_run_id }}
