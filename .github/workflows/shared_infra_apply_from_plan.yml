@@ -50,6 +50,12 @@ jobs:
             exit 1
           fi
 
+      - name: Print recovered plan metadata JSON
+        shell: bash
+        run: |
+          echo "=== plan-metadata.json ==="
+          cat plan-metadata.json
+
       - name: Read plan metadata
         id: read_metadata
         shell: bash
