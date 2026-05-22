@@ -1,6 +1,6 @@
 locals {
-  vpc_name   = "vpc"
-  aws_region = "eu-west-2"
+  vpc_name    = "vpc"
+  aws_region  = "eu-west-2"
   domain_name = "chrispsheehan.com"
   allowed_role_actions = [
     "s3:*",
