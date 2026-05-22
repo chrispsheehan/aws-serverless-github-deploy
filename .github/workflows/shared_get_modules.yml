@@ -121,55 +121,11 @@ jobs:
           WAVES_JSON: ${{ steps.filtered_waves.outputs.waves_json }}
         run: |
           printf '%s\n' "$WAVES_JSON" | tee waves.json
-          jq -r '
-            def node_id($module): "module_" + ($module | gsub("[^A-Za-z0-9_]"; "_"));
-            def wave_id($wave): "wave_" + ($wave | tostring);
-            def module_line($module): "    " + node_id($module) + "[\"" + $module + "\"]";
-            def edge_lines($prior; $current):
-              if ($prior.modules | length) == 0 or ($current.modules | length) == 0 then
-                []
-              else
-                (
-                  ($prior.modules[0]) as $anchor
-                  | ($current.modules | map("  " + node_id($anchor) + " --> " + node_id(.)))
-                )
-              end;
-
-            . as $waves
-            | [
-              "flowchart LR",
-              (
-                $waves[]
-                | "  subgraph " + wave_id(.wave) + "[\"Wave " + (.wave | tostring) + "\"]"
-              ),
-              (
-                $waves[]
-                | .modules[]
-                | module_line(.)
-              ),
-              (
-                $waves[]
-                | "  end"
-              ),
-              (
-                $waves
-                | to_entries[]
-                | select(.key > 0)
-                | .key as $wave_index
-                | edge_lines($waves[$wave_index - 1]; .value)[]
-              )
-            ]
-            | .[]
-          ' waves.json > waves.mmd
           {
             echo "## Terragrunt Wave Matrix"
             echo
-            echo '```mermaid'
-            cat waves.mmd
-            echo '```'
-            echo
             echo '```json'
-            cat waves.json
+            jq . waves.json
             echo
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
