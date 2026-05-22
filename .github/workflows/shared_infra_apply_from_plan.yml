@@ -37,6 +37,23 @@ jobs:
           run-id: ${{ inputs.plan_artifact_run_id }}
           path: downloaded-artifacts
 
+      - name: Print downloaded plan metadata JSON
+        shell: bash
+        run: |
+          shopt -s nullglob
+          mapfile -t metadata_files < <(find downloaded-artifacts -type f -name 'terragrunt.plan.meta.json' | sort)
+
+          if [ "${#metadata_files[@]}" -eq 0 ]; then
+            echo "No terragrunt.plan.meta.json files found under downloaded-artifacts/"
+            exit 0
+          fi
+
+          for metadata_file in "${metadata_files[@]}"; do
+            echo "=== ${metadata_file} ==="
+            cat "${metadata_file}"
+            echo
+          done
+
       - name: Download plan metadata artifact
         uses: actions/download-artifact@v7
         with:
