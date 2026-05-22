@@ -24,7 +24,7 @@ Lambda + ECS with CodeDeploy rollouts, plus provisioned concurrency controls for
 
 ## Bootstrap-Friendly Plans
 
-For cross-stack contracts that often block CI plans before upstream stacks exist, this repo prefers Terragrunt `dependency` wiring in the live stack plus `mock_outputs` for non-mutating commands such as `plan` and `validate`. Keep those `dependency` blocks in the consuming stack instead of hiding them behind `read_terragrunt_config(...)` helper indirection, because Terragrunt graph commands only emit direct stack edges. The Terraform modules should consume explicit inputs rather than reaching back into sibling stack state directly when the contract needs bootstrap-friendly plan behavior.
+For cross-stack contracts that often block CI plans before upstream stacks exist, this repo prefers Terragrunt `dependency` wiring in the live stack plus `mock_outputs` for non-mutating commands such as `plan` and `validate`. Keep those `dependency` blocks in the consuming stack instead of hiding them behind `read_terragrunt_config(...)` helper indirection, because Terragrunt graph commands only emit direct stack edges. The Terraform modules should consume explicit inputs rather than reaching back into sibling stack state directly when the contract needs bootstrap-friendly plan behavior. When a dependency may have partial real state during bootstrap, drift, or destroy, default the live Terragrunt `dependency` block to `mock_outputs_merge_strategy_with_state = "shallow"` so missing output keys can still fall back to mocks.
 
 Use [CONTRIBUTING.md](CONTRIBUTING.md) for expectations when changing the repo itself.
 
