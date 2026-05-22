@@ -112,6 +112,9 @@ runs:
               '{tg_directory: $tg_directory, has_changes: $has_changes, contains_mocked_outputs: $contains_mocked_outputs}' \
               > "$PLAN_META_PATH"
 
+            echo "=== terragrunt.plan.meta.json ==="
+            cat "$PLAN_META_PATH"
+
             terragrunt show -no-color "$PLAN_PATH" > "$PLAN_TEXT_PATH"
 
             echo "plan_exit_code=$plan_exit_code" >> "$GITHUB_OUTPUT"
