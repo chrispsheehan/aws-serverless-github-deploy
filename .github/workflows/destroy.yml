@@ -28,7 +28,6 @@ env:
   TF_VAR_lambda_version: this
   AWS_OIDC_ROLE_ARN: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/${{ vars.PROJECT_NAME }}-${{ inputs.environment }}-github-oidc-role
   AWS_REGION: ${{ vars.AWS_REGION }}
-  DOMAIN_NAME: ${{ vars.DOMAIN_NAME }}
 
 jobs:
   setup:
@@ -91,7 +90,6 @@ jobs:
         uses: ./.github/actions/terragrunt
         env:
           TF_VAR_api_invoke_url: "https://placeholder.execute-api.us-east-1.amazonaws.com"
-          TF_VAR_domain_name: ${{ env.DOMAIN_NAME }}
           TF_VAR_auth_user_pool_id: "destroy-placeholder"
           TF_VAR_auth_user_pool_client_id: "destroy-placeholder"
           TF_VAR_auth_hosted_ui_url: "https://destroy-placeholder"
@@ -116,8 +114,6 @@ jobs:
 
       - name: Destroy cognito infra
         uses: ./.github/actions/terragrunt
-        env:
-          TF_VAR_domain_name: ${{ env.DOMAIN_NAME }}
         with:
           tg_directory: infra/live/${{ inputs.environment }}/aws/cognito
           tg_action: destroy

@@ -284,13 +284,7 @@ The Cognito stack creates the user pool, app client, Hosted UI domain, and `read
 just cognito-create-readonly-user dev readonly@example.com 'ChangeMe123!'
 ```
 
-Set the GitHub environment variable `DOMAIN_NAME` to the hosted zone base domain, for example:
-
-```text
-chrispsheehan.com
-```
-
-When that value is present, the frontend and Cognito stacks derive the deployed domain and auth callback/logout URLs automatically. Local Vite login still coexists through `http://localhost:5173`.
+The frontend and Cognito stacks read `domain_name` from the shared Terragrunt global inputs in [infra/live/global_vars.hcl](infra/live/global_vars.hcl), which currently sets it to `chrispsheehan.com`. That keeps the deployed domain and auth callback/logout URLs consistent without extra CI wiring. Local Vite login still coexists through `http://localhost:5173`.
 
 ## Infra Deployment Use Cases
 

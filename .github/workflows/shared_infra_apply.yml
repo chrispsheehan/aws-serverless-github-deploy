@@ -27,8 +27,6 @@ env:
   AWS_REGION: ${{ vars.AWS_REGION }}
   TG_ACTION_LABEL: "Apply"
 
-  TF_VAR_domain_name: ${{ vars.DOMAIN_NAME }}
-
 jobs:
   generate_waves:
     uses: ./.github/workflows/shared_get_modules.yml

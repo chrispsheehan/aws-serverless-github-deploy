@@ -71,7 +71,7 @@ stores state at:
 - `cognito`
   Owns the Cognito user pool, frontend app client, Hosted UI domain, and read-only user group.
 - `frontend`
-  Owns the derived CloudFront custom domain, ACM certificate in `us-east-1`, and Route53 alias records using the required `DOMAIN_NAME` workflow env input.
+  Owns the derived CloudFront custom domain, ACM certificate in `us-east-1`, and Route53 alias records using the Terragrunt `domain_name` input from `infra/live/global_vars.hcl`.
 - `observability`
   Owns the shared CloudWatch dashboard used to inspect Lambda and ECS logs in one console place.
 - `database`
