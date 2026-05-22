@@ -24,6 +24,7 @@ dependency "network" {
     http_api_authorizer_id    = "auth-mock123"
   }
 
+  mock_outputs_merge_strategy_with_state = "shallow"
   mock_outputs_allowed_terraform_commands = ["validate", "plan", "destroy", "init", "show", "graph-dependencies", "output-module-groups"]
 }
 
@@ -45,6 +46,7 @@ dependency "messaging" {
     ecs_worker_queue_read_policy_arn     = "arn:aws:iam::111111111111:policy/mock-ecs-worker-queue-read"
   }
 
+  mock_outputs_merge_strategy_with_state = "shallow"
   mock_outputs_allowed_terraform_commands = ["validate", "plan", "destroy", "init", "show", "graph-dependencies", "output-module-groups"]
 }
 
@@ -55,6 +57,7 @@ dependency "code_bucket" {
     bucket = "mock-code-bucket"
   }
 
+  mock_outputs_merge_strategy_with_state = "shallow"
   mock_outputs_allowed_terraform_commands = ["validate", "plan", "destroy", "init", "show", "graph-dependencies", "output-module-groups"]
 }
 
