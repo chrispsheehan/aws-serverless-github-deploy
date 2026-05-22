@@ -40,7 +40,7 @@ jobs:
     with:
       environment: ${{ inputs.environment }}
       infra_version: ${{ github.sha }}
-      ignore_shared_artifact_modules: ${{ inputs.environment == 'prod' && !inputs.allow_prod_cleanup }}
+      ignore_shared_artifact_modules: true
       ignore_oidc_module: true
 
   wave_2:
