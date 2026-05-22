@@ -31,6 +31,7 @@ jobs:
       wave_0_modules: ${{ steps.read_metadata.outputs.wave_0_modules }}
       wave_1_modules: ${{ steps.read_metadata.outputs.wave_1_modules }}
       wave_2_modules: ${{ steps.read_metadata.outputs.wave_2_modules }}
+      wave_3_modules: ${{ steps.read_metadata.outputs.wave_3_modules }}
     steps:
       - uses: actions/checkout@v6
 
@@ -66,6 +67,7 @@ jobs:
           echo "wave_0_modules=$(jq -c '.waves[0].modules // []' plan-metadata.json)" >> "$GITHUB_OUTPUT"
           echo "wave_1_modules=$(jq -c '.waves[1].modules // []' plan-metadata.json)" >> "$GITHUB_OUTPUT"
           echo "wave_2_modules=$(jq -c '.waves[2].modules // []' plan-metadata.json)" >> "$GITHUB_OUTPUT"
+          echo "wave_3_modules=$(jq -c '.waves[3].modules // []' plan-metadata.json)" >> "$GITHUB_OUTPUT"
 
   wave_0:
     needs: metadata
@@ -196,6 +198,66 @@ jobs:
       fail-fast: false
       matrix:
         module: ${{ fromJson(needs.metadata.outputs.wave_2_modules) }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.metadata.outputs.infra_version }}
+
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Download saved plan artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: terragrunt-plan-${{ inputs.environment }}-${{ matrix.module }}
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.plan_artifact_run_id }}
+          path: infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}
+
+      - name: Print saved plan files
+        shell: bash
+        run: |
+          PLAN_DIR="infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}"
+          META_PATH="$PLAN_DIR/terragrunt.plan.meta.json"
+          TEXT_PATH="$PLAN_DIR/terragrunt.plan.txt"
+          BINARY_PATH="$PLAN_DIR/terragrunt.tfplan"
+
+          echo "=== ${META_PATH} ==="
+          if [ -f "$META_PATH" ]; then
+            cat "$META_PATH"
+          else
+            echo "missing"
+          fi
+          echo
+
+          echo "=== ${TEXT_PATH} ==="
+          if [ -f "$TEXT_PATH" ]; then
+            cat "$TEXT_PATH"
+          else
+            echo "missing"
+          fi
+          echo
+
+          echo "=== ${BINARY_PATH} ==="
+          if [ -f "$BINARY_PATH" ]; then
+            ls -lh "$BINARY_PATH"
+          else
+            echo "missing"
+          fi
+
+  wave_3:
+    needs:
+      - metadata
+      - wave_2
+    name: 3 / ${{ matrix.module }}
+    if: ${{ always() && needs.metadata.outputs.wave_3_modules != '[]' && (needs.wave_2.result == 'success' || needs.wave_2.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        module: ${{ fromJson(needs.metadata.outputs.wave_3_modules) }}
     steps:
       - uses: actions/checkout@v6
         with:

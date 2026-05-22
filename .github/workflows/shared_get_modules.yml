@@ -29,6 +29,9 @@ on:
       wave_2_modules:
         description: "Wave 2 module array"
         value: ${{ jobs.generate_waves.outputs.wave_2_modules }}
+      wave_3_modules:
+        description: "Wave 3 module array"
+        value: ${{ jobs.generate_waves.outputs.wave_3_modules }}
 
 permissions:
   id-token: write
@@ -47,6 +50,7 @@ jobs:
       wave_0_modules: ${{ steps.wave_outputs.outputs.wave_0_modules }}
       wave_1_modules: ${{ steps.wave_outputs.outputs.wave_1_modules }}
       wave_2_modules: ${{ steps.wave_outputs.outputs.wave_2_modules }}
+      wave_3_modules: ${{ steps.wave_outputs.outputs.wave_3_modules }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -109,6 +113,7 @@ jobs:
           echo "wave_0_modules=$(jq -c '.[0].modules // []' <<<"$WAVES_JSON")" >> "$GITHUB_OUTPUT"
           echo "wave_1_modules=$(jq -c '.[1].modules // []' <<<"$WAVES_JSON")" >> "$GITHUB_OUTPUT"
           echo "wave_2_modules=$(jq -c '.[2].modules // []' <<<"$WAVES_JSON")" >> "$GITHUB_OUTPUT"
+          echo "wave_3_modules=$(jq -c '.[3].modules // []' <<<"$WAVES_JSON")" >> "$GITHUB_OUTPUT"
 
       - name: Print Terragrunt wave matrix
         shell: bash
