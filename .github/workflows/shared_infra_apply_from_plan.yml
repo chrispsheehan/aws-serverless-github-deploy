@@ -27,32 +27,12 @@ jobs:
     outputs:
       infra_version: ${{ steps.read_metadata.outputs.infra_version }}
       bootstrap_image_uri: ${{ steps.read_metadata.outputs.bootstrap_image_uri }}
+      waves_json: ${{ steps.read_metadata.outputs.waves_json }}
+      wave_0_modules: ${{ steps.read_metadata.outputs.wave_0_modules }}
+      wave_1_modules: ${{ steps.read_metadata.outputs.wave_1_modules }}
+      wave_2_modules: ${{ steps.read_metadata.outputs.wave_2_modules }}
     steps:
       - uses: actions/checkout@v6
-
-      - name: Download all artifacts from plan run
-        uses: actions/download-artifact@v7
-        with:
-          github-token: ${{ github.token }}
-          run-id: ${{ inputs.plan_artifact_run_id }}
-          path: downloaded-artifacts
-
-      - name: Print downloaded plan metadata JSON
-        shell: bash
-        run: |
-          shopt -s nullglob
-          mapfile -t metadata_files < <(find downloaded-artifacts -type f -name 'terragrunt.plan.meta.json' | sort)
-
-          if [ "${#metadata_files[@]}" -eq 0 ]; then
-            echo "No terragrunt.plan.meta.json files found under downloaded-artifacts/"
-            exit 0
-          fi
-
-          for metadata_file in "${metadata_files[@]}"; do
-            echo "=== ${metadata_file} ==="
-            cat "${metadata_file}"
-            echo
-          done
 
       - name: Download plan metadata artifact
         uses: actions/download-artifact@v7
@@ -76,3 +56,185 @@ jobs:
         run: |
           echo "infra_version=$(jq -r '.infra_version' plan-metadata.json)" >> "$GITHUB_OUTPUT"
           echo "bootstrap_image_uri=$(jq -r '.bootstrap_image_uri' plan-metadata.json)" >> "$GITHUB_OUTPUT"
+          echo "waves_json=$(jq -c '.waves // []' plan-metadata.json)" >> "$GITHUB_OUTPUT"
+          echo "wave_0_modules=$(jq -c '.waves[0].modules // []' plan-metadata.json)" >> "$GITHUB_OUTPUT"
+          echo "wave_1_modules=$(jq -c '.waves[1].modules // []' plan-metadata.json)" >> "$GITHUB_OUTPUT"
+          echo "wave_2_modules=$(jq -c '.waves[2].modules // []' plan-metadata.json)" >> "$GITHUB_OUTPUT"
+
+  wave_0:
+    needs: metadata
+    name: 0 / ${{ matrix.module }}
+    if: ${{ needs.metadata.outputs.wave_0_modules != '[]' }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        module: ${{ fromJson(needs.metadata.outputs.wave_0_modules) }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.metadata.outputs.infra_version }}
+
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Download saved plan artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: terragrunt-plan-${{ inputs.environment }}-${{ matrix.module }}
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.plan_artifact_run_id }}
+          path: infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}
+
+      - name: Print saved plan files
+        shell: bash
+        run: |
+          PLAN_DIR="infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}"
+          META_PATH="$PLAN_DIR/terragrunt.plan.meta.json"
+          TEXT_PATH="$PLAN_DIR/terragrunt.plan.txt"
+          BINARY_PATH="$PLAN_DIR/terragrunt.tfplan"
+
+          echo "=== ${META_PATH} ==="
+          if [ -f "$META_PATH" ]; then
+            cat "$META_PATH"
+          else
+            echo "missing"
+          fi
+          echo
+
+          echo "=== ${TEXT_PATH} ==="
+          if [ -f "$TEXT_PATH" ]; then
+            cat "$TEXT_PATH"
+          else
+            echo "missing"
+          fi
+          echo
+
+          echo "=== ${BINARY_PATH} ==="
+          if [ -f "$BINARY_PATH" ]; then
+            ls -lh "$BINARY_PATH"
+          else
+            echo "missing"
+          fi
+
+  wave_1:
+    needs:
+      - metadata
+      - wave_0
+    name: 1 / ${{ matrix.module }}
+    if: ${{ always() && needs.metadata.outputs.wave_1_modules != '[]' && (needs.wave_0.result == 'success' || needs.wave_0.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        module: ${{ fromJson(needs.metadata.outputs.wave_1_modules) }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.metadata.outputs.infra_version }}
+
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Download saved plan artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: terragrunt-plan-${{ inputs.environment }}-${{ matrix.module }}
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.plan_artifact_run_id }}
+          path: infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}
+
+      - name: Print saved plan files
+        shell: bash
+        run: |
+          PLAN_DIR="infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}"
+          META_PATH="$PLAN_DIR/terragrunt.plan.meta.json"
+          TEXT_PATH="$PLAN_DIR/terragrunt.plan.txt"
+          BINARY_PATH="$PLAN_DIR/terragrunt.tfplan"
+
+          echo "=== ${META_PATH} ==="
+          if [ -f "$META_PATH" ]; then
+            cat "$META_PATH"
+          else
+            echo "missing"
+          fi
+          echo
+
+          echo "=== ${TEXT_PATH} ==="
+          if [ -f "$TEXT_PATH" ]; then
+            cat "$TEXT_PATH"
+          else
+            echo "missing"
+          fi
+          echo
+
+          echo "=== ${BINARY_PATH} ==="
+          if [ -f "$BINARY_PATH" ]; then
+            ls -lh "$BINARY_PATH"
+          else
+            echo "missing"
+          fi
+
+  wave_2:
+    needs:
+      - metadata
+      - wave_1
+    name: 2 / ${{ matrix.module }}
+    if: ${{ always() && needs.metadata.outputs.wave_2_modules != '[]' && (needs.wave_1.result == 'success' || needs.wave_1.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        module: ${{ fromJson(needs.metadata.outputs.wave_2_modules) }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.metadata.outputs.infra_version }}
+
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Download saved plan artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: terragrunt-plan-${{ inputs.environment }}-${{ matrix.module }}
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.plan_artifact_run_id }}
+          path: infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}
+
+      - name: Print saved plan files
+        shell: bash
+        run: |
+          PLAN_DIR="infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}"
+          META_PATH="$PLAN_DIR/terragrunt.plan.meta.json"
+          TEXT_PATH="$PLAN_DIR/terragrunt.plan.txt"
+          BINARY_PATH="$PLAN_DIR/terragrunt.tfplan"
+
+          echo "=== ${META_PATH} ==="
+          if [ -f "$META_PATH" ]; then
+            cat "$META_PATH"
+          else
+            echo "missing"
+          fi
+          echo
+
+          echo "=== ${TEXT_PATH} ==="
+          if [ -f "$TEXT_PATH" ]; then
+            cat "$TEXT_PATH"
+          else
+            echo "missing"
+          fi
+          echo
+
+          echo "=== ${BINARY_PATH} ==="
+          if [ -f "$BINARY_PATH" ]; then
+            ls -lh "$BINARY_PATH"
+          else
+            echo "missing"
+          fi
