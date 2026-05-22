@@ -23,6 +23,7 @@ concurrency: # only run destroy when no other deploy/destroy is running for the 
 permissions:
   id-token: write
   contents: write
+  actions: read
 
 env:
   TF_VAR_lambda_version: this
