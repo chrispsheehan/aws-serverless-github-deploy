@@ -94,6 +94,11 @@ runs:
               exit 1
             fi
 
+            plan_has_changes=false
+            if [ "$plan_exit_code" -eq 2 ]; then
+              plan_has_changes=true
+            fi
+
             plan_contains_mocked_outputs=false
             if grep -Fq "mock outputs provided and returning those in dependency output" "$PLAN_LOG_PATH"; then
               plan_contains_mocked_outputs=true
@@ -102,8 +107,9 @@ runs:
 
             jq -n \
               --arg tg_directory "${{ inputs.tg_directory }}" \
+              --argjson has_changes "$plan_has_changes" \
               --argjson contains_mocked_outputs "$plan_contains_mocked_outputs" \
-              '{tg_directory: $tg_directory, contains_mocked_outputs: $contains_mocked_outputs}' \
+              '{tg_directory: $tg_directory, has_changes: $has_changes, contains_mocked_outputs: $contains_mocked_outputs}' \
               > "$PLAN_META_PATH"
 
             terragrunt show -no-color "$PLAN_PATH" > "$PLAN_TEXT_PATH"

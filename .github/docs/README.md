@@ -148,7 +148,7 @@ Run these checks on every CI, workflow, or deploy-contract change.
 - compare every caller `with:` block against the callee `workflow_call.inputs`
 - compare expected outputs against actual `jobs.<job>.outputs.*`
 - verify optional inputs are intentionally omitted, not accidentally missing
-- the repo-local `./.github/actions/terragrunt` action supports `tg_action: plan` for producing the binary plan in the live stack directory, writes `terragrunt.plan.meta.json` there for every saved plan, and writes `terragrunt.plan.txt` alongside the binary plan when the plan has changes
+- the repo-local `./.github/actions/terragrunt` action supports `tg_action: plan` for producing the binary plan in the live stack directory, writes `terragrunt.plan.meta.json` there for every saved plan including `has_changes` and `contains_mocked_outputs`, and writes `terragrunt.plan.txt` alongside the binary plan when the plan has changes
 - `apply_plan` now expects the calling workflow job to download the matching per-stack GitHub artifact into the live stack directory before invoking Terragrunt
 - when a live Terragrunt `dependency` block uses `mock_outputs` for planability or destroy safety, default it to `mock_outputs_merge_strategy_with_state = "shallow"` so partial real upstream state does not suppress missing mock keys
 - both repo-local composite actions, `./.github/actions/just` and `./.github/actions/terragrunt`, now assume AWS credentials are already configured in the current job when they need AWS access. The repo pattern is to run `aws-actions/configure-aws-credentials` at the top of each AWS-using job and then call the local actions without extra auth inputs
