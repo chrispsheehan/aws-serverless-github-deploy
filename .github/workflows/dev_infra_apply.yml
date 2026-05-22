@@ -11,7 +11,7 @@ permissions:
 jobs:
   infra:
     name: Apply
-    uses: ./.github/workflows/shared_infra_apply.yml
+    uses: ./.github/workflows/shared_infra_apply_no_plan.yml
     with:
       environment: dev
       infra_version: ${{ github.sha }}

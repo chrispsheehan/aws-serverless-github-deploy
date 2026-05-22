@@ -19,7 +19,7 @@ Use it when you need to understand:
 
 - Release and validation: `release.yml`, `pull_request.yml`
 - Shared artifact prep and build: `shared_infra_releases.yml`, `shared_build.yml`, `shared_build_get.yml`
-- Shared infra and code rollout: `shared_infra_plan.yml`, `shared_infra_apply.yml`, `shared_infra_apply_from_plan.yml`, `shared_infra.yml`, `shared_deploy.yml`, `shared_directories_get.yml`
+- Shared infra and code rollout: `shared_infra_plan.yml`, `shared_infra_apply_no_plan.yml`, `shared_infra_apply_from_plan.yml`, `shared_infra.yml`, `shared_deploy.yml`, `shared_directories_get.yml`
 - Environment entry points: `dev_infra_apply.yml`, `dev_infra_plan.yml`, `dev_infra_plan_and_apply.yml`, `dev_infra_apply_from_plan.yml`, `dev_code_deploy.yml`, `prod_infra_apply.yml`, `prod_infra_plan.yml`, `prod_infra_apply_from_plan.yml`
 - Cleanup: `destroy.yml`
 
@@ -83,7 +83,7 @@ flowchart LR
 
 - `shared_infra_plan.yml`
   Plan wrapper around `shared_infra.yml`. It takes resolved workflow inputs directly, starts `shared_get_modules.yml` to derive the current wave outputs, writes those waves plus the direct workflow inputs into one run-level `plan-metadata.json` file, uploads that file as a GitHub Actions artifact named `infra-plan-metadata`, and then calls `shared_infra.yml` with `tg_action: plan` plus `plan_run_id: ${{ github.run_id }}`. After the plan completes, it prints the current workflow `github.run_id` into both the logs and the GitHub Actions step summary as `plan_artifact_run_id`, and exposes that value as a reusable-workflow output.
-- `shared_infra_apply.yml`
+- `shared_infra_apply_no_plan.yml`
   Direct-input apply wrapper around `shared_infra.yml`. It takes resolved workflow inputs directly and calls `shared_infra.yml` with `tg_action: apply`.
 - `shared_infra_apply_from_plan.yml`
   Apply-from-plan wrapper around `shared_infra.yml`. It takes `plan_artifact_run_id`, downloads the `infra-plan-metadata` GitHub artifact from that earlier workflow run, reads the frozen graph inputs and saved wave arrays back out, and then reruns the same `wave_0`, `wave_1`, and `wave_2` module order. For now each per-module job only downloads its matching `terragrunt-plan-<environment>-<module>` GitHub artifact and prints the recovered plan metadata/text files plus the binary plan file presence for inspection.

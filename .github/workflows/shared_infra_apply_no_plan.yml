@@ -1,4 +1,4 @@
-name: Shared Infra Apply
+name: Shared Infra Apply No Plan
 
 on:
   workflow_call:
