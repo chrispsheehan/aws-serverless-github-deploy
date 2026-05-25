@@ -75,6 +75,9 @@ terraform {
 
 inputs = merge(
   {
+    bootstrap_image_uri = "${dependency.ecr.outputs.repository_url}:bootstrap"
+  },
+  {
     ecs_security_group_id = dependency.security.outputs.ecs_sg
   },
   {
