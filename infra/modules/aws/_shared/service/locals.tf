@@ -86,6 +86,12 @@ locals {
     name  = var.service_name
     image = var.bootstrap_image_uri
 
+    command = [
+      "sh",
+      "-c",
+      "printf 'ok\\n' > /usr/share/nginx/html/health && exec nginx -g 'daemon off;'",
+    ]
+
     portMappings = [
       {
         name          = "${var.service_name}-${var.container_port}-tcp"
