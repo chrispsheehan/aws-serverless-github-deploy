@@ -163,6 +163,7 @@ Run these checks on every CI, workflow, or deploy-contract change.
 - saved infra-plan storage is intentionally split into two levels:
   - one run-level metadata artifact named `infra-plan-metadata` containing `plan-metadata.json`
   - one per-stack GitHub artifact named `terragrunt-plan-<environment>-<module>`
+- `shared_infra_apply_from_plan.yml` now filters saved rollout waves through the read-only `infra-plan-filter-waves-by-changes` helper in `justfile.ci`, so the apply matrix excludes any module whose saved `terragrunt.plan.meta.json` reports `has_changes: false`
 - `./.github/actions/terragrunt` derives its plan artifact name from `tg_directory`, so callers do not need to pass artifact naming inputs
 - if `apply_plan` is used across separate workflow runs, pass the earlier workflow `run_id` through `plan_artifact_run_id`; the shared wrappers recover both metadata and per-stack plan files from GitHub artifacts in that earlier run
 - if a cross-run apply should not ask the operator to re-enter versions or recompute artifact resolution, store both the input versions and the resolved reusable-workflow outputs in a metadata artifact during plan and recover them in the apply wrapper from the earlier `run_id`

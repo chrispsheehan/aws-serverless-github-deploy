@@ -136,6 +136,53 @@ tg-graph-json-to-waves:
     ' | jq -c .
 
 
+# Filter saved infra-plan waves down to modules whose terragrunt.plan.meta.json
+# reports has_changes=true.
+infra-plan-filter-waves-by-changes:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd "{{PROJECT_DIR}}"
+
+    if [[ -z "${PLAN_METADATA_FILE:-}" ]]; then
+        echo "❌ PLAN_METADATA_FILE is required for infra-plan-filter-waves-by-changes."
+        exit 1
+    fi
+
+    if [[ -z "${PLAN_ARTIFACTS_DIR:-}" ]]; then
+        echo "❌ PLAN_ARTIFACTS_DIR is required for infra-plan-filter-waves-by-changes."
+        exit 1
+    fi
+
+    changed_modules_file="$(mktemp)"
+    trap 'rm -f "$changed_modules_file"' EXIT
+
+    while IFS= read -r meta; do
+        has_changes="$(jq -r '.has_changes // false' "$meta")"
+        module_name="$(jq -r '.tg_directory | split("/") | last' "$meta")"
+
+        if [[ "$has_changes" == "true" && -n "$module_name" && "$module_name" != "null" ]]; then
+            printf '%s\n' "$module_name" >> "$changed_modules_file"
+        fi
+    done < <(find "$PLAN_ARTIFACTS_DIR" -name terragrunt.plan.meta.json -print | sort)
+
+    if [[ -s "$changed_modules_file" ]]; then
+        changed_modules_json="$(
+            sort -u "$changed_modules_file" | jq -Rsc 'split("\n") | map(select(length > 0))'
+        )"
+    else
+        changed_modules_json='[]'
+    fi
+
+    jq -c \
+      --argjson changed "$changed_modules_json" \
+      '
+        (.waves // [])
+        | map(.modules |= map(select(. as $item | $changed | index($item) != null)))
+        | map(select(.modules | length > 0))
+      ' \
+      "$PLAN_METADATA_FILE"
+
+
 # Run `tflint` across Terraform module directories.
 tf-lint-check:
     #!/bin/bash

@@ -70,33 +70,26 @@ jobs:
           echo "=== downloaded plan metadata files ==="
           find plan-artifacts -name terragrunt.plan.meta.json -print | sort
 
+      - name: Filter saved plan waves to changed modules
+        id: filter_waves
+        uses: ./.github/actions/just
+        env:
+          PLAN_METADATA_FILE: plan-metadata.json
+          PLAN_ARTIFACTS_DIR: plan-artifacts
+        with:
+          justfile_path: justfile.ci
+          just_action: infra-plan-filter-waves-by-changes
+
       - name: Read plan metadata
         id: read_metadata
         shell: bash
+        env:
+          FILTERED_WAVES_JSON: ${{ steps.filter_waves.outputs.just_outputs }}
         run: |
+          set -euo pipefail
+
           echo "infra_version=$(jq -r '.infra_version' plan-metadata.json)" >> "$GITHUB_OUTPUT"
-
-          if find plan-artifacts -name terragrunt.plan.meta.json -print -quit | grep -q .; then
-            changed_modules_json="$(
-              find plan-artifacts -name terragrunt.plan.meta.json -print0 \
-                | xargs -0 jq -s -c '[ .[] | select(.has_changes == true) | .tg_directory | split("/") | last ] | unique'
-            )"
-          else
-            changed_modules_json='[]'
-          fi
-
-          echo "changed_modules_json=$changed_modules_json"
-
-          filtered_waves_json="$(
-            jq -c \
-              --argjson changed_modules "$changed_modules_json" \
-              '
-                .waves // []
-                | map(.modules |= map(select($changed_modules | index(.) != null)))
-                | map(select(.modules | length > 0))
-              ' \
-              plan-metadata.json
-          )"
+          filtered_waves_json="$(printf '%s\n' "$FILTERED_WAVES_JSON" | jq -c .)"
 
           echo "waves_json=$filtered_waves_json" >> "$GITHUB_OUTPUT"
           echo "wave_0_modules=$(jq -c '.[0].modules // []' <<<"$filtered_waves_json")" >> "$GITHUB_OUTPUT"
