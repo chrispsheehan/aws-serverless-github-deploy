@@ -32,6 +32,12 @@ outputs:
   tg_graph_output:
     description: "Raw Terragrunt run-all dependency graph output"
     value: ${{ steps.tg_graph.outputs.graph_output }}
+  plan_has_changes:
+    description: "Whether the saved plan contains changes"
+    value: ${{ steps.terragrunt_action.outputs.plan_has_changes }}
+  plan_artifact_directory:
+    description: "Directory containing the saved plan artifact bundle"
+    value: ${{ steps.terragrunt_action.outputs.plan_artifact_directory }}
 
 runs:
   using: "composite"
@@ -79,6 +85,7 @@ runs:
         PLAN_META_PATH="${PLAN_DIR}/terragrunt.plan.meta.json"
         PLAN_JSON_PATH="${PLAN_DIR}/terragrunt.plan.json"
         PLAN_LOG_PATH="${PLAN_DIR}/terragrunt.plan.log"
+        PLAN_ARTIFACT_DIR="${PLAN_DIR}/terragrunt-plan-artifact"
 
         case "${{ inputs.tg_action }}" in
           apply)
@@ -115,10 +122,22 @@ runs:
             echo "=== terragrunt.plan.meta.json ==="
             cat "$PLAN_META_PATH"
 
-            terragrunt show -no-color "$PLAN_PATH" > "$PLAN_TEXT_PATH"
+            rm -rf "$PLAN_ARTIFACT_DIR"
+            mkdir -p "$PLAN_ARTIFACT_DIR"
+            cp "$PLAN_META_PATH" "$PLAN_ARTIFACT_DIR/"
+
+            if [ "$plan_has_changes" = "true" ]; then
+              terragrunt show -no-color "$PLAN_PATH" > "$PLAN_TEXT_PATH"
+              cp "$PLAN_PATH" "$PLAN_ARTIFACT_DIR/"
+              cp "$PLAN_TEXT_PATH" "$PLAN_ARTIFACT_DIR/"
+            else
+              rm -f "$PLAN_PATH" "$PLAN_TEXT_PATH" "$PLAN_JSON_PATH"
+            fi
 
             echo "plan_exit_code=$plan_exit_code" >> "$GITHUB_OUTPUT"
+            echo "plan_has_changes=$plan_has_changes" >> "$GITHUB_OUTPUT"
             echo "plan_contains_mocked_outputs=$plan_contains_mocked_outputs" >> "$GITHUB_OUTPUT"
+            echo "plan_artifact_directory=$PLAN_ARTIFACT_DIR" >> "$GITHUB_OUTPUT"
             echo "Terragrunt binary plan path: $PLAN_PATH"
 
             ;;

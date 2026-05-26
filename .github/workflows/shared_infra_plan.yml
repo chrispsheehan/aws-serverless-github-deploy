@@ -83,20 +83,18 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: ${{ env.TG_ACTION_LABEL }} ${{ matrix.module }} infra
+        id: terragrunt_plan
         uses: ./.github/actions/terragrunt
         with:
           tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}
           tg_action: plan
 
-      - name: Upload plan files
+      - name: Upload plan artifacts
         if: ${{ success() }}
         uses: actions/upload-artifact@v7
         with:
           name: terragrunt-plan-${{ inputs.environment }}-${{ matrix.module }}
-          path: |
-            infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}/terragrunt.plan.meta.json
-            infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}/terragrunt.tfplan
-            infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}/terragrunt.plan.txt
+          path: ${{ steps.terragrunt_plan.outputs.plan_artifact_directory }}
           if-no-files-found: warn
 
   wave_1:
@@ -121,19 +119,17 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: ${{ env.TG_ACTION_LABEL }} ${{ matrix.module }} infra
+        id: terragrunt_plan
         uses: ./.github/actions/terragrunt
         with:
           tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}
           tg_action: plan
-      - name: Upload plan files
+      - name: Upload plan artifacts
         if: ${{ success() }}
         uses: actions/upload-artifact@v7
         with:
           name: terragrunt-plan-${{ inputs.environment }}-${{ matrix.module }}
-          path: |
-            infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}/terragrunt.plan.meta.json
-            infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}/terragrunt.tfplan
-            infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}/terragrunt.plan.txt
+          path: ${{ steps.terragrunt_plan.outputs.plan_artifact_directory }}
           if-no-files-found: warn
 
   wave_2:
@@ -158,19 +154,17 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: ${{ env.TG_ACTION_LABEL }} ${{ matrix.module }} infra
+        id: terragrunt_plan
         uses: ./.github/actions/terragrunt
         with:
           tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}
           tg_action: plan
-      - name: Upload plan files
+      - name: Upload plan artifacts
         if: ${{ success() }}
         uses: actions/upload-artifact@v7
         with:
           name: terragrunt-plan-${{ inputs.environment }}-${{ matrix.module }}
-          path: |
-            infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}/terragrunt.plan.meta.json
-            infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}/terragrunt.tfplan
-            infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}/terragrunt.plan.txt
+          path: ${{ steps.terragrunt_plan.outputs.plan_artifact_directory }}
           if-no-files-found: warn
 
   wave_3:
@@ -195,20 +189,18 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: ${{ env.TG_ACTION_LABEL }} ${{ matrix.module }} infra
+        id: terragrunt_plan
         uses: ./.github/actions/terragrunt
         with:
           tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}
           tg_action: plan
 
-      - name: Upload plan files
+      - name: Upload plan artifacts
         if: ${{ success() }}
         uses: actions/upload-artifact@v7
         with:
           name: terragrunt-plan-${{ inputs.environment }}-${{ matrix.module }}
-          path: |
-            infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}/terragrunt.plan.meta.json
-            infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}/terragrunt.tfplan
-            infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}/terragrunt.plan.txt
+          path: ${{ steps.terragrunt_plan.outputs.plan_artifact_directory }}
           if-no-files-found: warn
 
   plan_context:

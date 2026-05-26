@@ -140,6 +140,12 @@ jobs:
           run-id: ${{ inputs.plan_artifact_run_id }}
           path: infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}
 
+      - name: Restore saved plan files
+        shell: bash
+        run: |
+          artifact_dir="infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}/terragrunt-plan-artifact"
+          cp -R "$artifact_dir"/. "infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}/"
+
       - name: Apply ${{ matrix.module }} infra from saved plan
         uses: ./.github/actions/terragrunt
         with:
@@ -174,6 +180,12 @@ jobs:
           github-token: ${{ github.token }}
           run-id: ${{ inputs.plan_artifact_run_id }}
           path: infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}
+
+      - name: Restore saved plan files
+        shell: bash
+        run: |
+          artifact_dir="infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}/terragrunt-plan-artifact"
+          cp -R "$artifact_dir"/. "infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}/"
 
       - name: Apply ${{ matrix.module }} infra from saved plan
         uses: ./.github/actions/terragrunt
@@ -210,6 +222,12 @@ jobs:
           run-id: ${{ inputs.plan_artifact_run_id }}
           path: infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}
 
+      - name: Restore saved plan files
+        shell: bash
+        run: |
+          artifact_dir="infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}/terragrunt-plan-artifact"
+          cp -R "$artifact_dir"/. "infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}/"
+
       - name: Apply ${{ matrix.module }} infra from saved plan
         uses: ./.github/actions/terragrunt
         with:
@@ -244,6 +262,12 @@ jobs:
           github-token: ${{ github.token }}
           run-id: ${{ inputs.plan_artifact_run_id }}
           path: infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}
+
+      - name: Restore saved plan files
+        shell: bash
+        run: |
+          artifact_dir="infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}/terragrunt-plan-artifact"
+          cp -R "$artifact_dir"/. "infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}/"
 
       - name: Apply ${{ matrix.module }} infra from saved plan
         uses: ./.github/actions/terragrunt
