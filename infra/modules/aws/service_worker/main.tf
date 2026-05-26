@@ -7,9 +7,10 @@ module "service_worker" {
   root_path           = var.root_path
   connection_type     = var.connection_type
 
-  aws_region         = var.aws_region
-  vpc_id             = data.aws_vpc.this.id
-  private_subnet_ids = data.aws_subnets.private.ids
+  aws_region          = var.aws_region
+  ecr_repository_name = var.ecr_repository_name
+  vpc_id              = data.aws_vpc.this.id
+  private_subnet_ids  = data.aws_subnets.private.ids
 
   cluster_id            = var.cluster_id
   cluster_name          = var.cluster_name
