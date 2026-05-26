@@ -2,9 +2,6 @@ name: Dev Infra Apply (no plan)
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - plan-flow-improve
 
 permissions:
   id-token: write

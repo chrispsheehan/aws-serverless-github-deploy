@@ -46,6 +46,14 @@ jobs:
           run-id: ${{ inputs.plan_artifact_run_id }}
           path: .
 
+      - name: Download saved plan metadata artifacts
+        uses: actions/download-artifact@v7
+        with:
+          pattern: terragrunt-plan-${{ inputs.environment }}-*
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.plan_artifact_run_id }}
+          path: plan-artifacts
+
       - name: Check plan metadata artifact
         shell: bash
         run: |
@@ -65,11 +73,29 @@ jobs:
         shell: bash
         run: |
           echo "infra_version=$(jq -r '.infra_version' plan-metadata.json)" >> "$GITHUB_OUTPUT"
-          echo "waves_json=$(jq -c '.waves // []' plan-metadata.json)" >> "$GITHUB_OUTPUT"
-          echo "wave_0_modules=$(jq -c '.waves[0].modules // []' plan-metadata.json)" >> "$GITHUB_OUTPUT"
-          echo "wave_1_modules=$(jq -c '.waves[1].modules // []' plan-metadata.json)" >> "$GITHUB_OUTPUT"
-          echo "wave_2_modules=$(jq -c '.waves[2].modules // []' plan-metadata.json)" >> "$GITHUB_OUTPUT"
-          echo "wave_3_modules=$(jq -c '.waves[3].modules // []' plan-metadata.json)" >> "$GITHUB_OUTPUT"
+
+          changed_modules_json="$(
+            find plan-artifacts -name terragrunt.plan.meta.json -print0 \
+              | xargs -0 jq -r 'select(.has_changes == true) | .tg_directory | split("/") | last' \
+              | jq -Rsc 'split("\n") | map(select(length > 0)) | unique'
+          )"
+
+          filtered_waves_json="$(
+            jq -c \
+              --argjson changed_modules "$changed_modules_json" \
+              '
+                .waves // []
+                | map(.modules |= map(select($changed_modules | index(.) != null)))
+                | map(select(.modules | length > 0))
+              ' \
+              plan-metadata.json
+          )"
+
+          echo "waves_json=$filtered_waves_json" >> "$GITHUB_OUTPUT"
+          echo "wave_0_modules=$(jq -c '.[0].modules // []' <<<"$filtered_waves_json")" >> "$GITHUB_OUTPUT"
+          echo "wave_1_modules=$(jq -c '.[1].modules // []' <<<"$filtered_waves_json")" >> "$GITHUB_OUTPUT"
+          echo "wave_2_modules=$(jq -c '.[2].modules // []' <<<"$filtered_waves_json")" >> "$GITHUB_OUTPUT"
+          echo "wave_3_modules=$(jq -c '.[3].modules // []' <<<"$filtered_waves_json")" >> "$GITHUB_OUTPUT"
 
   wave_0:
     needs: metadata
