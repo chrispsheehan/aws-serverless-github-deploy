@@ -67,6 +67,8 @@ jobs:
         run: |
           echo "=== plan-metadata.json ==="
           cat plan-metadata.json
+          echo "=== downloaded plan metadata files ==="
+          find plan-artifacts -name terragrunt.plan.meta.json -print | sort
 
       - name: Read plan metadata
         id: read_metadata
@@ -74,11 +76,16 @@ jobs:
         run: |
           echo "infra_version=$(jq -r '.infra_version' plan-metadata.json)" >> "$GITHUB_OUTPUT"
 
-          changed_modules_json="$(
-            find plan-artifacts -name terragrunt.plan.meta.json -print0 \
-              | xargs -0 jq -r 'select(.has_changes == true) | .tg_directory | split("/") | last' \
-              | jq -Rsc 'split("\n") | map(select(length > 0)) | unique'
-          )"
+          if find plan-artifacts -name terragrunt.plan.meta.json -print -quit | grep -q .; then
+            changed_modules_json="$(
+              find plan-artifacts -name terragrunt.plan.meta.json -print0 \
+                | xargs -0 jq -s -c '[ .[] | select(.has_changes == true) | .tg_directory | split("/") | last ] | unique'
+            )"
+          else
+            changed_modules_json='[]'
+          fi
+
+          echo "changed_modules_json=$changed_modules_json"
 
           filtered_waves_json="$(
             jq -c \
