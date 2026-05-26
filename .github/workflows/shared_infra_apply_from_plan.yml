@@ -26,7 +26,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       infra_version: ${{ steps.read_metadata.outputs.infra_version }}
-      bootstrap_image_uri: ${{ steps.read_metadata.outputs.bootstrap_image_uri }}
       waves_json: ${{ steps.read_metadata.outputs.waves_json }}
       wave_0_modules: ${{ steps.read_metadata.outputs.wave_0_modules }}
       wave_1_modules: ${{ steps.read_metadata.outputs.wave_1_modules }}
@@ -62,7 +61,6 @@ jobs:
         shell: bash
         run: |
           echo "infra_version=$(jq -r '.infra_version' plan-metadata.json)" >> "$GITHUB_OUTPUT"
-          echo "bootstrap_image_uri=$(jq -r '.bootstrap_image_uri' plan-metadata.json)" >> "$GITHUB_OUTPUT"
           echo "waves_json=$(jq -c '.waves // []' plan-metadata.json)" >> "$GITHUB_OUTPUT"
           echo "wave_0_modules=$(jq -c '.waves[0].modules // []' plan-metadata.json)" >> "$GITHUB_OUTPUT"
           echo "wave_1_modules=$(jq -c '.waves[1].modules // []' plan-metadata.json)" >> "$GITHUB_OUTPUT"

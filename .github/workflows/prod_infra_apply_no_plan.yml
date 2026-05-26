@@ -9,21 +9,9 @@ permissions:
   actions: read
 
 jobs:
-  get_build:
-    name: Resolve
-    uses: ./.github/workflows/shared_build_get.yml
-    with:
-      environment: ci
-      lambda_version: 0.19.13
-      frontend_version: 0.19.13
-      ecs_version: 0.19.13
-
   infra:
     name: Apply
-    needs:
-      - get_build
     uses: ./.github/workflows/shared_infra_apply_no_plan.yml
     with:
       environment: prod
       infra_version: 0.19.13
-      bootstrap_image_uri: ${{ needs.get_build.outputs.bootstrap_image_uri }}

@@ -11,11 +11,6 @@ on:
         description: "Version of infrastructure (terraform) to be applied"
         required: true
         type: string
-      bootstrap_image_uri:
-        description: "Bootstrap ECS image URI"
-        required: false
-        type: string
-        default: ""
 
 permissions:
   id-token: write

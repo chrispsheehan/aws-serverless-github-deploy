@@ -70,7 +70,7 @@ flowchart LR
 - `shared_build.yml`
   Builds and publishes frontend, Lambda, and ECS artifacts.
 - `shared_build_get.yml`
-  Resolves artifact locations and derives matrices used by downstream deploy wrappers. Its multi-step `images` and `lambdas` jobs configure AWS credentials once and then reuse that ambient session across repeated `just` calls against the same account. For ECS service bootstrap, it now resolves the stable shared placeholder image URI with the fixed `:bootstrap` tag rather than deriving a versioned bootstrap tag from the requested ECS release.
+  Resolves artifact locations and derives matrices used by downstream deploy wrappers. Its multi-step `images` and `lambdas` jobs configure AWS credentials once and then reuse that ambient session across repeated `just` calls against the same account.
 
 ```mermaid
 flowchart LR
@@ -93,7 +93,7 @@ flowchart LR
   CI helper that expects compact graph JSON in `TG_GRAPH_JSON` and returns a sequential JSON array of wave objects like `[{ "wave": 0, "modules": [...] }, ...]`, with each wave containing only modules whose direct dependencies were satisfied by earlier waves.
 - The shared infra wrappers must forward the permissions required by the nested reusable call chain. In practice that means `id-token: write` everywhere the Terragrunt action may assume AWS OIDC and `contents: read` for checkout. The shared plan/apply wrappers now rely on AWS access to the shared code bucket rather than GitHub artifact permissions for cross-run recovery.
 - The shared infra wrappers no longer accept `lambda_matrix` or `service_matrix`. Infra selection now comes from the Terragrunt dependency graph and derived waves, not from precomputed runtime directory matrices.
-- The shared infra wrappers no longer accept `code_bucket` either. The current graph-wave placeholder path only needs `environment`, `infra_version`, optional `bootstrap_image_uri`, and the Terragrunt action context.
+- The shared infra wrappers no longer accept `code_bucket` or `bootstrap_image_uri`. The current graph-wave placeholder path only needs `environment`, `infra_version`, and the Terragrunt action context.
 - `shared_deploy.yml`
   Rolls out Lambda code, optional migrations, optional reconciliation Lambdas, ECS task and service updates, and optional frontend deploys. Its multi-step AWS jobs now configure credentials once at job start and let the local `just` and Terragrunt actions reuse that ambient session. The reusable workflow renders its Lambda and ECS CodeDeploy AppSpec files from the shared templates under `config/deploy/`, and its mutating `just` steps should target `justfile.deploy` rather than the repo-root `justfile`.
 
@@ -111,15 +111,15 @@ flowchart LR
 ### Wrapper Workflows
 
 - `dev_infra_apply_no_plan.yml`
-  Entry point for dev infra apply. It currently calls the shared infra workflow directly with an empty placeholder `bootstrap_image_uri`, because the temporary wave-placeholder executor does not yet consume that old artifact input.
+  Entry point for dev infra apply. It calls the shared infra workflow directly with the target environment and infra ref.
 - `dev_infra_plan.yml`
-  Entry point for dev infra plan. It currently calls the shared infra plan wrapper directly with an empty placeholder `bootstrap_image_uri`, because the temporary wave-placeholder executor does not yet consume that old artifact input.
+  Entry point for dev infra plan. It calls the shared infra plan wrapper directly with the target environment and infra ref.
 - `dev_infra_plan_and_apply.yml`
   Entry point for dev infra plan-then-apply. It captures the current workflow `run_id` as plan context, runs the shared infra wrapper in direct-input `plan` mode so that the wrapper emits both plan artifacts and `infra-plan-metadata`, and then reruns the same ordered infra graph in metadata-backed `apply_plan` mode.
 - `prod_infra_plan.yml`
-  Entry point for prod infra plan. It resolves released artifacts from `ci` and then runs the shared infra wrapper in direct-input `plan` mode so that it emits both the reusable metadata artifact and the derived per-stack plan artifacts for that resolved input set.
+  Entry point for prod infra plan. It runs the shared infra wrapper in direct-input `plan` mode so that it emits both the reusable metadata artifact and the derived per-stack plan artifacts for the requested infra ref.
 - `prod_infra_apply_no_plan.yml`
-  Entry point for prod infra apply using shared artifacts from `ci`.
+  Entry point for prod infra apply using the requested infra ref.
 - `dev_infra_apply_from_plan.yml`
   Entry point for dev infra apply-from-plan. It takes a prior `plan_artifact_run_id` from an earlier `dev_infra_plan.yml` or `dev_infra_plan_and_apply.yml` run and reruns the ordered dev infra graph through `shared_infra_apply_from_plan.yml`.
 - `prod_infra_apply_from_plan.yml`
