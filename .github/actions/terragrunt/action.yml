@@ -86,6 +86,7 @@ runs:
         PLAN_JSON_PATH="${PLAN_DIR}/terragrunt.plan.json"
         PLAN_LOG_PATH="${PLAN_DIR}/terragrunt.plan.log"
         PLAN_ARTIFACT_DIR="${PLAN_DIR}/terragrunt-plan-artifact"
+        PLAN_ARTIFACT_DIR_REL="${{ inputs.tg_directory }}/terragrunt-plan-artifact"
 
         case "${{ inputs.tg_action }}" in
           apply)
@@ -134,10 +135,15 @@ runs:
               rm -f "$PLAN_PATH" "$PLAN_TEXT_PATH" "$PLAN_JSON_PATH"
             fi
 
+            echo "=== plan module directory ==="
+            ls -la "$PLAN_DIR"
+            echo "=== plan artifact directory ==="
+            ls -la "$PLAN_ARTIFACT_DIR"
+
             echo "plan_exit_code=$plan_exit_code" >> "$GITHUB_OUTPUT"
             echo "plan_has_changes=$plan_has_changes" >> "$GITHUB_OUTPUT"
             echo "plan_contains_mocked_outputs=$plan_contains_mocked_outputs" >> "$GITHUB_OUTPUT"
-            echo "plan_artifact_directory=$PLAN_ARTIFACT_DIR" >> "$GITHUB_OUTPUT"
+            echo "plan_artifact_directory=$PLAN_ARTIFACT_DIR_REL" >> "$GITHUB_OUTPUT"
             echo "Terragrunt binary plan path: $PLAN_PATH"
 
             ;;
