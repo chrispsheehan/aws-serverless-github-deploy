@@ -111,7 +111,7 @@ flowchart LR
 ### Wrapper Workflows
 
 - `dev_infra_apply_no_plan.yml`
-  Entry point for dev infra apply. It calls the shared infra workflow directly with the target environment and infra ref.
+  Entry point for dev infra apply. It first prepares shared artifact infrastructure through `shared_infra_releases.yml`, then runs the shared infra apply wrapper with the target environment and infra ref.
 - `dev_infra_plan.yml`
   Entry point for dev infra plan. It calls the shared infra plan wrapper directly with the target environment and infra ref.
 - `dev_infra_plan_and_apply.yml`
