@@ -97,6 +97,22 @@ jobs:
           echo "wave_2_modules=$(jq -c '.[2].modules // []' <<<"$filtered_waves_json")" >> "$GITHUB_OUTPUT"
           echo "wave_3_modules=$(jq -c '.[3].modules // []' <<<"$filtered_waves_json")" >> "$GITHUB_OUTPUT"
 
+      - name: Print filtered apply waves
+        shell: bash
+        env:
+          WAVES_JSON: ${{ steps.read_metadata.outputs.waves_json }}
+          WAVE_0_MODULES: ${{ steps.read_metadata.outputs.wave_0_modules }}
+          WAVE_1_MODULES: ${{ steps.read_metadata.outputs.wave_1_modules }}
+          WAVE_2_MODULES: ${{ steps.read_metadata.outputs.wave_2_modules }}
+          WAVE_3_MODULES: ${{ steps.read_metadata.outputs.wave_3_modules }}
+        run: |
+          echo "=== filtered apply waves ==="
+          printf '%s\n' "$WAVES_JSON" | jq .
+          echo "wave_0_modules=$WAVE_0_MODULES"
+          echo "wave_1_modules=$WAVE_1_MODULES"
+          echo "wave_2_modules=$WAVE_2_MODULES"
+          echo "wave_3_modules=$WAVE_3_MODULES"
+
   wave_0:
     needs: metadata
     name: 0 / ${{ matrix.module }}
