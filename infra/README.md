@@ -34,10 +34,7 @@ Shared artifact names also follow naming conventions from `infra/root.hcl`:
 - dedicated saved-plan bucket: `<account>-<region>-<repo>-tfplan`
 - code bucket: `<artifact_base>-code`
 - ECS ECR repository: `<artifact_base>-ecr`
-- saved Terragrunt plan artifacts: `s3://<plan_bucket>/terragrunt_plan/<environment>/<run_id>/...`
-- plan-bucket retention: `infra_plan_artifact_expiration_days` applies an S3 lifecycle rule to `terragrunt_plan/` in the dedicated saved-plan bucket
-- during `terragrunt init` and saved-plan `plan`, the root hook ensures the dedicated saved-plan bucket exists; interactive runs prompt before creation and non-interactive runs fail if no prompt is possible
-- to reapply the configured `infra_plan_artifact_expiration_days` lifecycle rule locally for an existing bucket, rerun with `TG_RESET_PLAN_ARTIFACT_BUCKET=true`
+- saved Terragrunt plan artifacts are stored as GitHub Actions artifacts keyed by workflow run id
 
 So a stack at:
 
@@ -71,7 +68,7 @@ stores state at:
 - `cognito`
   Owns the Cognito user pool, frontend app client, Hosted UI domain, and read-only user group.
 - `frontend`
-  Owns the derived CloudFront custom domain, ACM certificate in `us-east-1`, and Route53 alias records using the required `DOMAIN_NAME` workflow env input.
+  Owns the derived CloudFront custom domain, ACM certificate in `us-east-1`, and Route53 alias records using the Terragrunt `domain_name` input from `infra/live/global_vars.hcl`.
 - `observability`
   Owns the shared CloudWatch dashboard used to inspect Lambda and ECS logs in one console place.
 - `database`
@@ -156,7 +153,8 @@ That `containers/lib` directory is helper code only and is not treated as a depl
 - build workflows produce Lambda zips and container images
 - `*_infra` wrappers need the inputs required to apply infra safely, such as directory-derived stack matrices and any artifact-derived bootstrap references
 - in `prod`, the `*_infra` wrappers read shared artifact resources from `ci` but only apply service and task stacks in `prod`
-- saved `plan` / `apply_plan` artifacts live in the dedicated plan bucket under `terragrunt_plan/<environment>/<run_id>/...`
+- saved `plan` / `apply_plan` artifacts live in GitHub Actions artifacts keyed by workflow run id
+- each saved-plan stack always uploads `terragrunt.plan.meta.json`; the binary `terragrunt.tfplan` and rendered `terragrunt.plan.txt` are uploaded only when the plan contains real changes
 - deploy workflows:
   - publish Lambda versions and use Lambda CodeDeploy
   - optionally invoke the `migrations` Lambda when it is part of the Lambda deploy matrix
@@ -198,23 +196,17 @@ just --justfile justfile.deploy lambda-get-version
 just --justfile justfile.deploy frontend-build
 ```
 
-For a local saved-plan run that can upload plan artifacts through the normal repo wrapper, enable artifact mode, provide a unique run id, and pass the Terragrunt operation as one quoted argument:
+For a local saved-plan run, pass the Terragrunt operation as one quoted argument:
 
 ```sh
-TG_ENABLE_PLAN_ARTIFACTS=true \
-PLAN_ARTIFACT_RUN_ID="local-example-run" \
 just tg dev aws/oidc 'plan -out=terragrunt.tfplan'
 ```
 
-The `tg` recipe treats the final argument as the Terragrunt operation string, so quoting lets you pass flags such as `-out=...` through the wrapper. The current saved-plan hook expects the binary plan filename to be `terragrunt.tfplan`; if you choose a different `-out` filename, the upload hook will not find it.
-
-Per-stack saved-plan bundles in S3 use the live stack identity rather than your full local filesystem path, for example `terragrunt-plan-dev-aws-oidc`.
+The `tg` recipe treats the final argument as the Terragrunt operation string, so quoting lets you pass flags such as `-out=...` through the wrapper. The workflow saved-plan path expects the binary plan filename to be `terragrunt.tfplan`.
 
 To apply that same saved plan later, reuse the same run id:
 
 ```sh
-TG_ENABLE_PLAN_ARTIFACTS=true \
-PLAN_ARTIFACT_RUN_ID="local-example-run" \
 just tg dev aws/oidc 'apply terragrunt.tfplan'
 ```
 

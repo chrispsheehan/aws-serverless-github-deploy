@@ -1,4 +1,4 @@
-name: Shared Infra Plan
+name: Shared Infra Apply No Plan
 
 on:
   workflow_call:
@@ -8,16 +8,12 @@ on:
         required: true
         type: string
       infra_version:
-        description: "Version of infrastructure (terraform) to be planned"
+        description: "Version of infrastructure (terraform) to be applied"
         required: true
         type: string
-    outputs:
-      plan_artifact_run_id:
-        description: "Workflow run ID for the saved plan artifacts and metadata"
-        value: ${{ jobs.plan_context.outputs.plan_artifact_run_id }}
 
 concurrency:
-  group: infra-plan-${{ inputs.environment }}
+  group: infra-mutate-${{ inputs.environment }}
   cancel-in-progress: false
 
 permissions:
@@ -28,7 +24,8 @@ permissions:
 env:
   AWS_OIDC_ROLE_ARN: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/${{ vars.PROJECT_NAME }}-${{ inputs.environment }}-github-oidc-role
   AWS_REGION: ${{ vars.AWS_REGION }}
-  TG_ACTION_LABEL: "Plan"
+  TG_ACTION_LABEL: "Apply"
+  TF_VAR_bootstrap: "true"
 
 jobs:
   generate_waves:
@@ -37,31 +34,6 @@ jobs:
       environment: ${{ inputs.environment }}
       infra_version: ${{ inputs.infra_version }}
       ignore_task_modules: true
-
-  metadata:
-    needs: generate_waves
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ inputs.infra_version }}
-
-      - name: Write plan metadata from workflow inputs
-        shell: bash
-        run: |
-          cat > plan-metadata.json <<EOF
-          {
-            "infra_version": "${{ inputs.infra_version }}",
-            "waves": ${{ needs.generate_waves.outputs.waves_json }}
-          }
-          EOF
-
-      - name: Upload plan metadata artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: infra-plan-metadata
-          path: plan-metadata.json
-          retention-days: 14
 
   wave_0:
     needs: generate_waves
@@ -83,19 +55,10 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: ${{ env.TG_ACTION_LABEL }} ${{ matrix.module }} infra
-        id: terragrunt_plan
         uses: ./.github/actions/terragrunt
         with:
           tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}
-          tg_action: plan
-
-      - name: Upload plan artifacts
-        if: ${{ success() }}
-        uses: actions/upload-artifact@v7
-        with:
-          name: terragrunt-plan-${{ inputs.environment }}-${{ matrix.module }}
-          path: ${{ steps.terragrunt_plan.outputs.plan_artifact_directory }}
-          if-no-files-found: warn
+          tg_action: apply
 
   wave_1:
     needs:
@@ -119,18 +82,10 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: ${{ env.TG_ACTION_LABEL }} ${{ matrix.module }} infra
-        id: terragrunt_plan
         uses: ./.github/actions/terragrunt
         with:
           tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}
-          tg_action: plan
-      - name: Upload plan artifacts
-        if: ${{ success() }}
-        uses: actions/upload-artifact@v7
-        with:
-          name: terragrunt-plan-${{ inputs.environment }}-${{ matrix.module }}
-          path: ${{ steps.terragrunt_plan.outputs.plan_artifact_directory }}
-          if-no-files-found: warn
+          tg_action: apply
 
   wave_2:
     needs:
@@ -154,18 +109,10 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: ${{ env.TG_ACTION_LABEL }} ${{ matrix.module }} infra
-        id: terragrunt_plan
         uses: ./.github/actions/terragrunt
         with:
           tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}
-          tg_action: plan
-      - name: Upload plan artifacts
-        if: ${{ success() }}
-        uses: actions/upload-artifact@v7
-        with:
-          name: terragrunt-plan-${{ inputs.environment }}-${{ matrix.module }}
-          path: ${{ steps.terragrunt_plan.outputs.plan_artifact_directory }}
-          if-no-files-found: warn
+          tg_action: apply
 
   wave_3:
     needs:
@@ -189,36 +136,7 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: ${{ env.TG_ACTION_LABEL }} ${{ matrix.module }} infra
-        id: terragrunt_plan
         uses: ./.github/actions/terragrunt
         with:
           tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}
-          tg_action: plan
-
-      - name: Upload plan artifacts
-        if: ${{ success() }}
-        uses: actions/upload-artifact@v7
-        with:
-          name: terragrunt-plan-${{ inputs.environment }}-${{ matrix.module }}
-          path: ${{ steps.terragrunt_plan.outputs.plan_artifact_directory }}
-          if-no-files-found: warn
-
-  plan_context:
-    name: Plan Context
-    runs-on: ubuntu-latest
-    outputs:
-      plan_artifact_run_id: ${{ steps.emit.outputs.plan_artifact_run_id }}
-    steps:
-      - name: Print plan artifact run id
-        id: emit
-        env:
-          PLAN_ARTIFACT_RUN_ID: ${{ github.run_id }}
-        shell: bash
-        run: |
-          echo "plan_artifact_run_id=$PLAN_ARTIFACT_RUN_ID" >> "$GITHUB_OUTPUT"
-          echo "plan_artifact_run_id=$PLAN_ARTIFACT_RUN_ID"
-          {
-            echo "## Infra Plan Context"
-            echo
-            echo "- \`plan_artifact_run_id\`: \`$PLAN_ARTIFACT_RUN_ID\`"
-          } >> "$GITHUB_STEP_SUMMARY"
+          tg_action: apply

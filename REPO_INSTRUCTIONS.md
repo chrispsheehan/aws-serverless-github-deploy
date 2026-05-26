@@ -40,6 +40,13 @@ These instructions apply to the entire repository.
 - runtime behavior: `lambdas/**/README.md` and `containers/**/README.md`
 - before editing, read the relevant local contract docs for the files you plan to touch and follow those contracts
 
+## Script Ownership
+
+- reserve `infra/scripts/**` for Terraform or Terragrunt owned helper behavior that is part of the infra runtime contract
+- Terragrunt graph rendering, saved-plan metadata lookups, and other helpers that shape the output of Terragrunt commands belong under `infra/scripts/**`, even if a `just` recipe or CI job invokes them
+- prefer implementing GitHub Actions or workflow-only helper logic directly in `justfile.ci` when practical
+- when a workflow-only helper needs more than a small recipe body, keep its ownership in the CI/workflow layer rather than under `infra/scripts/**`
+
 ## Context Loading Order
 
 - load context lazily and only as needed
@@ -54,6 +61,7 @@ These instructions apply to the entire repository.
 - when a request mentions external source code and asks how to build, make ready, or deploy it, interpret that as "understand the external app, then answer in terms of how this repository should implement or deploy it" unless the user explicitly redirects the work
 - read the relevant local contract docs before editing and follow them
 - prefer the smallest complete change that matches existing repo patterns
+- remove stale code, temporary helpers, and abandoned experiment residue as part of the same change rather than leaving dead paths behind
 - verify related workflows, infra, docs, and downstream dependencies when the request affects shared behavior
 - state material assumptions when the intended shape is not fully explicit
 - when ambiguity is material or a wrong assumption could cause the repo shape or contract to drift, ask the user a clarifying question before editing
@@ -97,13 +105,15 @@ These instructions apply to the entire repository.
 
 - verify runtime type (Lambda/ECS), deploy mode, and (for ECS) connection type and load-balancer shape
 - verify required infra resources exist (CodeDeploy app/deployment group, listeners/target groups, alarms, VPC link if applicable)
+- before adding a Terragrunt `dependency` or `dependencies` path, verify the target live stack actually exists in that environment/repo slice
 - when changing reusable workflow contracts, compare every caller `with:` block to the callee `workflow_call.inputs`
+- when a workflow input, output, or metadata field is no longer consumed, remove it from the shared contract and callers in the same change rather than leaving dead plumbing behind
+- when changing Terragrunt `*.hcl` dependency edges, re-check the derived infra wave count; the current shared module-discovery/workflow contract only exposes `wave_0_modules`, `wave_1_modules`, and `wave_2_modules`
 - when adding or renaming Terraform module `output` values that are intended for Terragrunt `dependency.<name>.outputs` passthrough, verify every downstream consumer wrapper declares a `variable` with the exact same name
 - if that same-name output-to-variable contract does not hold yet, do not leave it implicit: either add the matching variables, or call out the mismatch explicitly before closing the task
 - check apply/deploy/destroy, and avoid unnecessary `terraform_remote_state` coupling (especially for fast-changing outputs)
 - for bootstrap-sensitive or plan-sensitive cross-stack contracts, prefer Terragrunt `dependency` inputs in the live stack and `mock_outputs` for non-mutating commands rather than reading upstream state directly inside Terraform modules
 - if CI plan failures are caused by missing upstream state, fix the contract shape first instead of papering over the issue with more direct `terraform_remote_state` reads
-- when the same Terragrunt dependency wiring or mocks are needed across environments, centralize that shared config under `infra/live/dependencies/` in a capability-scoped helper such as `network.hcl` and have environment stacks read it rather than duplicating the same blocks in `dev`, `prod`, or `ci`
 - keep this approach visible to users as well: when you introduce or expand this pattern, update the top-level `README.md` so the bootstrap-friendly mock strategy is documented outside agent-only instructions
 - if you intentionally add a Terraform `data "terraform_remote_state"` block, add a `# remote_state_reason: ...` comment immediately above it explaining why Terragrunt `dependency` plus `mock_outputs` is not practical for that case
 - if you intentionally add a Terraform `data "terraform_remote_state"` block, add a `# remote_state_reason: ...` comment immediately above it explaining why Terragrunt `dependency` plus `mock_outputs` is not practical for that case

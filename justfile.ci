@@ -12,6 +12,177 @@ EXTRA_CONTAINER_DIRECTORIES := `just --justfile justfile --evaluate EXTRA_CONTAI
 NON_SERVICE_CONTAINER_DIRECTORIES := `just --justfile justfile --evaluate NON_SERVICE_CONTAINER_DIRECTORIES`
 
 
+# Convert raw Terragrunt graph output from TG_GRAPH_OUTPUT into compact JSON.
+tg-graph-output-to-json environment provider='aws':
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd "{{PROJECT_DIR}}"
+
+    if [[ -z "${TG_GRAPH_OUTPUT:-}" ]]; then
+        echo "❌ TG_GRAPH_OUTPUT is required for tg-graph-output-to-json."
+        exit 1
+    fi
+
+    tmp_nodes="$(mktemp)"
+    tmp_edges="$(mktemp)"
+    trap 'rm -f "$tmp_nodes" "$tmp_edges"' EXIT
+
+    awk -F'"' '
+      /->/ && NF >= 4 {
+        from = $2
+        to = $4
+        sub(".*/", "", from)
+        sub(".*/", "", to)
+        print from "\t" to
+        next
+      }
+      /^[[:space:]]*"/ && /;[[:space:]]*$/ && NF >= 2 {
+        node = $2
+        sub(".*/", "", node)
+        print node
+      }
+    ' <(printf '%s\n' "$TG_GRAPH_OUTPUT") \
+      | while IFS= read -r line; do
+          if [[ "$line" == *$'\t'* ]]; then
+            printf '%s\n' "$line" >> "$tmp_edges"
+          elif [[ -n "$line" ]]; then
+            printf '%s\n' "$line" >> "$tmp_nodes"
+          fi
+        done
+
+    {
+      cat "$tmp_nodes"
+      awk -F'\t' 'NF >= 2 { print $1; print $2 }' "$tmp_edges"
+    } \
+      | sort -u \
+      | while IFS= read -r node; do
+          [[ -n "$node" ]] || continue
+          deps="$(
+            awk -F'\t' -v target="$node" '$1 == target { print $2 }' "$tmp_edges" \
+              | sort -u \
+              | jq -R . \
+              | jq -s -c .
+          )"
+          printf '%s\t%s\n' "$node" "$deps"
+        done \
+      | jq -R -s --arg environment "{{environment}}" --arg provider "{{provider}}" '
+          split("\n")
+          | map(select(length > 0))
+          | map(split("\t"))
+          | map(select(length == 2))
+          | {
+              environment: $environment,
+              provider: $provider,
+              dependencies: (
+                reduce .[] as $pair
+                  ({};
+                   .[$pair[0]] = ($pair[1] | fromjson)
+                  )
+              )
+            }
+        ' \
+      | jq -c '
+          .dependencies as $deps
+          | . + {
+              nodes: ($deps | keys | sort),
+              edges: (
+                $deps
+                | to_entries
+                | map(.key as $from | .value[]? | {from: $from, to: .})
+                | sort_by(.from, .to)
+              )
+            }
+        '
+
+
+# Convert compact Terragrunt graph JSON from TG_GRAPH_JSON into a dependency-safe
+# wave matrix JSON array for GitHub Actions.
+tg-graph-json-to-waves:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd "{{PROJECT_DIR}}"
+
+    if [[ -z "${TG_GRAPH_JSON:-}" ]]; then
+        echo "❌ TG_GRAPH_JSON is required for tg-graph-json-to-waves."
+        exit 1
+    fi
+
+    jq -cn --argjson graph "$TG_GRAPH_JSON" '
+      def build_waves($remaining):
+        if ($remaining | length) == 0 then
+          []
+        else
+          ($remaining | to_entries | map(select((.value | length) == 0) | .key) | sort) as $ready
+          | if ($ready | length) == 0 then
+              error("Cycle detected in Terragrunt dependency graph.")
+            else
+              [{modules: $ready}] + build_waves(
+                reduce ($remaining | to_entries[]) as $entry
+                  ({};
+                   if ($ready | index($entry.key)) != null then
+                     .
+                   else
+                     .[$entry.key] = ($entry.value - $ready)
+                   end
+                  )
+              )
+            end
+        end;
+
+      ($graph.dependencies // {}) as $deps
+      | build_waves($deps)
+      | to_entries
+      | map({wave: .key, modules: .value.modules})
+    ' | jq -c .
+
+
+# Filter saved infra-plan waves down to modules whose terragrunt.plan.meta.json
+# reports has_changes=true.
+infra-plan-filter-waves-by-changes:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd "{{PROJECT_DIR}}"
+
+    if [[ -z "${PLAN_METADATA_FILE:-}" ]]; then
+        echo "❌ PLAN_METADATA_FILE is required for infra-plan-filter-waves-by-changes."
+        exit 1
+    fi
+
+    if [[ -z "${PLAN_ARTIFACTS_DIR:-}" ]]; then
+        echo "❌ PLAN_ARTIFACTS_DIR is required for infra-plan-filter-waves-by-changes."
+        exit 1
+    fi
+
+    changed_modules_file="$(mktemp)"
+    trap 'rm -f "$changed_modules_file"' EXIT
+
+    while IFS= read -r meta; do
+        has_changes="$(jq -r '.has_changes // false' "$meta")"
+        module_name="$(jq -r '.tg_directory | split("/") | last' "$meta")"
+
+        if [[ "$has_changes" == "true" && -n "$module_name" && "$module_name" != "null" ]]; then
+            printf '%s\n' "$module_name" >> "$changed_modules_file"
+        fi
+    done < <(find "$PLAN_ARTIFACTS_DIR" -name terragrunt.plan.meta.json -print | sort)
+
+    if [[ -s "$changed_modules_file" ]]; then
+        changed_modules_json="$(
+            sort -u "$changed_modules_file" | jq -Rsc 'split("\n") | map(select(length > 0))'
+        )"
+    else
+        changed_modules_json='[]'
+    fi
+
+    jq -c \
+      --argjson changed "$changed_modules_json" \
+      '
+        (.waves // [])
+        | map(.modules |= map(select(. as $item | $changed | index($item) != null)))
+        | map(select(.modules | length > 0))
+      ' \
+      "$PLAN_METADATA_FILE"
+
+
 # Run `tflint` across Terraform module directories.
 tf-lint-check:
     #!/bin/bash

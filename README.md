@@ -24,7 +24,7 @@ Lambda + ECS with CodeDeploy rollouts, plus provisioned concurrency controls for
 
 ## Bootstrap-Friendly Plans
 
-For cross-stack contracts that often block CI plans before upstream stacks exist, this repo prefers Terragrunt `dependency` wiring in the live stack plus `mock_outputs` for non-mutating commands such as `plan` and `validate`. The Terraform modules should consume explicit inputs rather than reaching back into sibling stack state directly when the contract needs bootstrap-friendly plan behavior.
+For cross-stack contracts that often block CI plans before upstream stacks exist, this repo prefers Terragrunt `dependency` wiring in the live stack plus `mock_outputs` for non-mutating commands such as `plan` and `validate`. Keep those `dependency` blocks in the consuming stack instead of hiding them behind `read_terragrunt_config(...)` helper indirection, because Terragrunt graph commands only emit direct stack edges. The Terraform modules should consume explicit inputs rather than reaching back into sibling stack state directly when the contract needs bootstrap-friendly plan behavior. When a dependency may have partial real state during bootstrap, drift, or destroy, default the live Terragrunt `dependency` block to `mock_outputs_merge_strategy_with_state = "shallow"` so missing output keys can still fall back to mocks.
 
 Use [CONTRIBUTING.md](CONTRIBUTING.md) for expectations when changing the repo itself.
 
@@ -96,6 +96,55 @@ Given a Terragrunt file is found at `infra/live/dev/aws/lambda_api/terragrunt.hc
 
 ```sh
 just tg dev aws/lambda_api plan
+```
+
+To return the direct dependencies for every module as a JSON object:
+
+```sh
+just tg-all-module-dependencies dev
+```
+
+To test the wave-matrix processor locally through the same split used by CI, run:
+
+```sh
+just tg-graph-waves dev
+```
+
+If you only need the raw Terragrunt graph output:
+
+```sh
+just tg-graph dev > graph.txt
+```
+
+That runs the same non-interactive Terragrunt graph command used in CI:
+
+```sh
+cd infra/live/dev/aws
+terragrunt run-all graph-dependencies \
+  --terragrunt-non-interactive \
+  --terragrunt-include-external-dependencies
+```
+
+To process that saved graph file into compact dependency JSON:
+
+```sh
+just tg-graph-process graph.json dev
+```
+
+To return only changed saved-plan items as an object array, set the saved-plan env vars and run:
+
+```sh
+BUCKET_NAME=700060376888-eu-west-2-aws-serverless-github-deploy-tfplan \
+TG_GRAPH_METADATA_PLAN_RUN_ID=26105102715 \
+just tg-graph-changed-items graph.json dev
+```
+
+To join the processed graph with saved-plan metadata for one plan run, set `TG_GRAPH_METADATA_PLAN_RUN_ID` and the plan bucket before running the processing command:
+
+```sh
+BUCKET_NAME=700060376888-eu-west-2-aws-serverless-github-deploy-tfplan \
+TG_GRAPH_METADATA_PLAN_RUN_ID=26105102715 \
+just tg-graph-process graph.json dev
 ```
 
 ### Publish A Worker Message
@@ -235,13 +284,7 @@ The Cognito stack creates the user pool, app client, Hosted UI domain, and `read
 just cognito-create-readonly-user dev readonly@example.com 'ChangeMe123!'
 ```
 
-Set the GitHub environment variable `DOMAIN_NAME` to the hosted zone base domain, for example:
-
-```text
-chrispsheehan.com
-```
-
-When that value is present, the frontend and Cognito stacks derive the deployed domain and auth callback/logout URLs automatically. Local Vite login still coexists through `http://localhost:5173`.
+The frontend and Cognito stacks read `domain_name` from the shared Terragrunt global inputs in [infra/live/global_vars.hcl](infra/live/global_vars.hcl), which currently sets it to `chrispsheehan.com`. That keeps the deployed domain and auth callback/logout URLs consistent without extra CI wiring. Local Vite login still coexists through `http://localhost:5173`.
 
 ## Infra Deployment Use Cases
 
@@ -268,7 +311,7 @@ Infrastructure apply and feature-code rollout are intentionally decoupled in thi
 - `*_infra` workflows apply infrastructure only
 - `*_code` workflows deploy feature code only
 - code deploy workflows publish the real Lambda versions and ECS task revisions into that pre-created deploy surface
-- saved infra plans are stored in the shared S3 code bucket under `terragrunt_plan/<environment>/<run_id>/...`, using the same artifact split as build outputs: `dev` writes to the `dev` code bucket and non-`dev` environments reuse the `ci` code bucket
+- saved infra plans are stored as GitHub Actions artifacts keyed by workflow run id, with one run-level metadata artifact plus one per-stack plan artifact
 - Code artifact retention and infra-plan retention are configured separately in the shared code bucket module
 - rerunning infrastructure apply does not roll out new feature code
 - the shared Lambda and ECS module READMEs are the canonical source for bootstrap, rollout, and rollback details for each runtime shape

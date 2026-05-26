@@ -9,13 +9,12 @@ permissions:
   actions: read
 
 jobs:
-  setup:
-    name: Discover
-    uses: ./.github/workflows/shared_directories_get.yml
-
   code:
     name: Artifacts
     uses: ./.github/workflows/shared_infra_releases.yml
+    permissions:
+      id-token: write
+      contents: write
     with:
       environment: dev
       infra_version: ${{ github.sha }}
@@ -23,13 +22,8 @@ jobs:
   infra:
     name: Apply
     needs:
-      - setup
       - code
-    uses: ./.github/workflows/shared_infra_apply.yml
+    uses: ./.github/workflows/shared_infra_apply_no_plan.yml
     with:
       environment: dev
       infra_version: ${{ github.sha }}
-      code_bucket: ${{ needs.code.outputs.code_bucket }}
-      lambda_matrix: ${{ needs.setup.outputs.lambda_dirs }}
-      bootstrap_image_uri: ${{ needs.code.outputs.bootstrap_image_uri }}
-      service_matrix: ${{ needs.setup.outputs.ecs_service_dirs }}

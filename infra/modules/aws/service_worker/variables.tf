@@ -14,6 +14,10 @@ variable "aws_region" {
 variable "project_name" {
   type = string
 }
+
+variable "ecr_repository_name" {
+  type = string
+}
 ### end of static vars set in root.hcl ###
 
 variable "service_name" {
@@ -64,16 +68,6 @@ variable "wait_for_steady_state" {
 variable "bootstrap" {
   type    = bool
   default = false
-}
-
-variable "bootstrap_image_uri" {
-  type    = string
-  default = ""
-
-  validation {
-    condition     = !var.bootstrap || var.bootstrap_image_uri != ""
-    error_message = "bootstrap_image_uri must be set when bootstrap is true."
-  }
 }
 
 variable "ecs_security_group_id" {

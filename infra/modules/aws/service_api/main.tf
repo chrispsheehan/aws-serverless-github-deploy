@@ -7,9 +7,10 @@ module "service_api" {
   root_path           = var.root_path
   connection_type     = var.connection_type
 
-  aws_region         = var.aws_region
-  vpc_id             = data.aws_vpc.this.id
-  private_subnet_ids = data.aws_subnets.private.ids
+  aws_region          = var.aws_region
+  ecr_repository_name = var.ecr_repository_name
+  vpc_id              = data.aws_vpc.this.id
+  private_subnet_ids  = data.aws_subnets.private.ids
 
   cluster_id            = var.cluster_id
   cluster_name          = var.cluster_name
@@ -29,7 +30,6 @@ module "service_api" {
   authorizer_id       = var.network_http_api_authorizer_id
 
   bootstrap             = var.bootstrap
-  bootstrap_image_uri   = var.bootstrap_image_uri
   xray_enabled          = var.xray_enabled
   local_tunnel          = var.local_tunnel
   wait_for_steady_state = var.wait_for_steady_state

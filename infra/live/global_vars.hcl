@@ -1,6 +1,7 @@
 locals {
-  vpc_name   = "vpc"
-  aws_region = "eu-west-2"
+  vpc_name    = "vpc"
+  aws_region  = "eu-west-2"
+  domain_name = "chrispsheehan.com"
   allowed_role_actions = [
     "s3:*",
     "iam:*",
@@ -35,6 +36,7 @@ locals {
 inputs = {
   vpc_name                            = local.vpc_name
   aws_region                          = local.aws_region
+  domain_name                         = local.domain_name
   allowed_role_actions                = local.allowed_role_actions
   code_artifact_expiration_days       = local.code_artifact_expiration_days
   infra_plan_artifact_expiration_days = local.infra_plan_artifact_expiration_days

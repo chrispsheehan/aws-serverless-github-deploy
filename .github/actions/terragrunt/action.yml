@@ -21,7 +21,7 @@ inputs:
     description: "Module directory to perform action upon"
     required: true
   tg_action:
-    description: "Terragrunt action to perform (`apply`, `plan`, `apply_plan`, `destroy`, or `init` for outputs-only)"
+    description: "Terragrunt action to perform (`apply`, `plan`, `apply_plan`, `destroy`, `init` for outputs-only, or `graph` for raw run-all graph output)"
     required: true
     default: apply
 
@@ -29,6 +29,15 @@ outputs:
   tg_outputs:
     description: "All Terraform outputs in JSON format"
     value: ${{ steps.tg_outputs.outputs.terraform_json }}
+  tg_graph_output:
+    description: "Raw Terragrunt run-all dependency graph output"
+    value: ${{ steps.tg_graph.outputs.graph_output }}
+  plan_has_changes:
+    description: "Whether the saved plan contains changes"
+    value: ${{ steps.terragrunt_action.outputs.plan_has_changes }}
+  plan_artifact_directory:
+    description: "Directory containing the saved plan artifact bundle"
+    value: ${{ steps.terragrunt_action.outputs.plan_artifact_directory }}
 
 runs:
   using: "composite"
@@ -70,21 +79,32 @@ runs:
         TG_PLAN_LOG_ABS_PATH: ${{ github.workspace }}/${{ inputs.tg_directory }}/terragrunt.plan.log
       working-directory: ${{ inputs.tg_directory }}
       run: |
-        PLAN_PATH="terragrunt.tfplan"
-        PLAN_LOG_PATH="$(pwd)/terragrunt.plan.log"
+        PLAN_DIR="${{ github.workspace }}/${{ inputs.tg_directory }}"
+        PLAN_PATH="${PLAN_DIR}/terragrunt.tfplan"
+        PLAN_TEXT_PATH="${PLAN_DIR}/terragrunt.plan.txt"
+        PLAN_META_PATH="${PLAN_DIR}/terragrunt.plan.meta.json"
+        PLAN_JSON_PATH="${PLAN_DIR}/terragrunt.plan.json"
+        PLAN_LOG_PATH="${PLAN_DIR}/terragrunt.plan.log"
+        PLAN_ARTIFACT_DIR="${PLAN_DIR}/terragrunt-plan-artifact"
+        PLAN_ARTIFACT_DIR_REL="${{ inputs.tg_directory }}/terragrunt-plan-artifact"
 
         case "${{ inputs.tg_action }}" in
           apply)
-            terragrunt apply -auto-approve -compact-warnings -var-file=override_tg_vars.tfvars.json
+            terragrunt --terragrunt-non-interactive apply -auto-approve -compact-warnings -var-file=override_tg_vars.tfvars.json
             ;;
           plan)
             set +e
-            terragrunt plan -input=false -lock=false -detailed-exitcode -compact-warnings -out="$PLAN_PATH" -var-file=override_tg_vars.tfvars.json 2>&1 | tee "$PLAN_LOG_PATH"
+            terragrunt --terragrunt-non-interactive plan -input=false -lock=false -detailed-exitcode -compact-warnings -out="$PLAN_PATH" -var-file=override_tg_vars.tfvars.json 2>&1 | tee "$PLAN_LOG_PATH"
             plan_exit_code=${PIPESTATUS[0]}
             set -e
 
             if [ "$plan_exit_code" -eq 1 ]; then
               exit 1
+            fi
+
+            plan_has_changes=false
+            if [ "$plan_exit_code" -eq 2 ]; then
+              plan_has_changes=true
             fi
 
             plan_contains_mocked_outputs=false
@@ -93,15 +113,69 @@ runs:
               echo "::warning title=Mock outputs used during plan::Terragrunt used dependency mock outputs while creating a saved plan. This plan artifact should not be used with apply_plan until a fresh plan is created from real upstream outputs."
             fi
 
+            rm -rf "$PLAN_ARTIFACT_DIR"
+            mkdir -p "$PLAN_ARTIFACT_DIR"
+
+            if [ "$plan_has_changes" = "true" ]; then
+              terragrunt show -no-color "$PLAN_PATH" > "$PLAN_TEXT_PATH"
+              jq -n \
+                --arg tg_directory "${{ inputs.tg_directory }}" \
+                --argjson has_changes "$plan_has_changes" \
+                --argjson contains_mocked_outputs "$plan_contains_mocked_outputs" \
+                --argjson artifact_files '["terragrunt.plan.meta.json","terragrunt.tfplan","terragrunt.plan.txt"]' \
+                '{tg_directory: $tg_directory, has_changes: $has_changes, contains_mocked_outputs: $contains_mocked_outputs, artifact_files: $artifact_files}' \
+                > "$PLAN_META_PATH"
+              cp "$PLAN_META_PATH" "$PLAN_ARTIFACT_DIR/"
+              cp "$PLAN_PATH" "$PLAN_ARTIFACT_DIR/"
+              cp "$PLAN_TEXT_PATH" "$PLAN_ARTIFACT_DIR/"
+            else
+              jq -n \
+                --arg tg_directory "${{ inputs.tg_directory }}" \
+                --argjson has_changes "$plan_has_changes" \
+                --argjson contains_mocked_outputs "$plan_contains_mocked_outputs" \
+                --argjson artifact_files '["terragrunt.plan.meta.json"]' \
+                '{tg_directory: $tg_directory, has_changes: $has_changes, contains_mocked_outputs: $contains_mocked_outputs, artifact_files: $artifact_files}' \
+                > "$PLAN_META_PATH"
+              cp "$PLAN_META_PATH" "$PLAN_ARTIFACT_DIR/"
+              rm -f "$PLAN_PATH" "$PLAN_TEXT_PATH" "$PLAN_JSON_PATH"
+            fi
+
+            echo "=== terragrunt.plan.meta.json ==="
+            cat "$PLAN_META_PATH"
+
+            echo "=== plan module directory ==="
+            ls -la "$PLAN_DIR"
+            echo "=== plan artifact directory ==="
+            ls -la "$PLAN_ARTIFACT_DIR"
+
             echo "plan_exit_code=$plan_exit_code" >> "$GITHUB_OUTPUT"
+            echo "plan_has_changes=$plan_has_changes" >> "$GITHUB_OUTPUT"
             echo "plan_contains_mocked_outputs=$plan_contains_mocked_outputs" >> "$GITHUB_OUTPUT"
-            echo "Terragrunt binary plan path in cache: $PLAN_PATH"
+            echo "plan_artifact_directory=$PLAN_ARTIFACT_DIR_REL" >> "$GITHUB_OUTPUT"
+            echo "Terragrunt binary plan path: $PLAN_PATH"
 
             ;;
           apply_plan)
+            if [ ! -f "$PLAN_PATH" ]; then
+              echo "::error title=Missing saved plan artifact::Expected '${PLAN_PATH}' to exist before apply_plan."
+              exit 1
+            fi
+
+            if [ ! -f "$PLAN_META_PATH" ]; then
+              echo "::error title=Missing saved plan metadata::Expected '${PLAN_META_PATH}' to exist before apply_plan."
+              exit 1
+            fi
+
+            plan_contains_mocked_outputs="$(jq -r '.contains_mocked_outputs // false' "$PLAN_META_PATH")"
+
+            if [ "$plan_contains_mocked_outputs" = "true" ]; then
+              echo "::error title=Saved plan contains mocked outputs::Saved plan metadata indicates mocked outputs were used. Regenerate it after upstream real outputs exist."
+              exit 1
+            fi
+
             set +e
             APPLY_LOG_PATH="$(pwd)/terragrunt.apply.log"
-            terragrunt apply -auto-approve "$PLAN_PATH" 2>&1 | tee "$APPLY_LOG_PATH"
+            terragrunt --terragrunt-non-interactive apply -auto-approve "$PLAN_PATH" 2>&1 | tee "$APPLY_LOG_PATH"
             apply_exit_code=${PIPESTATUS[0]}
             set -e
 
@@ -123,33 +197,41 @@ runs:
                 emit_error "Saved plan is stale" "Saved plan is stale"
               fi
 
-              emit_error "Saved plan artifact missing" "Saved plan artifact not found for"
-              emit_error "Missing PLAN_ARTIFACT_RUN_ID" "PLAN_ARTIFACT_RUN_ID is required when TG_ENABLE_PLAN_ARTIFACTS=true"
-
-              if grep -Fq "Plan bucket" "$APPLY_LOG_PATH" && grep -Fq "does not exist" "$APPLY_LOG_PATH"; then
-                emit_error "Plan bucket missing" "Plan bucket"
-              fi
-
-              emit_error "Plan bucket creation declined" "Plan bucket creation declined."
-              emit_error "Plan bucket confirmation unavailable" "no interactive terminal is available for confirmation"
               exit "$apply_exit_code"
             fi
             ;;
           destroy)
-            terragrunt destroy -auto-approve -compact-warnings -var-file=override_tg_vars.tfvars.json
+            terragrunt --terragrunt-non-interactive destroy -auto-approve -compact-warnings -var-file=override_tg_vars.tfvars.json
             ;;
           init)
             echo "Running init only (no infra changes)..."
-            terragrunt init -input=false -reconfigure
+            terragrunt --terragrunt-non-interactive init -input=false -reconfigure
+            ;;
+          graph)
+            echo "Graph mode runs in the dedicated graph step."
             ;;
           *)
-            echo "Unknown tg_action: '${{ inputs.tg_action }}' (expected: apply|plan|apply_plan|destroy|init)" >&2
+            echo "Unknown tg_action: '${{ inputs.tg_action }}' (expected: apply|plan|apply_plan|destroy|init|graph)" >&2
             exit 2
             ;;
         esac
 
+    - name: Capture Terragrunt graph JSON
+      if: inputs.tg_action == 'graph'
+      id: tg_graph
+      shell: bash
+      working-directory: ${{ inputs.tg_directory }}
+      run: |
+        echo "🕸️ Rendering Terragrunt run-all dependency graph..."
+        {
+          echo "graph_output<<EOF"
+          terragrunt run-all graph-dependencies --terragrunt-non-interactive --terragrunt-include-external-dependencies --terragrunt-log-level error
+          echo "EOF"
+        } >> "$GITHUB_OUTPUT"
+        echo "✅ Terragrunt graph captured."
+
     - name: Capture Terraform Outputs
-      if: inputs.tg_action != 'destroy'
+      if: inputs.tg_action != 'destroy' && inputs.tg_action != 'graph'
       id: tg_outputs
       shell: bash
       working-directory: ${{ inputs.tg_directory }}

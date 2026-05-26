@@ -1,0 +1,153 @@
+name: Shared Get Modules
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: environment reference i.e. 'prod' or 'dev'
+        required: true
+        type: string
+      infra_version:
+        description: "Version of infrastructure (terraform) to inspect"
+        required: true
+        type: string
+      ignore_task_modules:
+        description: "Whether to exclude task_* modules from emitted waves"
+        required: false
+        type: boolean
+        default: false
+      ignore_shared_artifact_modules:
+        description: "Whether to exclude shared artifact modules such as code_bucket and ecr from emitted waves"
+        required: false
+        type: boolean
+        default: false
+      ignore_oidc_module:
+        description: "Whether to exclude the oidc module from emitted waves"
+        required: false
+        type: boolean
+        default: false
+    outputs:
+      waves_json:
+        description: "Dependency-safe Terragrunt wave matrix JSON"
+        value: ${{ jobs.generate_waves.outputs.waves_json }}
+      wave_0_modules:
+        description: "Wave 0 module array"
+        value: ${{ jobs.generate_waves.outputs.wave_0_modules }}
+      wave_1_modules:
+        description: "Wave 1 module array"
+        value: ${{ jobs.generate_waves.outputs.wave_1_modules }}
+      wave_2_modules:
+        description: "Wave 2 module array"
+        value: ${{ jobs.generate_waves.outputs.wave_2_modules }}
+      wave_3_modules:
+        description: "Wave 3 module array"
+        value: ${{ jobs.generate_waves.outputs.wave_3_modules }}
+
+permissions:
+  id-token: write
+  contents: read
+  actions: read
+
+env:
+  AWS_OIDC_ROLE_ARN: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/${{ vars.PROJECT_NAME }}-${{ inputs.environment }}-github-oidc-role
+  AWS_REGION: ${{ vars.AWS_REGION }}
+
+jobs:
+  generate_waves:
+    runs-on: ubuntu-latest
+    outputs:
+      waves_json: ${{ steps.filtered_waves.outputs.waves_json }}
+      wave_0_modules: ${{ steps.wave_outputs.outputs.wave_0_modules }}
+      wave_1_modules: ${{ steps.wave_outputs.outputs.wave_1_modules }}
+      wave_2_modules: ${{ steps.wave_outputs.outputs.wave_2_modules }}
+      wave_3_modules: ${{ steps.wave_outputs.outputs.wave_3_modules }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.infra_version }}
+
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Render Terragrunt graph
+        id: tg_graph
+        uses: ./.github/actions/terragrunt
+        with:
+          tg_directory: infra/live/${{ inputs.environment }}/aws
+          tg_action: graph
+
+      - name: Convert graph output to compact JSON
+        id: tg_graph_json
+        uses: ./.github/actions/just
+        env:
+          TG_GRAPH_OUTPUT: ${{ steps.tg_graph.outputs.tg_graph_output }}
+        with:
+          justfile_path: justfile.ci
+          just_action: tg-graph-output-to-json ${{ inputs.environment }}
+
+      - name: Build wave matrix JSON
+        id: waves_json
+        uses: ./.github/actions/just
+        env:
+          TG_GRAPH_JSON: ${{ steps.tg_graph_json.outputs.just_outputs }}
+        with:
+          justfile_path: justfile.ci
+          just_action: tg-graph-json-to-waves
+
+      - name: Optionally exclude task modules from wave matrix
+        id: filtered_waves
+        shell: bash
+        env:
+          RAW_WAVES_JSON: ${{ steps.waves_json.outputs.just_outputs }}
+          IGNORE_TASK_MODULES: ${{ inputs.ignore_task_modules }}
+          IGNORE_SHARED_ARTIFACT_MODULES: ${{ inputs.ignore_shared_artifact_modules }}
+          IGNORE_OIDC_MODULE: ${{ inputs.ignore_oidc_module }}
+        run: |
+          echo "waves_json=$(jq -c '
+            if $ignore_tasks then
+              map(.modules |= map(select(startswith("task_") | not)))
+            else
+              .
+            end
+            | if $ignore_shared_artifact_modules then
+                map(.modules |= map(select(. != "code_bucket" and . != "ecr")))
+              else
+                .
+              end
+            | if $ignore_oidc_module then
+                map(.modules |= map(select(. != "oidc")))
+              else
+                .
+              end
+            | map(select(.modules | length > 0))
+            | to_entries
+            | map({wave: .key, modules: .value.modules})
+          ' --argjson ignore_tasks "$IGNORE_TASK_MODULES" --argjson ignore_shared_artifact_modules "$IGNORE_SHARED_ARTIFACT_MODULES" --argjson ignore_oidc_module "$IGNORE_OIDC_MODULE" <<<"$RAW_WAVES_JSON")" >> "$GITHUB_OUTPUT"
+
+      - name: Expose wave module arrays
+        id: wave_outputs
+        shell: bash
+        env:
+          WAVES_JSON: ${{ steps.filtered_waves.outputs.waves_json }}
+        run: |
+          echo "wave_0_modules=$(jq -c '.[0].modules // []' <<<"$WAVES_JSON")" >> "$GITHUB_OUTPUT"
+          echo "wave_1_modules=$(jq -c '.[1].modules // []' <<<"$WAVES_JSON")" >> "$GITHUB_OUTPUT"
+          echo "wave_2_modules=$(jq -c '.[2].modules // []' <<<"$WAVES_JSON")" >> "$GITHUB_OUTPUT"
+          echo "wave_3_modules=$(jq -c '.[3].modules // []' <<<"$WAVES_JSON")" >> "$GITHUB_OUTPUT"
+
+      - name: Print Terragrunt wave matrix
+        shell: bash
+        env:
+          WAVES_JSON: ${{ steps.filtered_waves.outputs.waves_json }}
+        run: |
+          printf '%s\n' "$WAVES_JSON" | tee waves.json
+          {
+            echo "## Terragrunt Wave Matrix"
+            echo
+            echo '```json'
+            jq . waves.json
+            echo
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -16,52 +16,42 @@ on:
         type: boolean
         default: false
 
-concurrency: # only run destroy when no other deploy/destroy is running for the same environment
-  group: deploy-${{ inputs.environment }}
+concurrency: # only run one infra apply or destroy at a time for the same environment
+  group: infra-mutate-${{ inputs.environment }}
   cancel-in-progress: false
 
 permissions:
   id-token: write
   contents: write
+  actions: read
 
 env:
   TF_VAR_lambda_version: this
+  TF_VAR_image_uri: destroy-placeholder
+  TF_VAR_aws_otel_collector_image_uri: destroy-placeholder
+  TF_VAR_debug_image_uri: destroy-placeholder
   AWS_OIDC_ROLE_ARN: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/${{ vars.PROJECT_NAME }}-${{ inputs.environment }}-github-oidc-role
   AWS_REGION: ${{ vars.AWS_REGION }}
-  DOMAIN_NAME: ${{ vars.DOMAIN_NAME }}
 
 jobs:
-  setup:
-    name: Discover
-    uses: ./.github/workflows/shared_directories_get.yml
+  generate_waves:
+    name: Discover Waves
+    uses: ./.github/workflows/shared_get_modules.yml
+    with:
+      environment: ${{ inputs.environment }}
+      infra_version: ${{ github.sha }}
+      ignore_shared_artifact_modules: true
+      ignore_oidc_module: true
 
-  observability:
-    name: Observability
+  wave_2:
+    name: 2 / ${{ matrix.module }}
+    needs: generate_waves
+    if: ${{ needs.generate_waves.outputs.wave_2_modules != '[]' }}
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: aws-actions/configure-aws-credentials@v6
-        with:
-          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Destroy observability infra
-        uses: ./.github/actions/terragrunt
-        with:
-          tg_directory: infra/live/${{ inputs.environment }}/aws/observability
-          tg_action: destroy
-
-  lambdas:
-    name: Lambdas
-    runs-on: ubuntu-latest
-    needs:
-      - setup
-      - services
     strategy:
       fail-fast: false
       matrix:
-        value: ${{ fromJson(needs.setup.outputs.lambda_dirs) }}
+        module: ${{ fromJson(needs.generate_waves.outputs.wave_2_modules) }}
     steps:
       - uses: actions/checkout@v6
 
@@ -70,66 +60,23 @@ jobs:
           role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Deploy ${{ matrix.value }} infra
+      - name: Destroy ${{ matrix.module }} infra
         uses: ./.github/actions/terragrunt
         with:
-          tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.value }}
+          tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}
           tg_action: destroy
 
-  frontend:
-    name: Frontend
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: aws-actions/configure-aws-credentials@v6
-        with:
-          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Destroy frontend infra
-        uses: ./.github/actions/terragrunt
-        env:
-          TF_VAR_api_invoke_url: "https://placeholder.execute-api.us-east-1.amazonaws.com"
-          TF_VAR_domain_name: ${{ env.DOMAIN_NAME }}
-          TF_VAR_auth_user_pool_id: "destroy-placeholder"
-          TF_VAR_auth_user_pool_client_id: "destroy-placeholder"
-          TF_VAR_auth_hosted_ui_url: "https://destroy-placeholder"
-          TF_VAR_auth_readonly_group_name: "readonly"
-        with:
-          tg_directory: infra/live/${{ inputs.environment }}/aws/frontend
-          tg_action: destroy
-
-  cognito:
-    name: Cognito
-    runs-on: ubuntu-latest
+  wave_1:
+    name: 1 / ${{ matrix.module }}
     needs:
-      - frontend
-      - network
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: aws-actions/configure-aws-credentials@v6
-        with:
-          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Destroy cognito infra
-        uses: ./.github/actions/terragrunt
-        env:
-          TF_VAR_domain_name: ${{ env.DOMAIN_NAME }}
-        with:
-          tg_directory: infra/live/${{ inputs.environment }}/aws/cognito
-          tg_action: destroy
-
-  services:
-    name: Services
+      - generate_waves
+      - wave_2
+    if: ${{ always() && needs.generate_waves.outputs.wave_1_modules != '[]' && (needs.wave_2.result == 'success' || needs.wave_2.result == 'skipped') }}
     runs-on: ubuntu-latest
-    needs: setup
     strategy:
       fail-fast: false
       matrix:
-        value: ${{ fromJson(needs.setup.outputs.ecs_service_dirs) }}
+        module: ${{ fromJson(needs.generate_waves.outputs.wave_1_modules) }}
     steps:
       - uses: actions/checkout@v6
 
@@ -138,25 +85,23 @@ jobs:
           role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Destroy ${{ matrix.value }} infra
+      - name: Destroy ${{ matrix.module }} infra
         uses: ./.github/actions/terragrunt
-        env:
-          TF_VAR_bootstrap: "true"
-          TF_VAR_bootstrap_image_uri: "destroy-placeholder"
         with:
-          tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.value }}
+          tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}
           tg_action: destroy
 
-  tasks:
-    name: Tasks
-    runs-on: ubuntu-latest
+  wave_0:
+    name: 0 / ${{ matrix.module }}
     needs:
-      - setup
-      - services
+      - generate_waves
+      - wave_1
+    if: ${{ always() && needs.generate_waves.outputs.wave_0_modules != '[]' && (needs.wave_1.result == 'success' || needs.wave_1.result == 'skipped') }}
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        value: ${{ fromJson(needs.setup.outputs.task_dirs) }}
+        module: ${{ fromJson(needs.generate_waves.outputs.wave_0_modules) }}
     steps:
       - uses: actions/checkout@v6
 
@@ -165,173 +110,17 @@ jobs:
           role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Destroy ${{ matrix.value }} infra
-        uses: ./.github/actions/terragrunt
-        env:
-          TF_VAR_image_uri: "destroy-placeholder"
-          TF_VAR_debug_image_uri: "destroy-placeholder"
-          TF_VAR_aws_otel_collector_image_uri: "destroy-placeholder"
-        with:
-          tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.value }}
-          tg_action: destroy
-
-  messaging:
-    name: Messaging
-    runs-on: ubuntu-latest
-    needs:
-      - lambdas
-      - services
-      - tasks
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: aws-actions/configure-aws-credentials@v6
-        with:
-          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Destroy messaging infra
+      - name: Destroy ${{ matrix.module }} infra
         uses: ./.github/actions/terragrunt
         with:
-          tg_directory: infra/live/${{ inputs.environment }}/aws/messaging
-          tg_action: destroy
-
-  database:
-    name: Database
-    runs-on: ubuntu-latest
-    needs:
-      - lambdas
-      - services
-      - tasks
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: aws-actions/configure-aws-credentials@v6
-        with:
-          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Destroy database infra
-        uses: ./.github/actions/terragrunt
-        env:
-          TF_VAR_database_security_group_id: "destroy-placeholder"
-        with:
-          tg_directory: infra/live/${{ inputs.environment }}/aws/database
-          tg_action: destroy
-
-  network:
-    name: Network
-    needs:
-      - frontend
-      - services
-      - tasks
-      - database
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: aws-actions/configure-aws-credentials@v6
-        with:
-          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Destroy network infra
-        uses: ./.github/actions/terragrunt
-        with:
-          tg_directory: infra/live/${{ inputs.environment }}/aws/network
-          tg_action: destroy
-
-  security:
-    name: Security
-    needs:
-      - network
-      - lambdas
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: aws-actions/configure-aws-credentials@v6
-        with:
-          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Destroy security infra
-        uses: ./.github/actions/terragrunt
-        with:
-          tg_directory: infra/live/${{ inputs.environment }}/aws/security
-          tg_action: destroy
-
-  build-bucket:
-    name: Code Bucket
-    if: inputs.environment != 'prod' || inputs.allow_prod_cleanup
-    needs:
-      - lambdas
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: aws-actions/configure-aws-credentials@v6
-        with:
-          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Destroy code
-        uses: ./.github/actions/terragrunt
-        with:
-          tg_directory: infra/live/${{ inputs.environment }}/aws/code_bucket
-          tg_action: destroy
-
-  ecr:
-    name: ECR
-    if: inputs.environment != 'prod' || inputs.allow_prod_cleanup
-    needs:
-      - network
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: aws-actions/configure-aws-credentials@v6
-        with:
-          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Destroy code
-        uses: ./.github/actions/terragrunt
-        with:
-          tg_directory: infra/live/${{ inputs.environment }}/aws/ecr
-          tg_action: destroy
-
-  cluster:
-    name: Cluster
-    needs:
-      - services
-      - tasks
-      - database
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: aws-actions/configure-aws-credentials@v6
-        with:
-          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Destroy cluster infra
-        uses: ./.github/actions/terragrunt
-        with:
-          tg_directory: infra/live/${{ inputs.environment }}/aws/cluster
+          tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}
           tg_action: destroy
 
   cleanup:
     name: Cleanup
     if: inputs.environment != 'prod' || inputs.allow_prod_cleanup
     needs:
-      - observability
-      - cognito
-      - security
-      - build-bucket
-      - ecr
-      - cluster
+      - wave_0
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
