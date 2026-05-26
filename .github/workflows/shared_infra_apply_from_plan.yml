@@ -140,11 +140,14 @@ jobs:
           run-id: ${{ inputs.plan_artifact_run_id }}
           path: infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}
 
-      - name: Restore saved plan files
+      - name: Print saved plan files
         shell: bash
         run: |
-          artifact_dir="infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}/terragrunt-plan-artifact"
-          cp -R "$artifact_dir"/. "infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}/"
+          module_dir="infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}"
+          echo "=== downloaded saved plan files ==="
+          ls -la "$module_dir"
+          echo "=== saved plan metadata ==="
+          cat "$module_dir/terragrunt.plan.meta.json"
 
       - name: Apply ${{ matrix.module }} infra from saved plan
         uses: ./.github/actions/terragrunt
@@ -181,11 +184,14 @@ jobs:
           run-id: ${{ inputs.plan_artifact_run_id }}
           path: infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}
 
-      - name: Restore saved plan files
+      - name: Print saved plan files
         shell: bash
         run: |
-          artifact_dir="infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}/terragrunt-plan-artifact"
-          cp -R "$artifact_dir"/. "infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}/"
+          module_dir="infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}"
+          echo "=== downloaded saved plan files ==="
+          ls -la "$module_dir"
+          echo "=== saved plan metadata ==="
+          cat "$module_dir/terragrunt.plan.meta.json"
 
       - name: Apply ${{ matrix.module }} infra from saved plan
         uses: ./.github/actions/terragrunt
@@ -222,11 +228,14 @@ jobs:
           run-id: ${{ inputs.plan_artifact_run_id }}
           path: infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}
 
-      - name: Restore saved plan files
+      - name: Print saved plan files
         shell: bash
         run: |
-          artifact_dir="infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}/terragrunt-plan-artifact"
-          cp -R "$artifact_dir"/. "infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}/"
+          module_dir="infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}"
+          echo "=== downloaded saved plan files ==="
+          ls -la "$module_dir"
+          echo "=== saved plan metadata ==="
+          cat "$module_dir/terragrunt.plan.meta.json"
 
       - name: Apply ${{ matrix.module }} infra from saved plan
         uses: ./.github/actions/terragrunt
@@ -263,11 +272,14 @@ jobs:
           run-id: ${{ inputs.plan_artifact_run_id }}
           path: infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}
 
-      - name: Restore saved plan files
+      - name: Print saved plan files
         shell: bash
         run: |
-          artifact_dir="infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}/terragrunt-plan-artifact"
-          cp -R "$artifact_dir"/. "infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}/"
+          module_dir="infra/live/${{ inputs.environment }}/aws/${{ matrix.module }}"
+          echo "=== downloaded saved plan files ==="
+          ls -la "$module_dir"
+          echo "=== saved plan metadata ==="
+          cat "$module_dir/terragrunt.plan.meta.json"
 
       - name: Apply ${{ matrix.module }} infra from saved plan
         uses: ./.github/actions/terragrunt

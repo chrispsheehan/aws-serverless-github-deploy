@@ -113,27 +113,35 @@ runs:
               echo "::warning title=Mock outputs used during plan::Terragrunt used dependency mock outputs while creating a saved plan. This plan artifact should not be used with apply_plan until a fresh plan is created from real upstream outputs."
             fi
 
-            jq -n \
-              --arg tg_directory "${{ inputs.tg_directory }}" \
-              --argjson has_changes "$plan_has_changes" \
-              --argjson contains_mocked_outputs "$plan_contains_mocked_outputs" \
-              '{tg_directory: $tg_directory, has_changes: $has_changes, contains_mocked_outputs: $contains_mocked_outputs}' \
-              > "$PLAN_META_PATH"
-
-            echo "=== terragrunt.plan.meta.json ==="
-            cat "$PLAN_META_PATH"
-
             rm -rf "$PLAN_ARTIFACT_DIR"
             mkdir -p "$PLAN_ARTIFACT_DIR"
-            cp "$PLAN_META_PATH" "$PLAN_ARTIFACT_DIR/"
 
             if [ "$plan_has_changes" = "true" ]; then
               terragrunt show -no-color "$PLAN_PATH" > "$PLAN_TEXT_PATH"
+              jq -n \
+                --arg tg_directory "${{ inputs.tg_directory }}" \
+                --argjson has_changes "$plan_has_changes" \
+                --argjson contains_mocked_outputs "$plan_contains_mocked_outputs" \
+                --argjson artifact_files '["terragrunt.plan.meta.json","terragrunt.tfplan","terragrunt.plan.txt"]' \
+                '{tg_directory: $tg_directory, has_changes: $has_changes, contains_mocked_outputs: $contains_mocked_outputs, artifact_files: $artifact_files}' \
+                > "$PLAN_META_PATH"
+              cp "$PLAN_META_PATH" "$PLAN_ARTIFACT_DIR/"
               cp "$PLAN_PATH" "$PLAN_ARTIFACT_DIR/"
               cp "$PLAN_TEXT_PATH" "$PLAN_ARTIFACT_DIR/"
             else
+              jq -n \
+                --arg tg_directory "${{ inputs.tg_directory }}" \
+                --argjson has_changes "$plan_has_changes" \
+                --argjson contains_mocked_outputs "$plan_contains_mocked_outputs" \
+                --argjson artifact_files '["terragrunt.plan.meta.json"]' \
+                '{tg_directory: $tg_directory, has_changes: $has_changes, contains_mocked_outputs: $contains_mocked_outputs, artifact_files: $artifact_files}' \
+                > "$PLAN_META_PATH"
+              cp "$PLAN_META_PATH" "$PLAN_ARTIFACT_DIR/"
               rm -f "$PLAN_PATH" "$PLAN_TEXT_PATH" "$PLAN_JSON_PATH"
             fi
+
+            echo "=== terragrunt.plan.meta.json ==="
+            cat "$PLAN_META_PATH"
 
             echo "=== plan module directory ==="
             ls -la "$PLAN_DIR"
