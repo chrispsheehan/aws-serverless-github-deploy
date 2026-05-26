@@ -29,7 +29,6 @@ module "service_api" {
   authorizer_id       = var.network_http_api_authorizer_id
 
   bootstrap             = var.bootstrap
-  bootstrap_image_uri   = var.bootstrap_image_uri
   xray_enabled          = var.xray_enabled
   local_tunnel          = var.local_tunnel
   wait_for_steady_state = var.wait_for_steady_state

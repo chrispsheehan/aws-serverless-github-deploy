@@ -26,7 +26,6 @@ module "service_worker" {
   api_invoke_url      = var.network_api_invoke_url
 
   bootstrap             = var.bootstrap
-  bootstrap_image_uri   = var.bootstrap_image_uri
   xray_enabled          = var.xray_enabled
   local_tunnel          = var.local_tunnel
   wait_for_steady_state = var.wait_for_steady_state

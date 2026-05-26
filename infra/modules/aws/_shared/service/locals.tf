@@ -82,9 +82,10 @@ locals {
 
   deployment_controller_type   = local.enable_codedeploy ? "CODE_DEPLOY" : "ECS"
   selected_task_definition_arn = var.bootstrap ? aws_ecs_task_definition.bootstrap[0].arn : var.task_definition_arn
+  bootstrap_image_uri          = var.bootstrap ? data.aws_ecr_image.bootstrap[0].image_uri : ""
   bootstrap_container_definitions = jsonencode([{
     name  = var.service_name
-    image = var.bootstrap_image_uri
+    image = local.bootstrap_image_uri
 
     command = [
       "sh",

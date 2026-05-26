@@ -66,16 +66,6 @@ variable "bootstrap" {
   default = false
 }
 
-variable "bootstrap_image_uri" {
-  type    = string
-  default = ""
-
-  validation {
-    condition     = !var.bootstrap || var.bootstrap_image_uri != ""
-    error_message = "bootstrap_image_uri must be set when bootstrap is true."
-  }
-}
-
 variable "ecs_security_group_id" {
   type = string
 }

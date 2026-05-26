@@ -27,7 +27,7 @@ This module keeps its own `versions.tf` so it can be lifted into another repo wi
 - optional `authorization_type` and `authorizer_id` for protected API Gateway routes
 - `deployment_strategy`
 - `bootstrap`
-- `bootstrap_image_uri`
+- `ecr_repository_name`
 - `codedeploy_alarm_names`
 - `desired_task_count`
 - `scaling_strategy`
@@ -39,7 +39,7 @@ When `connection_type = "vpc_link"`, the module can also attach a shared API Gat
 
 ## Bootstrap behavior
 
-Bootstrap ECS services use the shared placeholder image.
+Bootstrap ECS services resolve the shared placeholder image from the ECR repository named by `ecr_repository_name` using the stable `bootstrap` tag.
 That placeholder image is expected to be a stable shared tag, so infra applies can reuse the same bootstrap task definition input instead of churning a new placeholder image reference on every release.
 Bootstrap health checks use `/`.
 Real task deploys use the normal app health path, such as `/health` or `/<root_path>/health`.

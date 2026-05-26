@@ -6,19 +6,6 @@ dependencies {
   paths = ["../database"]
 }
 
-dependency "ecr" {
-  config_path = "${get_original_terragrunt_dir()}/../ecr"
-
-  mock_outputs = {
-    repository_url  = "111111111111.dkr.ecr.eu-west-2.amazonaws.com/mock-ecr"
-    repository_name = "mock-ecr"
-    repository_arn  = "arn:aws:ecr:eu-west-2:111111111111:repository/mock-ecr"
-  }
-
-  mock_outputs_merge_strategy_with_state  = "shallow"
-  mock_outputs_allowed_terraform_commands = ["validate", "plan", "destroy", "init", "show", "graph-dependencies", "output-module-groups"]
-}
-
 dependency "security" {
   config_path = "${get_original_terragrunt_dir()}/../security"
 
@@ -96,9 +83,6 @@ terraform {
 }
 
 inputs = merge(
-  {
-    bootstrap_image_uri = "${dependency.ecr.outputs.repository_url}:bootstrap"
-  },
   {
     ecs_security_group_id = dependency.security.outputs.ecs_sg
   },
