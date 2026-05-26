@@ -16,6 +16,10 @@ on:
         description: "Workflow run ID for the saved plan artifacts and metadata"
         value: ${{ jobs.plan_context.outputs.plan_artifact_run_id }}
 
+concurrency:
+  group: infra-plan-${{ inputs.environment }}
+  cancel-in-progress: false
+
 permissions:
   id-token: write
   contents: read

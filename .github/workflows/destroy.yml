@@ -16,8 +16,8 @@ on:
         type: boolean
         default: false
 
-concurrency: # only run destroy when no other deploy/destroy is running for the same environment
-  group: deploy-${{ inputs.environment }}
+concurrency: # only run one infra apply or destroy at a time for the same environment
+  group: infra-mutate-${{ inputs.environment }}
   cancel-in-progress: false
 
 permissions:
