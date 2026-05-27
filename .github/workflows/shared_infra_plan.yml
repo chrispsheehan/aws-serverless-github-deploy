@@ -37,6 +37,7 @@ jobs:
       environment: ${{ inputs.environment }}
       infra_version: ${{ inputs.infra_version }}
       ignore_task_modules: true
+      show_wave_summary: false
 
   metadata:
     needs: generate_waves

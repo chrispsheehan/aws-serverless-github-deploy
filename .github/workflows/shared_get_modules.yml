@@ -26,6 +26,11 @@ on:
         required: false
         type: boolean
         default: false
+      show_wave_summary:
+        description: "Whether to write the Terragrunt wave matrix to the GitHub step summary"
+        required: false
+        type: boolean
+        default: true
     outputs:
       waves_json:
         description: "Dependency-safe Terragrunt wave matrix JSON"
@@ -138,6 +143,7 @@ jobs:
           echo "wave_3_modules=$(jq -c '.[3].modules // []' <<<"$WAVES_JSON")" >> "$GITHUB_OUTPUT"
 
       - name: Print Terragrunt wave matrix
+        if: ${{ inputs.show_wave_summary }}
         shell: bash
         env:
           WAVES_JSON: ${{ steps.filtered_waves.outputs.waves_json }}
