@@ -50,4 +50,4 @@ If the hosted zone does not already exist, certificate validation and alias-reco
 
 Used by the frontend build and deploy workflow path.
 
-The Terraform module uploads a bootstrap `index.html` so the distribution serves a valid page before the built frontend assets are published. Later frontend deploys replace that object with the real app bundle output.
+The Terraform module uploads a bootstrap `index.html` so the distribution serves a valid page before the built frontend assets are published. Later frontend deploys replace that object with the real app bundle output, so Terraform intentionally ignores live content and metadata drift on that bootstrap object after creation.
