@@ -28,3 +28,15 @@ variable "image_expiration_days" {
   type        = number
   default     = 0
 }
+
+variable "bootstrap_image_source" {
+  description = "Source image to mirror into ECR for bootstrap ECS tasks."
+  type        = string
+  default     = "nginx:latest"
+}
+
+variable "bootstrap_image_tag" {
+  description = "Stable ECR tag used by bootstrap ECS tasks."
+  type        = string
+  default     = "bootstrap"
+}
