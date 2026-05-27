@@ -14,4 +14,4 @@ jobs:
     uses: ./.github/workflows/shared_infra_apply_no_plan.yml
     with:
       environment: prod
-      infra_version: 0.19.13
+      infra_version: 1.0.6
