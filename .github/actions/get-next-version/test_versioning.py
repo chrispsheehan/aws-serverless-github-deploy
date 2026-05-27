@@ -10,7 +10,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from get_next_version import classify_bump, parse_prefixes, resolve_workspace
+from get_next_version import classify_bump, parse_prefixes, parse_release_bumps, resolve_workspace
 
 
 def parse_args() -> argparse.Namespace:
@@ -31,6 +31,11 @@ def parse_args() -> argparse.Namespace:
         "--patch-prefixes",
         default="chore,docs",
         help="Comma-separated commit prefixes that trigger a patch bump.",
+    )
+    parser.add_argument(
+        "--release-bumps",
+        default="major,minor",
+        help="Comma-separated bump levels that should create a full release.",
     )
     parser.add_argument(
         "--direct-subject",
@@ -63,6 +68,7 @@ def main() -> int:
     major = parse_prefixes(args.major_prefixes)
     minor = parse_prefixes(args.minor_prefixes)
     patch = parse_prefixes(args.patch_prefixes)
+    release_bumps = parse_release_bumps(args.release_bumps)
 
     checks = [
         {
@@ -162,6 +168,7 @@ def main() -> int:
         "major_prefixes": major,
         "minor_prefixes": minor,
         "patch_prefixes": patch,
+        "release_bumps": release_bumps,
         "checks": checks,
         "all_passed": all(check["passes"] for check in checks),
     }
@@ -198,6 +205,16 @@ class WorkspaceResolutionTests(unittest.TestCase):
                     os.environ.pop("GITHUB_WORKSPACE", None)
                 else:
                     os.environ["GITHUB_WORKSPACE"] = old_value
+
+
+class ReleaseBumpTests(unittest.TestCase):
+    def test_parse_release_bumps_accepts_configured_levels(self) -> None:
+        self.assertEqual(parse_release_bumps("major,minor"), ["major", "minor"])
+        self.assertEqual(parse_release_bumps(" major , patch "), ["major", "patch"])
+
+    def test_parse_release_bumps_rejects_unknown_levels(self) -> None:
+        with self.assertRaises(ValueError):
+            parse_release_bumps("major,tiny")
 
 
 if __name__ == "__main__":

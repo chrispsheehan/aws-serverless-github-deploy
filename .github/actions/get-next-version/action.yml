@@ -18,12 +18,18 @@ inputs:
     description: "Comma-separated commit subject prefixes that trigger a patch bump"
     required: false
     default: "chore,docs"
+  release_bumps:
+    description: "Comma-separated bump levels that create a full release"
+    required: false
+    default: "major,minor"
 
 outputs:
   version:
     description: "Next semver version when a matching commit exists, otherwise the current tag"
-  hasNextVersion:
-    description: "Whether any commit since the latest semver tag matched the configured prefixes"
+  createNewTag:
+    description: "Whether a new semver tag should be created"
+  createNewRelease:
+    description: "Whether the resolved bump level should create a full release"
   currentVersion:
     description: "Latest semver tag discovered on the current branch, or 0.0.0 if none exists"
   bump:
@@ -41,3 +47,5 @@ runs:
     - ${{ inputs.minor_prefixes }}
     - --patch-prefixes
     - ${{ inputs.patch_prefixes }}
+    - --release-bumps
+    - ${{ inputs.release_bumps }}

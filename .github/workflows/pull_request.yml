@@ -138,7 +138,8 @@ jobs:
         run: |
           echo "currentVersion=${{ steps.get_next_version.outputs.currentVersion }}"
           echo "version=${{ steps.get_next_version.outputs.version }}"
-          echo "hasNextVersion=${{ steps.get_next_version.outputs.hasNextVersion }}"
+          echo "createNewTag=${{ steps.get_next_version.outputs.createNewTag }}"
+          echo "createNewRelease=${{ steps.get_next_version.outputs.createNewRelease }}"
           echo "bump=${{ steps.get_next_version.outputs.bump }}"
 
   format-github:
