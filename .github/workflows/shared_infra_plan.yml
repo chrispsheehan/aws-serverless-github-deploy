@@ -37,6 +37,7 @@ jobs:
       environment: ${{ inputs.environment }}
       infra_version: ${{ inputs.infra_version }}
       ignore_task_modules: true
+      show_wave_summary: false
 
   metadata:
     needs: generate_waves
@@ -221,4 +222,63 @@ jobs:
             echo "## Infra Plan Context"
             echo
             echo "- \`plan_artifact_run_id\`: \`$PLAN_ARTIFACT_RUN_ID\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  plan_summary:
+    name: Plan Summary
+    needs:
+      - generate_waves
+      - metadata
+      - wave_0
+      - wave_1
+      - wave_2
+      - wave_3
+    if: ${{ always() && needs.generate_waves.result == 'success' && needs.metadata.result == 'success' && (needs.wave_0.result == 'success' || needs.wave_0.result == 'skipped') && (needs.wave_1.result == 'success' || needs.wave_1.result == 'skipped') && (needs.wave_2.result == 'success' || needs.wave_2.result == 'skipped') && (needs.wave_3.result == 'success' || needs.wave_3.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download saved plan metadata artifacts
+        if: ${{ needs.generate_waves.outputs.waves_json != '[]' }}
+        uses: actions/download-artifact@v7
+        with:
+          pattern: terragrunt-plan-${{ inputs.environment }}-*
+          path: plan-artifacts
+
+      - name: Write detected change summary
+        shell: bash
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+          WAVES_JSON: ${{ needs.generate_waves.outputs.waves_json }}
+        run: |
+          set -euo pipefail
+
+          changed_modules_json='[]'
+          if [[ -d plan-artifacts ]]; then
+            changed_modules_json="$(
+              find plan-artifacts -name terragrunt.plan.meta.json -print \
+                | sort \
+                | while IFS= read -r meta; do
+                    has_changes="$(jq -r '.has_changes // false' "$meta")"
+                    if [[ "$has_changes" == "true" ]]; then
+                      jq -r '.tg_directory | split("/") | last' "$meta"
+                    fi
+                  done \
+                | jq -Rsc 'split("\n") | map(select(length > 0)) | sort'
+            )"
+          fi
+
+          {
+            echo "## Infra Plan Detected Changes"
+            echo
+            echo "- \`environment\`: \`$ENVIRONMENT\`"
+            echo "- \`planned_modules\`: \`$(jq -r 'map(.modules | length) | add // 0' <<<"$WAVES_JSON")\`"
+            echo "- \`modules_to_apply\`: \`$(jq -r 'length' <<<"$changed_modules_json")\`"
+            echo
+
+            if [[ "$(jq -r 'length' <<<"$changed_modules_json")" -eq 0 ]]; then
+              echo "No modules have detected plan changes."
+            else
+              echo "Modules that will be applied by apply-from-plan:"
+              echo
+              jq -r '.[] | "- `" + . + "`"' <<<"$changed_modules_json"
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
