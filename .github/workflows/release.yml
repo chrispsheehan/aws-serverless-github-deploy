@@ -38,26 +38,32 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.get_next_version.outputs.version }}
-      has-next-version: ${{ steps.get_next_version.outputs.hasNextVersion }}
+      create-new-tag: ${{ steps.get_next_version.outputs.createNewTag }}
+      create-new-release: ${{ steps.get_next_version.outputs.createNewRelease }}
+      bump: ${{ steps.get_next_version.outputs.bump }}
     steps:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      # Only commits with types like fix:, feat:, or breaking changes (feat!: or commits including a BREAKING CHANGE note) will cause the version to increment.
+      # Patch subjects still create tags, but release_bumps controls the full artifact build and release path.
       - name: Get next version
         id: get_next_version
         uses: ./.github/actions/get-next-version
+        with:
+          release_bumps: major,minor
 
       - name: Show the next version
         run: |
           echo ${{ steps.get_next_version.outputs.version }}
-          echo ${{ steps.get_next_version.outputs.hasNextVersion }}
+          echo ${{ steps.get_next_version.outputs.createNewTag }}
+          echo ${{ steps.get_next_version.outputs.createNewRelease }}
+          echo ${{ steps.get_next_version.outputs.bump }}
 
   create-tag:
     name: Tag
     needs: get-next-tag
-    if: ${{ needs.get-next-tag.outputs.has-next-version == 'true' }}
+    if: ${{ needs.get-next-tag.outputs.create-new-tag == 'true' }}
     runs-on: ubuntu-latest
     env:
       TAG: ${{ needs.get-next-tag.outputs.tag }}
@@ -75,7 +81,7 @@ jobs:
       - get-next-tag
       - create-tag
       - get-current-tag
-    if: ${{ needs.get-next-tag.outputs.has-next-version == 'true' }}
+    if: ${{ needs.get-next-tag.outputs.create-new-release == 'true' }}
     runs-on: ubuntu-latest
     outputs:
       commits: ${{ steps.commits.outputs.COMMITS }}
@@ -96,6 +102,10 @@ jobs:
 
   get-apps:
     name: Discover
+    needs:
+      - get-next-tag
+      - create-tag
+    if: ${{ needs.get-next-tag.outputs.create-new-release == 'true' }}
     uses: ./.github/workflows/shared_directories_get.yml
 
 
@@ -106,6 +116,7 @@ jobs:
       - get-next-tag
       - get-apps
       - code
+    if: ${{ needs.get-next-tag.outputs.create-new-release == 'true' }}
     uses: ./.github/workflows/shared_build.yml
     permissions:
       id-token: write
@@ -123,6 +134,7 @@ jobs:
     needs:
       - create-tag
       - get-next-tag
+    if: ${{ needs.get-next-tag.outputs.create-new-release == 'true' }}
     uses: ./.github/workflows/shared_infra_releases.yml
     permissions:
       id-token: write
@@ -139,7 +151,7 @@ jobs:
       - create-tag
       - get-commits
       - build
-    if: ${{ needs.get-next-tag.outputs.has-next-version == 'true' }}
+    if: ${{ needs.get-next-tag.outputs.create-new-release == 'true' }}
     permissions:
       contents: write
     steps:

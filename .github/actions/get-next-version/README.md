@@ -11,11 +11,13 @@ Default prefix contract:
 - `major_prefixes`: `breaking,feat,!feat`
 - `minor_prefixes`: `minor,fix,patch`
 - `patch_prefixes`: `chore,docs`
+- `release_bumps`: `major,minor`
 
 Optional override:
 
 - `subjects`: newline-delimited subjects to classify instead of reading git history
 - this is useful in PR validation when you want to preview the version implied by the PR title rather than the branch commit list
+- `release_bumps`: comma-delimited bump levels that should create a full release; for example `major` limits releases to major bumps while still allowing minor and patch subjects to create tags
 
 ## Local Usage
 
@@ -75,5 +77,8 @@ just --justfile .github/actions/get-next-version/justfile docker-unit-test
 Default JSON output:
 
 ```json
-{"currentVersion":"0.14.0","version":"0.14.1","hasNextVersion":"true","bump":"patch"}
+{"currentVersion":"0.14.0","version":"0.14.1","createNewTag":"true","createNewRelease":"false","bump":"patch"}
 ```
+
+`createNewTag` decides whether the workflow should create a semver tag.
+`createNewRelease` decides whether the workflow should run full release work for the resolved bump level.

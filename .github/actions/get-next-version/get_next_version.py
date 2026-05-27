@@ -70,6 +70,15 @@ def parse_prefixes(raw: str) -> list[str]:
     return [item.strip().lower() for item in raw.split(",") if item.strip()]
 
 
+def parse_release_bumps(raw: str) -> list[str]:
+    allowed = {"major", "minor", "patch"}
+    bumps = parse_prefixes(raw)
+    invalid = [item for item in bumps if item not in allowed]
+    if invalid:
+        raise ValueError(f"Unknown release bump level(s): {', '.join(invalid)}")
+    return bumps
+
+
 def latest_semver_tag() -> str:
     tags = git("tag", "--merged", "HEAD", "--sort=-v:refname").splitlines()
     for tag in tags:
@@ -149,6 +158,11 @@ def parse_args() -> argparse.Namespace:
         help="Comma-separated commit prefixes that trigger a patch bump.",
     )
     parser.add_argument(
+        "--release-bumps",
+        default=os.environ.get("RELEASE_BUMPS", "major,minor"),
+        help="Comma-separated bump levels that should create a full release.",
+    )
+    parser.add_argument(
         "--format",
         choices=("json", "text"),
         default="json",
@@ -177,10 +191,12 @@ def main() -> int:
     )
 
     next_version = str(current_version.bump(bump)) if bump else str(current_version)
+    release_bumps = set(parse_release_bumps(args.release_bumps))
     payload = {
         "currentVersion": str(current_version),
         "version": next_version,
-        "hasNextVersion": "true" if bump else "false",
+        "createNewTag": "true" if bump else "false",
+        "createNewRelease": "true" if bump in release_bumps else "false",
         "bump": bump or "",
     }
 
