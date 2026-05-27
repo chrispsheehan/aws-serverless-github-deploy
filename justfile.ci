@@ -327,28 +327,6 @@ get-ecr-version-images:
       | jq -s -c .
 
 
-# Check whether the stable bootstrap image tag already exists in ECR.
-ecr-bootstrap-image-exists:
-    #!/usr/bin/env bash
-    set -euo pipefail
-
-    if [[ -z "${REPOSITORY_URL:-}" ]]; then
-        echo "❌ REPOSITORY_URL environment variable is not set."
-        exit 1
-    fi
-
-    repository_name="${REPOSITORY_URL#*/}"
-
-    if aws ecr describe-images \
-      --repository-name "$repository_name" \
-      --image-ids imageTag=bootstrap \
-      >/dev/null 2>&1; then
-        echo "true"
-    else
-        echo "false"
-    fi
-
-
 # Derive the ECS task matrix from published ECR image tags.
 get-ecr-version-tasks:
     #!/usr/bin/env bash

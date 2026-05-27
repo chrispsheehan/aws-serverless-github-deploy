@@ -66,7 +66,7 @@ flowchart LR
 ### Shared Artifact Prep And Build
 
 - `shared_infra_releases.yml`
-  Prepares or reads shared artifact infrastructure such as ECR and the code bucket, and exposes those bucket/repository values as reusable-workflow outputs. The `ecr` job now configures AWS credentials once at the top of the job and lets later local actions reuse that ambient session. Its bootstrap placeholder image contract is intentionally stable: the workflow publishes one shared `:bootstrap` tag and skips the mirror/push step when that tag already exists, so later infra runs reuse the same bootstrap image instead of creating versioned placeholder artifacts. The code-bucket job reads the Lambda, frontend, AppSpec, and infra-plan S3 prefix names from string-returning `justfile.ci` recipes and forwards them as `TF_VAR_*`, so the workflow does not duplicate those key names inline.
+  Prepares or reads shared artifact infrastructure such as ECR and the code bucket, and exposes those bucket/repository values as reusable-workflow outputs. The `ecr` job configures AWS credentials once and lets the Terraform ECR module own the stable bootstrap `:bootstrap` image through the Docker provider, so the workflow no longer performs a separate mirror/push step. The code-bucket job reads the Lambda, frontend, AppSpec, and infra-plan S3 prefix names from string-returning `justfile.ci` recipes and forwards them as `TF_VAR_*`, so the workflow does not duplicate those key names inline.
 - `shared_build.yml`
   Builds and publishes frontend, Lambda, and ECS artifacts.
 - `shared_build_get.yml`

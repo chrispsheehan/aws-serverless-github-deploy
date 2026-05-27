@@ -69,25 +69,6 @@ docker-build:
       "{{PROJECT_DIR}}"
 
 
-# Mirror an existing image into the target registry/tag.
-docker-mirror:
-    #!/usr/bin/env bash
-    set -euo pipefail
-
-    if [[ -z "${SOURCE_IMAGE:-}" ]]; then
-        echo "❌ SOURCE_IMAGE environment variable is not set."
-        exit 1
-    fi
-
-    if [[ -z "${IMAGE_URI:-}" ]]; then
-        echo "❌ IMAGE_URI environment variable is not set."
-        exit 1
-    fi
-
-    docker pull "$SOURCE_IMAGE"
-    docker tag "$SOURCE_IMAGE" "$IMAGE_URI"
-
-
 # Push a tagged Docker image to ECR.
 docker-push:
     #!/usr/bin/env bash
