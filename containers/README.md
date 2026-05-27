@@ -6,7 +6,9 @@ Container source directories for this boilerplate.
 
 - each deployable service lives in its own top-level directory such as `api/` or `worker/`
 - `lib/` contains ECS-only helper code used by deployable services and is intentionally not treated as a deployable image target
-- a deployable ECS runtime also needs the corresponding live Terragrunt stacks such as `infra/live/<environment>/aws/task_<name>/terragrunt.hcl` and, when applicable, `infra/live/<environment>/aws/service_<name>/terragrunt.hcl`
+- a deployable ECS runtime also needs the corresponding live Terragrunt stacks
+- task stacks use `infra/live/<environment>/aws/task_<name>/terragrunt.hcl`
+- service stacks use `infra/live/<environment>/aws/service_<name>/terragrunt.hcl` when applicable
 
 ## Common Shape
 
@@ -21,8 +23,10 @@ Container source directories for this boilerplate.
 - ECS image discovery only includes deployable service directories
 - container images copy only the files referenced by the Dockerfile for the selected service shape, including shared helpers from `lib/` and `containers/lib/`
 - markdown files in `containers/` are documentation only and are not included in container image artifacts
-- detection alone is not enough: the runtime still needs the matching Terragrunt task and service stacks to participate in infra apply and code rollout correctly
-- local Docker services should be added explicitly to `docker-compose.local.yml` and `Dockerfile.local`; the local Dockerfile can mirror the production parameterized pattern by passing a `SERVICE` build arg for each target, while Compose provides the service-specific local commands and env overrides
+- detection alone is not enough: the runtime still needs matching Terragrunt task and service stacks
+- local Docker services should be added explicitly to `docker-compose.local.yml` and `Dockerfile.local`
+- the local Dockerfile can mirror the production parameterized pattern by passing a `SERVICE` build arg for each target
+- Compose owns service-specific local commands and env overrides
 
 ## Boilerplate Patterns
 
@@ -43,22 +47,33 @@ Container source directories for this boilerplate.
 - async Lambda -> SNS -> SQS -> ECS trace continuation relies on the AWS X-Ray OpenTelemetry propagator
 - that propagator lets ECS consumers understand AWS-native X-Ray trace headers, not just W3C `traceparent`
 
+## Local Runtime
+
+- local ECS services run from `Dockerfile.local` and `docker-compose.local.yml`
+- `ecs_api` is exposed at `http://localhost:18081`
+- `ecs_worker` polls the local `ecs-worker-queue`
+- local SQS is provided by ElasticMQ
+- `watchfiles` restarts local ECS services when Python files change
+
+Worker publish and verification commands live in [worker/README.md](worker/README.md).
+
 ## Runtime Documentation
 
 - add a `README.md` inside a concrete service directory when the container has non-trivial request handling, worker behavior, or integration logic
 - use that README to explain what the service does, the interfaces it exposes or consumes, important dependencies, and any operational or failure-mode notes
 
-## Related Docs
-
-- ECS service rules: [infra/modules/aws/_shared/service/README.md](../infra/modules/aws/_shared/service/README.md)
-- shared infra context: [infra/README.md](../infra/README.md)
 ## Local Verification
 
-When the local ECS worker persists messages to PostgreSQL, it now records:
+The local ECS worker records these fields when it persists messages to PostgreSQL:
 
 - `message_type`
 - `correlation_id`
 - `source_queue`
 - `processed_at`
 
-Those fields make it easier to verify that local API publish calls were fanned out to the ECS worker queue and processed by the ECS worker, not just inserted as an opaque row.
+Use [worker/README.md](worker/README.md) for the publish and query commands.
+
+## Related Docs
+
+- ECS service rules: [infra/modules/aws/_shared/service/README.md](../infra/modules/aws/_shared/service/README.md)
+- shared infra context: [infra/README.md](../infra/README.md)

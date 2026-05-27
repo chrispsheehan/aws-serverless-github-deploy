@@ -10,6 +10,7 @@ Lambda + ECS with CodeDeploy rollouts, plus provisioned concurrency controls for
 - [Prerequisites](#prerequisites)
 - [Setup](#setup)
 - [Common Tasks](#common-tasks)
+- [Local Development](#local-development)
 - [Frontend Auth](#frontend-auth)
 - [Infra Deployment Use Cases](#infra-deployment-use-cases)
 - [Reference](#reference)
@@ -24,7 +25,21 @@ Lambda + ECS with CodeDeploy rollouts, plus provisioned concurrency controls for
 
 ## Bootstrap-Friendly Plans
 
-For cross-stack contracts that often block CI plans before upstream stacks exist, this repo prefers Terragrunt `dependency` wiring in the live stack plus `mock_outputs` for non-mutating commands such as `plan` and `validate`. Keep those `dependency` blocks in the consuming stack instead of hiding them behind `read_terragrunt_config(...)` helper indirection, because Terragrunt graph commands only emit direct stack edges. The Terraform modules should consume explicit inputs rather than reaching back into sibling stack state directly when the contract needs bootstrap-friendly plan behavior. When a dependency may have partial real state during bootstrap, drift, or destroy, default the live Terragrunt `dependency` block to `mock_outputs_merge_strategy_with_state = "shallow"` so missing output keys can still fall back to mocks.
+For cross-stack contracts that can block CI plans before upstream stacks exist, prefer:
+
+- Terragrunt `dependency` wiring in the live stack
+- `mock_outputs` for non-mutating commands such as `plan` and `validate`
+- explicit Terraform module inputs instead of direct sibling state reads
+
+Keep those `dependency` blocks in the consuming stack.
+
+Terragrunt graph commands only emit direct stack edges, so avoid hiding those edges behind `read_terragrunt_config(...)` helper indirection.
+
+When a dependency may have partial real state during bootstrap, drift, or destroy, default the live Terragrunt `dependency` block to:
+
+```hcl
+mock_outputs_merge_strategy_with_state = "shallow"
+```
 
 Use [CONTRIBUTING.md](CONTRIBUTING.md) for expectations when changing the repo itself.
 
@@ -72,17 +87,37 @@ just tg dev aws/oidc apply
 just tg prod aws/oidc apply
 ```
 
-The `ci` OIDC role is intentionally narrower than the `dev` and `prod` roles. The detailed scope contract and the vendored module shape live in [infra/modules/aws/_shared/oidc/README.md](infra/modules/aws/_shared/oidc/README.md).
+The `ci` OIDC role is intentionally narrower than the `dev` and `prod` roles.
+
+Detailed scope:
+
+- [infra/modules/aws/_shared/oidc/README.md](infra/modules/aws/_shared/oidc/README.md)
 
 ### Shared Platform Shape
 
-Lambda and ECS APIs can coexist on the shared routing surface in this repo, with CloudFront exposing Lambda-backed `/api/*` paths and ECS-backed `/api/ecs/*` paths independently.
+Lambda and ECS APIs can coexist on the shared routing surface.
 
-The detailed routing, listener, and feasibility rules live in [infra/modules/aws/network/README.md](infra/modules/aws/network/README.md), [infra/modules/aws/_shared/service/README.md](infra/modules/aws/_shared/service/README.md), and [infra/modules/aws/_shared/task/README.md](infra/modules/aws/_shared/task/README.md).
+CloudFront exposes:
+
+- Lambda-backed `/api/*` paths
+- ECS-backed `/api/ecs/*` paths
+
+Detailed routing and feasibility rules:
+
+- [infra/modules/aws/network/README.md](infra/modules/aws/network/README.md)
+- [infra/modules/aws/_shared/service/README.md](infra/modules/aws/_shared/service/README.md)
+- [infra/modules/aws/_shared/task/README.md](infra/modules/aws/_shared/task/README.md)
 
 ## Common Tasks
 
-The root [`justfile`](justfile) keeps local developer commands. CI-only helpers live in [`justfile.ci`](justfile.ci), and CI build/deploy helpers live in [`justfile.deploy`](justfile.deploy). Run the split files locally with `--justfile`:
+The root [`justfile`](justfile) keeps local developer commands.
+
+Split recipe files:
+
+- CI-only helpers: [`justfile.ci`](justfile.ci)
+- CI build/deploy helpers: [`justfile.deploy`](justfile.deploy)
+
+Run split files locally with `--justfile`:
 
 ```sh
 just --justfile justfile.ci tf-lint-check
@@ -139,7 +174,7 @@ TG_GRAPH_METADATA_PLAN_RUN_ID=26105102715 \
 just tg-graph-changed-items graph.json dev
 ```
 
-To join the processed graph with saved-plan metadata for one plan run, set `TG_GRAPH_METADATA_PLAN_RUN_ID` and the plan bucket before running the processing command:
+To join the processed graph with saved-plan metadata for one plan run, set the saved-plan env vars before running the processing command:
 
 ```sh
 BUCKET_NAME=700060376888-eu-west-2-aws-serverless-github-deploy-tfplan \
@@ -149,15 +184,7 @@ just tg-graph-process graph.json dev
 
 ### Publish A Worker Message
 
-To publish directly to the shared worker SNS topic from your shell:
-
-```sh
-TOPIC_ARN=arn:aws:sns:eu-west-2:123456789012:aws-serverless-github-deploy-dev-worker-events \
-MESSAGE='{"job_id":"demo-1","source":"local","payload":{"hello":"world"}}' \
-just sns-publish
-```
-
-Or publish through the public Lambda API:
+Publish through the public Lambda API:
 
 ```sh
 curl -X POST \
@@ -166,7 +193,21 @@ curl -X POST \
   https://<your-domain>/api/messages
 ```
 
-The example frontend also includes an authenticated button that gathers browser metadata, page context, timestamp, and geolocation, then publishes that payload through the same SNS fanout path so both worker runtimes receive it and the ECS worker persists it to Aurora PostgreSQL.
+Or publish directly to the shared worker SNS topic:
+
+```sh
+TOPIC_ARN=arn:aws:sns:eu-west-2:123456789012:aws-serverless-github-deploy-dev-worker-events \
+MESSAGE='{"job_id":"demo-1","source":"local","payload":{"hello":"world"}}' \
+just sns-publish
+```
+
+That fanout path delivers the same message to the Lambda worker and ECS worker queues.
+
+More detail:
+
+- Lambda API publish contract: [lambdas/lambda_api/README.md](lambdas/lambda_api/README.md)
+- Lambda worker consumer: [lambdas/lambda_worker/README.md](lambdas/lambda_worker/README.md)
+- ECS worker consumer: [containers/worker/README.md](containers/worker/README.md)
 
 ### Run Database Migrations
 
@@ -178,87 +219,56 @@ LAMBDA_NAME=dev-aws-serverless-github-deploy-migrations \
 just --justfile justfile.deploy lambda-invoke
 ```
 
-For a local-only database bootstrap path without AWS, use the repo-local compose file. `just start` brings the local stack up in detached mode, starts the frontend Vite dev server in the background, opens the ElasticMQ UI and frontend, and then tails the Compose logs. It starts PostgreSQL and then runs the repo's migration code in a local container after the database becomes healthy:
+## Local Development
+
+Start the local stack:
 
 ```sh
 just start
 ```
 
-To tear the local stack down completely, including Compose volumes:
+This starts local PostgreSQL, queue emulation, Lambda/ECS runtimes, migrations, the frontend dev server, and log tailing.
+
+Stop the local stack and remove Compose volumes:
 
 ```sh
 just stop
 ```
 
-On startup, the `migrations` service runs `run_migration()` once and then watches `lambdas/migrations/**/*.py` so it reruns automatically when those files change. The local image is built from the staged [Dockerfile.local](Dockerfile.local).
-
-The same local-only Dockerfile also exposes:
-
-- `lambda_api` on `http://localhost:18080/` through a reusable local Lambda HTTP harness under `local/`, with the port passed into the harness entrypoint
-- `lambda_worker` as a long-lived local Lambda-style worker polling its own local ElasticMQ queue through a reusable local invoke harness under `local/`
-- `ecs_api` on `http://localhost:18081/`, running the existing ECS API app under local file watching without changing the production container code
-- `ecs_worker` as a long-lived local ECS worker wired to local PostgreSQL and its own local ElasticMQ queue, with the SQS endpoint override controlled by `AWS_ENDPOINT_URL_SQS` and local dummy AWS credentials supplied through Docker Compose for request signing
-- the frontend as a plain local Vite dev server on `http://localhost:5173` via `just frontend`, not in Docker, with a local-only proxy that mirrors the CloudFront `/api/*` and `/api/ecs/*` path rewrites
-
-Both local Lambda services run under `watchfiles`, so edits under their Lambda directory, `lambdas/lib`, `lib`, or `local/` trigger a restart/rerun without changing the production runtime code. The Lambda stages in [Dockerfile.local](Dockerfile.local) now use a shared local service base plus `SERVICE` build args from `docker-compose.local.yml`, and the service-specific local commands live in Compose rather than the Dockerfile. The local Lambda worker now polls a dedicated local queue instead of replaying a fixed event file. The local `lambda_api` service keeps the same SNS publish contract as production, but locally it points `AWS_ENDPOINT_URL_SNS` at [local/sns_harness.py](local/sns_harness.py), which fans publish calls out directly to the Lambda and ECS worker queues.
-
-The local ECS services follow the same pattern. Edits under `containers/<service>`, `containers/lib`, `lib`, or `local/` trigger a restart, and the ECS worker can switch to a local SQS-compatible endpoint by setting `AWS_ENDPOINT_URL_SQS` in Docker Compose. Local SQS is mocked with the third-party [SoftwareMill ElasticMQ](https://github.com/softwaremill/elasticmq) service rather than an in-repo SQS implementation. Because `boto3` still signs SQS requests even for ElasticMQ, the local compose file also provides dummy `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` values for both local worker consumers. The ECS stages in [Dockerfile.local](Dockerfile.local) use a shared local service base plus `SERVICE` build args from `docker-compose.local.yml`, and the service-specific local commands live in Compose rather than the Dockerfile.
-
-Those local entrypoints live under `local/` so the production Lambda modules stay free of Docker-only scaffolding. The HTTP-facing Lambda adapter is `local/lambda_http_harness.py`; it is only for local HTTP-triggered Lambda flows, not ECS.
-
-If you want to run only the frontend dev server separately, use a second terminal:
+Run only the frontend dev server:
 
 ```sh
 just frontend
 ```
 
-That Vite server is also started automatically by `just start`. It proxies `/api/*` to the local Lambda API and `/api/ecs/*` to the local ECS API with the same prefix stripping the deployed CloudFront distribution performs. It also serves `auth-config.json` with no-cache headers locally so frontend auth config changes are picked up immediately. When `frontend/public/auth-config.json` has `"enabled": false`, the frontend runs in a local unauthenticated mode instead of redirecting to Cognito.
+Local service notes:
 
-The local ElasticMQ config now mirrors the shared AWS messaging contract by exposing:
+- frontend dev server and local API proxy: [frontend/README.md](frontend/README.md)
+- Lambda runtime layout and local watch behavior: [lambdas/README.md](lambdas/README.md)
+- ECS runtime layout and local watch behavior: [containers/README.md](containers/README.md)
+- Lambda worker local queue publishing: [lambdas/lambda_worker/README.md](lambdas/lambda_worker/README.md)
+- ECS worker local queue publishing and database verification: [containers/worker/README.md](containers/worker/README.md)
 
-- `lambda-worker-queue` for the Lambda worker consumer
-- `ecs-worker-queue` for the ECS worker consumer
-
-The local ElasticMQ UI is exposed at `http://localhost:19300` through a dedicated `softwaremill/elasticmq-ui` container pointed at the local ElasticMQ API.
-
-To publish a test message directly to the local Lambda worker queue from your host:
-
-```sh
-just local-sqs-send lambda-worker-queue
-```
-
-To publish a test message directly to the local ECS worker queue from your host:
-
-```sh
-just local-sqs-send ecs-worker-queue
-```
-
-To simulate the shared worker SNS fanout locally by publishing one message to both worker queues:
+Publish to both local worker queues:
 
 ```sh
 just local-worker-publish
 ```
 
-Each local publish command sends the same fixed JSON shape and only varies the timestamp:
-
-```sh
-{"job_id":"local-<timestamp>","source":"local","payload":{"timestamp":"<timestamp>"}}
-```
-
-The same compose file also starts a long-lived `debug` container built from the repo's existing `debug` Docker stage. To print the current tables from inside that container:
+Open a local database shell through the debug container:
 
 ```sh
 just debug
 psql -v ON_ERROR_STOP=1 -c '\dt'
 ```
 
-To print the current worker messages directly:
+Print locally persisted ECS worker messages:
 
 ```sh
 just messages
 ```
 
-That query now prints the verification fields that matter for the local fanout path:
+The worker message query prints:
 
 - `job_id`
 - `message_type`
@@ -272,19 +282,32 @@ That query now prints the verification fields that matter for the local fanout p
 just worker-debug-shell dev
 ```
 
-The shared debug image includes `psql`, and `worker-debug-shell` injects `PGPASSWORD`, `PGUSER`, and `DB_USER` into the shell from the shared database credentials secret before opening ECS Exec.
+The shared debug image includes `psql`.
+
+`worker-debug-shell` injects `PGPASSWORD`, `PGUSER`, and `DB_USER` from the shared database credentials secret before opening ECS Exec.
 
 ## Frontend Auth
 
-The boilerplate frontend uses Cognito Hosted UI with the authorization-code-plus-PKCE flow. The detailed frontend auth contract, callback/logout URL behavior, and `/api/*` forwarding rules live in [infra/modules/aws/cognito/README.md](infra/modules/aws/cognito/README.md) and [infra/modules/aws/frontend/README.md](infra/modules/aws/frontend/README.md).
+The boilerplate frontend uses Cognito Hosted UI with the authorization-code-plus-PKCE flow.
 
-The Cognito stack creates the user pool, app client, Hosted UI domain, and `readonly` group. It does not create users automatically. To seed the initial read-only user after `cognito` is applied:
+Detailed auth and hosting contracts:
+
+- [infra/modules/aws/cognito/README.md](infra/modules/aws/cognito/README.md)
+- [infra/modules/aws/frontend/README.md](infra/modules/aws/frontend/README.md)
+
+The Cognito stack creates the user pool, app client, Hosted UI domain, and `readonly` group.
+
+It does not create users automatically. To seed the initial read-only user after `cognito` is applied:
 
 ```sh
 just cognito-create-readonly-user dev readonly@example.com 'ChangeMe123!'
 ```
 
-The frontend and Cognito stacks read `domain_name` from the shared Terragrunt global inputs in [infra/live/global_vars.hcl](infra/live/global_vars.hcl), which currently sets it to `chrispsheehan.com`. That keeps the deployed domain and auth callback/logout URLs consistent without extra CI wiring. Local Vite login still coexists through `http://localhost:5173`.
+The frontend and Cognito stacks read `domain_name` from the shared Terragrunt global inputs in [infra/live/global_vars.hcl](infra/live/global_vars.hcl).
+
+That keeps the deployed domain and auth callback/logout URLs consistent without extra CI wiring.
+
+Local frontend auth setup lives in [frontend/README.md](frontend/README.md).
 
 ## Infra Deployment Use Cases
 
@@ -299,9 +322,13 @@ see [infra/README.md](infra/README.md#infra-deployment-use-cases).
 
 ## Reference
 
-For Lambda provisioned concurrency patterns and example `provisioned_config` shapes, see [infra/modules/aws/_shared/lambda/README.md](infra/modules/aws/_shared/lambda/README.md).
+For Lambda provisioned concurrency patterns and example `provisioned_config` shapes, see:
 
-For ECS scaling patterns and `scaling_strategy` examples, see [infra/modules/aws/_shared/service/README.md](infra/modules/aws/_shared/service/README.md).
+- [infra/modules/aws/_shared/lambda/README.md](infra/modules/aws/_shared/lambda/README.md)
+
+For ECS scaling patterns and `scaling_strategy` examples, see:
+
+- [infra/modules/aws/_shared/service/README.md](infra/modules/aws/_shared/service/README.md)
 
 ### Deployment Model
 
@@ -341,10 +368,12 @@ flowchart TD
 - CI contracts and feasibility checks: [.github/docs/README.md](.github/docs/README.md)
 - Lambda source layout: [lambdas/README.md](lambdas/README.md)
 - Container source layout: [containers/README.md](containers/README.md)
+- Frontend source layout and local proxy: [frontend/README.md](frontend/README.md)
 - Infra layout and stack glossary: [infra/README.md](infra/README.md)
 - OIDC role ownership and setup contract: [infra/modules/aws/_shared/oidc/README.md](infra/modules/aws/_shared/oidc/README.md)
 - Shared Lambda deployment and provisioned concurrency behavior: [infra/modules/aws/_shared/lambda/README.md](infra/modules/aws/_shared/lambda/README.md)
 - Shared ECS deployment and scaling behavior: [infra/modules/aws/_shared/service/README.md](infra/modules/aws/_shared/service/README.md)
 - Shared network and routing surface: [infra/modules/aws/network/README.md](infra/modules/aws/network/README.md)
-- Frontend auth and hosting contracts: [infra/modules/aws/cognito/README.md](infra/modules/aws/cognito/README.md) and [infra/modules/aws/frontend/README.md](infra/modules/aws/frontend/README.md)
-- Shared runtime log dashboard for the primary Lambda and ECS request/worker runtimes, with default views biased toward structured app events instead of Lambda platform noise: [infra/modules/aws/observability/README.md](infra/modules/aws/observability/README.md)
+- Frontend auth contract: [infra/modules/aws/cognito/README.md](infra/modules/aws/cognito/README.md)
+- Frontend hosting contract: [infra/modules/aws/frontend/README.md](infra/modules/aws/frontend/README.md)
+- Runtime log dashboard: [infra/modules/aws/observability/README.md](infra/modules/aws/observability/README.md)
