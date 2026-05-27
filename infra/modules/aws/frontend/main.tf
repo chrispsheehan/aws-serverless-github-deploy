@@ -31,6 +31,15 @@ resource "aws_s3_object" "bootstrap_index" {
   source       = "${path.module}/bootstrap/index.html"
   etag         = filemd5("${path.module}/bootstrap/index.html")
   content_type = "text/html; charset=utf-8"
+
+  lifecycle {
+    ignore_changes = [
+      content_type,
+      etag,
+      source,
+      tags_all,
+    ]
+  }
 }
 
 resource "aws_s3_object" "auth_config" {

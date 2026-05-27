@@ -45,7 +45,8 @@ resource "aws_cloudwatch_event_target" "reader_instance_created" {
 resource "aws_lambda_permission" "allow_eventbridge" {
   statement_id  = "AllowEventBridgeInvoke"
   action        = "lambda:InvokeFunction"
-  function_name = module.rds_reader_tagger.alias_arn
+  function_name = module.rds_reader_tagger.arn
   principal     = "events.amazonaws.com"
+  qualifier     = module.rds_reader_tagger.alias_name
   source_arn    = aws_cloudwatch_event_rule.reader_instance_created.arn
 }
