@@ -113,31 +113,35 @@ look at ../sandbox and tell me how to deploy
 - in this repo, default that assumption to a Lambda-backed API unless the user asks for ECS, long-running workers, containers, or another specific runtime
 - state that assumption and ask for confirmation before making changes when backend choice materially affects infrastructure shape, cost, or security
 
-## Replacement Requests
+## App Shaping Flow
 
-- when the user asks to deploy or adapt an external app and says to proceed, determine whether the work is additive or a replacement unless the intent is already clear
-- if the user says the work is a replacement, remove placeholder/demo code, docs, local services, infra stacks, workflow surface, and stale runtime paths that no longer serve the selected app shape
-- do not keep unused demo capabilities just because they existed in the template
-- still confirm before removing expensive or shared infrastructure capabilities unless the user explicitly names them for removal
-- when removal would affect major capabilities, briefly list what would remain and what would be removed before editing
-- record durable replacement decisions in `BOOTSTRAP_DECISIONS.md` when they affect future app-shaping work
+Use this shared flow when the user is adapting an external app, replacing the placeholder app, simplifying the template, or bootstrapping a new app from this repo.
 
-## New Repo Bootstrap Requests
-
-- when a request suggests the user is adapting this repo as a fresh app or new project, first determine whether this is a new repo/bootstrap scenario or a change to an existing app
-- when the target repo is empty or effectively empty, enter bootstrap flow immediately
-- treat a repo as effectively empty when it has no meaningful app, infra, runtime, or workflow code beyond placeholders, starter files, or minimal scaffolding
-- if it appears to be a new repo/bootstrap scenario, ask whether the user wants to keep or remove the boilerplate/example application code before making broad changes
-- treat clearly labeled example, demo, sample, or boilerplate code as removable only after confirming with the user
-- do not delete or replace template/example code solely because a new feature request could be implemented more cleanly without it
-- for potentially expensive infrastructure such as load balancers, ECS clusters, or other shared runtime components, ask whether the user wants to keep them for future use or remove them entirely before changing that footprint
-- do not assume expensive infrastructure should be deployed, retained, or removed without explicit user confirmation when the request is a bootstrap or simplification scenario
-- persist bootstrap-specific questions and user answers in `BOOTSTRAP_DECISIONS.md` so the same questions do not need to be asked repeatedly
-- before asking a bootstrap-related clarifying question, check `BOOTSTRAP_DECISIONS.md` first and reuse the recorded answer unless the user changes it
+- first determine whether the work is additive or replacement unless the intent is already clear
+- when the target repo is empty or effectively empty, enter this flow immediately; treat a repo as effectively empty when it has no meaningful app, infra, runtime, or workflow code beyond placeholders, starter files, or minimal scaffolding
+- determine the selected app capabilities, such as frontend, backend API, batch/worker runtime, database, auth, messaging, containers/ECS, Lambda, scheduled jobs, or static hosting
+- ask only the missing app-shaping questions that are not already answered in `BOOTSTRAP_DECISIONS.md`
+- persist durable bootstrap, simplification, replacement, and capability-selection answers in `BOOTSTRAP_DECISIONS.md` so they do not need to be asked repeatedly
+- before asking a recorded app-shaping question, check `BOOTSTRAP_DECISIONS.md` first and reuse the recorded answer unless the user changes it
 - if the user gives an answer that conflicts with an existing entry in `BOOTSTRAP_DECISIONS.md`, warn that the recorded decision is changing, then update the file
-- always consider security during bootstrap and simplification work; if a proposed API would be exposed to the public internet, say that explicitly and suggest at least one more secure option
+- if the user says the work is replacement, remove placeholder/demo code, docs, local services, infra stacks, workflow surface, and stale runtime paths that no longer serve the selected app shape
+- do not keep unused demo capabilities just because they existed in the template
+- do not delete or replace template/example code solely because a new feature request could be implemented more cleanly without it; replacement intent or a recorded decision must be clear
+- keep or remove unused capabilities based on the recorded decision, and do not assume unmentioned capabilities should stay forever
+- still confirm before removing expensive or shared infrastructure capabilities, such as load balancers, ECS clusters, databases, Cognito, Route53/CloudFront, or messaging, unless the user explicitly names them for removal
+- when removal would affect major capabilities, briefly list what would remain and what would be removed before editing
+- align local development, workflows, infra stacks, runtime code, docs, and verification commands with the selected app shape
+- always consider security during app shaping; if a proposed API would be exposed to the public internet, say that explicitly and suggest at least one more secure option
 - do not assume a public unauthenticated API is acceptable just because it is the simplest technical shape
-- at the end of a bootstrap or simplification flow, explicitly name any infrastructure that would remain but no longer be used by the proposed app shape, and ask whether the user wants to remove it or keep it for future use
+- before closing an app-shaping task, explicitly name what remains, what was removed, what still needs operational setup, and any bootstrap commands the user should run
+
+## Bootstrap Operations
+
+- at the end of app-shaping work, offer the next operational bootstrap steps needed to make the selected app shape real end to end
+- for AWS-backed deployments, this usually includes creating or updating GitHub OIDC roles, applying foundational stacks in dependency order, deploying initial infrastructure, publishing first runtime artifacts, running migrations, and seeding initial users when Cognito is enabled
+- do not run AWS-mutating bootstrap commands without explicit user approval
+- when offering OIDC setup, name the exact commands, for example `just tg ci aws/oidc apply`, `just tg dev aws/oidc apply`, or `just tg prod aws/oidc apply`
+- when offering first environment setup, separate infra bootstrap from code deployment and call out any prerequisite shared resources such as VPCs, tagged subnets, hosted zones, ECR images, code buckets, or Terraform state
 
 ## CI OIDC Scope
 
