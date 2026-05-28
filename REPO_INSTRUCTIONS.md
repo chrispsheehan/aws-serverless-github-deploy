@@ -113,6 +113,15 @@ look at ../sandbox and tell me how to deploy
 - in this repo, default that assumption to a Lambda-backed API unless the user asks for ECS, long-running workers, containers, or another specific runtime
 - state that assumption and ask for confirmation before making changes when backend choice materially affects infrastructure shape, cost, or security
 
+## Replacement Requests
+
+- when the user asks to deploy or adapt an external app and says to proceed, determine whether the work is additive or a replacement unless the intent is already clear
+- if the user says the work is a replacement, remove placeholder/demo code, docs, local services, infra stacks, workflow surface, and stale runtime paths that no longer serve the selected app shape
+- do not keep unused demo capabilities just because they existed in the template
+- still confirm before removing expensive or shared infrastructure capabilities unless the user explicitly names them for removal
+- when removal would affect major capabilities, briefly list what would remain and what would be removed before editing
+- record durable replacement decisions in `BOOTSTRAP_DECISIONS.md` when they affect future app-shaping work
+
 ## New Repo Bootstrap Requests
 
 - when a request suggests the user is adapting this repo as a fresh app or new project, first determine whether this is a new repo/bootstrap scenario or a change to an existing app
