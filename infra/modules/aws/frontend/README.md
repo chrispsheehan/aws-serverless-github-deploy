@@ -19,6 +19,8 @@ Static frontend hosting module.
 
 ## Routing behavior
 
+CloudFront exposes the shared API as Lambda-backed `/api/*` paths and ECS-backed `/api/ecs/*` paths.
+
 - `/auth-config.json`
   served from the frontend bucket with caching disabled so auth configuration changes are visible immediately; the file includes Cognito settings and the CloudWatch observability dashboard link for the current environment
 - `/api/*`

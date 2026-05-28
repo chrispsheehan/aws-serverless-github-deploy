@@ -63,18 +63,10 @@ Detailed scope:
 
 - [infra/modules/aws/_shared/oidc/README.md](infra/modules/aws/_shared/oidc/README.md)
 
-### Shared Platform Shape
-
-Lambda and ECS APIs can coexist on the shared routing surface.
-
-CloudFront exposes:
-
-- Lambda-backed `/api/*` paths
-- ECS-backed `/api/ecs/*` paths
-
-Detailed routing and feasibility rules:
+Routing and runtime feasibility contracts:
 
 - [infra/modules/aws/network/README.md](infra/modules/aws/network/README.md)
+- [infra/modules/aws/frontend/README.md](infra/modules/aws/frontend/README.md)
 - [infra/modules/aws/_shared/service/README.md](infra/modules/aws/_shared/service/README.md)
 - [infra/modules/aws/_shared/task/README.md](infra/modules/aws/_shared/task/README.md)
 
