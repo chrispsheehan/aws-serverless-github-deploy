@@ -49,13 +49,19 @@ Required shared prerequisites before a full environment deploy:
 
 ## Setup
 
-### Setup Roles For CI
+### One-Time CI Role Bootstrap
+
+Before GitHub Actions can plan, apply, or deploy, bootstrap the GitHub OIDC roles once per environment:
 
 ```sh
 just tg ci aws/oidc apply
 just tg dev aws/oidc apply
 just tg prod aws/oidc apply
 ```
+
+Run these with local AWS credentials that can create or update IAM roles and policies.
+
+After the roles exist, normal CI/CD workflows assume them through GitHub OIDC, and CI can update the roles when the OIDC module, trust policy, or allowed AWS permissions change.
 
 The `ci` OIDC role is intentionally narrower than the `dev` and `prod` roles.
 
