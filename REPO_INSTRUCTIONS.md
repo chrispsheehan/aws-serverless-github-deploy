@@ -113,6 +113,16 @@ look at ../sandbox and tell me how to deploy
 - in this repo, default that assumption to a Lambda-backed API unless the user asks for ECS, long-running workers, containers, or another specific runtime
 - state that assumption and ask for confirmation before making changes when backend choice materially affects infrastructure shape, cost, or security
 
+## Runtime Network Placement
+
+- do not assume ECS services must run in private subnets
+- when adapting an app that needs outbound internet access, explicitly ask whether the runtime should run in public subnets or private subnets before recommending NAT gateways
+- only recommend NAT gateways when private subnet placement is required, explicitly chosen, or otherwise necessary for the selected security model
+- if a service can safely run in public subnets, call out that public subnet placement with task public IPs may be the lower-cost deployment shape and explain the security implications
+- for public-subnet ECS services, require a clear ingress model before implementation: public load balancer or API Gateway path, security group restrictions, authentication requirements, and whether tasks should receive public IPs
+- for scraper, polling, webhook, or external-API-heavy services, treat subnet placement as an app-shaping decision because outbound connectivity affects architecture, cost, and security
+- do not list NAT as an AWS prerequisite unless the selected runtime placement uses private subnets and needs outbound internet access
+
 ## App Shaping Flow
 
 Use this shared flow when the user is adapting an external app, replacing the placeholder app, simplifying the template, or bootstrapping a new app from this repo.
