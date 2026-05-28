@@ -164,38 +164,9 @@ For ECS scaling patterns and `scaling_strategy` examples, see:
 
 - [infra/modules/aws/_shared/service/README.md](infra/modules/aws/_shared/service/README.md)
 
-### Deployment Model
+For the deployment model, runtime rollout split, and strategy overview, see:
 
-Infrastructure apply and feature-code rollout are intentionally decoupled in this boilerplate.
-
-- infra workflows create the stable runtime shape, including the Lambda and ECS CodeDeploy applications and deployment groups used later for real rollouts
-- `*_infra` workflows apply infrastructure only
-- `*_code` workflows deploy feature code only
-- code deploy workflows publish the real Lambda versions and ECS task revisions into that pre-created deploy surface
-- saved infra plans are stored as GitHub Actions artifacts keyed by workflow run id, with one run-level metadata artifact plus one per-stack plan artifact
-- Code artifact retention and infra-plan retention are configured separately in the shared code bucket module
-- rerunning infrastructure apply does not roll out new feature code
-- the shared Lambda and ECS module READMEs are the canonical source for bootstrap, rollout, and rollback details for each runtime shape
-- detailed workflow contracts, reusable-workflow inputs, repo-local action behavior, and `justfile_path` rules live in [.github/docs/README.md](.github/docs/README.md)
-- see [lambdas/README.md](lambdas/README.md) and [containers/README.md](containers/README.md) for runtime source layout, build behavior, and boilerplate patterns
-
-### Deployment Overview
-
-```mermaid
-flowchart TD
-  start["Choose Runtime Shape"] --> lambda["Lambda"]
-  start --> ecs["ECS"]
-
-  lambda --> lambda_bg["Background / low-risk"]
-  lambda --> lambda_api["User-facing / request-serving"]
-  lambda_bg --> lambda_all["all_at_once"]
-  lambda_api --> lambda_canary["canary or linear"]
-
-  ecs --> ecs_internal["internal"]
-  ecs --> ecs_lb["internal_dns or vpc_link"]
-  ecs_internal --> ecs_roll["rolling"]
-  ecs_lb --> ecs_cd["all_at_once / canary / linear / blue_green"]
-```
+- [infra/README.md](infra/README.md#deployment-model)
 
 ## Read This Next
 
