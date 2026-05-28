@@ -11,7 +11,6 @@ Lambda + ECS with CodeDeploy rollouts, plus provisioned concurrency controls for
 - [Setup](#setup)
 - [Common Tasks](#common-tasks)
 - [Local Development](#local-development)
-- [Frontend Auth](#frontend-auth)
 - [Infra Deployment Use Cases](#infra-deployment-use-cases)
 - [Reference](#reference)
 - [Read This Next](#read-this-next)
@@ -153,42 +152,13 @@ TG_GRAPH_METADATA_PLAN_RUN_ID=26105102715 \
 just tg-graph-process graph.json dev
 ```
 
-### Publish A Worker Message
+Placeholder app runtime tasks live with the code that owns them:
 
-Publish through the public Lambda API:
-
-```sh
-curl -X POST \
-  -H 'Content-Type: application/json' \
-  -d '{"job_id":"demo-1","source":"api","payload":{"hello":"world"}}' \
-  https://<your-domain>/api/messages
-```
-
-Or publish directly to the shared worker SNS topic:
-
-```sh
-TOPIC_ARN=arn:aws:sns:eu-west-2:123456789012:aws-serverless-github-deploy-dev-worker-events \
-MESSAGE='{"job_id":"demo-1","source":"local","payload":{"hello":"world"}}' \
-just sns-publish
-```
-
-That fanout path delivers the same message to the Lambda worker and ECS worker queues.
-
-More detail:
-
-- Lambda API publish contract: [lambdas/lambda_api/README.md](lambdas/lambda_api/README.md)
-- Lambda worker consumer: [lambdas/lambda_worker/README.md](lambdas/lambda_worker/README.md)
-- ECS worker consumer: [containers/worker/README.md](containers/worker/README.md)
-
-### Run Database Migrations
-
-After the infra stack and Lambda code are deployed:
-
-```sh
-AWS_REGION=eu-west-2 \
-LAMBDA_NAME=dev-aws-serverless-github-deploy-migrations \
-just --justfile justfile.deploy lambda-invoke
-```
+- Lambda API message publishing: [lambdas/lambda_api/README.md](lambdas/lambda_api/README.md)
+- Lambda worker queue publishing: [lambdas/lambda_worker/README.md](lambdas/lambda_worker/README.md)
+- ECS worker publishing, database verification, and debug shells: [containers/worker/README.md](containers/worker/README.md)
+- Database migration runtime and invocation: [lambdas/migrations/README.md](lambdas/migrations/README.md)
+- Frontend auth and API proxy behavior: [frontend/README.md](frontend/README.md)
 
 ## Local Development
 
@@ -219,66 +189,6 @@ Local service notes:
 - ECS runtime layout and local watch behavior: [containers/README.md](containers/README.md)
 - Lambda worker local queue publishing: [lambdas/lambda_worker/README.md](lambdas/lambda_worker/README.md)
 - ECS worker local queue publishing and database verification: [containers/worker/README.md](containers/worker/README.md)
-
-Publish to both local worker queues:
-
-```sh
-just local-worker-publish
-```
-
-Open a local database shell through the debug container:
-
-```sh
-just debug
-psql -v ON_ERROR_STOP=1 -c '\dt'
-```
-
-Print locally persisted ECS worker messages:
-
-```sh
-just messages
-```
-
-The worker message query prints:
-
-- `job_id`
-- `message_type`
-- `correlation_id`
-- `source_queue`
-- `processed_at`
-
-### Open An ECS Worker Debug Shell
-
-```sh
-just worker-debug-shell dev
-```
-
-The shared debug image includes `psql`.
-
-`worker-debug-shell` injects `PGPASSWORD`, `PGUSER`, and `DB_USER` from the shared database credentials secret before opening ECS Exec.
-
-## Frontend Auth
-
-The boilerplate frontend uses Cognito Hosted UI with the authorization-code-plus-PKCE flow.
-
-Detailed auth and hosting contracts:
-
-- [infra/modules/aws/cognito/README.md](infra/modules/aws/cognito/README.md)
-- [infra/modules/aws/frontend/README.md](infra/modules/aws/frontend/README.md)
-
-The Cognito stack creates the user pool, app client, Hosted UI domain, and `readonly` group.
-
-It does not create users automatically. To seed the initial read-only user after `cognito` is applied:
-
-```sh
-just cognito-create-readonly-user dev readonly@example.com 'ChangeMe123!'
-```
-
-The frontend and Cognito stacks read `domain_name` from the shared Terragrunt global inputs in [infra/live/global_vars.hcl](infra/live/global_vars.hcl).
-
-That keeps the deployed domain and auth callback/logout URLs consistent without extra CI wiring.
-
-Local frontend auth setup lives in [frontend/README.md](frontend/README.md).
 
 ## Infra Deployment Use Cases
 

@@ -31,6 +31,28 @@ Public Lambda-backed HTTP API.
 
 The consumer-side trace continuation relies on the ECS tracing helper using the AWS X-Ray OpenTelemetry propagator, so the worker can understand the AWS-native trace header emitted from the Lambda/X-Ray side of the flow.
 
+## Publish Examples
+
+Publish through the deployed frontend/API domain:
+
+```sh
+curl -X POST \
+  -H 'Content-Type: application/json' \
+  -d '{"job_id":"demo-1","source":"api","payload":{"hello":"world"}}' \
+  https://<your-domain>/api/messages
+```
+
+Publish through the local Lambda API:
+
+```sh
+curl -X POST \
+  -H 'Content-Type: application/json' \
+  -d '{"job_id":"local-demo","source":"api","payload":{"hello":"world"}}' \
+  http://localhost:18080/messages
+```
+
+That fanout path delivers the same message to the Lambda worker and ECS worker queues.
+
 ## Operational Notes
 
 - the Lambda reads the shared worker topic ARN and name from environment variables wired by the `lambda_api` infra module

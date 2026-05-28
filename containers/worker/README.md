@@ -76,13 +76,6 @@ Print persisted worker messages:
 just messages
 ```
 
-Open a local database shell:
-
-```sh
-just debug
-psql -v ON_ERROR_STOP=1 -c '\dt'
-```
-
 The local worker records:
 
 - `job_id`
@@ -90,6 +83,24 @@ The local worker records:
 - `correlation_id`
 - `source_queue`
 - `processed_at`
+
+## Debug Shells
+
+Open a local database shell through the debug container:
+
+```sh
+just debug
+psql -v ON_ERROR_STOP=1 -c '\dt'
+```
+
+Open an ECS worker debug shell in AWS:
+
+```sh
+just worker-debug-shell dev
+```
+
+The shared debug image includes `psql`.
+`worker-debug-shell` injects `PGPASSWORD`, `PGUSER`, and `DB_USER` from the shared database credentials secret before opening ECS Exec.
 
 ## Local Runtime
 

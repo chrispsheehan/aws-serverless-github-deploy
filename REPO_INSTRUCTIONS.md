@@ -45,6 +45,8 @@ These instructions apply to the entire repository.
 - runtime behavior: `lambdas/**/README.md` and `containers/**/README.md`
 - before editing, read the relevant local contract docs for the files you plan to touch and follow those contracts
 - when adding or reorganizing docs, prefer short README sections that point to the owning nested README rather than expanding the root README with deep implementation detail
+- when removing detail from one doc, relocate the content to the owning doc instead of dropping it; it may be shortened or clarified, but the underlying guidance must remain findable in the repo
+- keep placeholder-app feature behavior in the directory that owns the code, such as `frontend/**`, `lambdas/**`, or `containers/**`; the root README should link to those docs rather than carry runtime behavior details
 
 ## Script Ownership
 
@@ -86,6 +88,20 @@ These instructions apply to the entire repository.
 - state material assumptions when the intended shape is not fully explicit
 - when ambiguity is material or a wrong assumption could cause the repo shape or contract to drift, ask the user a clarifying question before editing
 - for broad product or app-shaping requests, provide a short pre-implementation summary of the inferred app shape, likely capability choices, major assumptions, important questions, and notable cost or security implications before making changes
+
+Example requests to interpret through these repo-native rules:
+
+```text
+add a new environment called qa
+```
+
+```text
+Give me a site with a backend and a database
+```
+
+```text
+look at ../sandbox and tell me how to deploy
+```
 
 ## Capability Selection
 

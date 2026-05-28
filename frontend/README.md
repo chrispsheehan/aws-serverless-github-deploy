@@ -41,7 +41,19 @@ frontend/public/auth-config.json
 
 When `"enabled": false`, the frontend runs locally without redirecting to Cognito.
 
-The deployed app uses the Cognito Hosted UI flow described in:
+The deployed app uses Cognito Hosted UI with the authorization-code-plus-PKCE flow.
+
+The Cognito stack creates the user pool, app client, Hosted UI domain, and `readonly` group.
+It does not create users automatically. To seed the initial read-only user after `cognito` is applied:
+
+```sh
+just cognito-create-readonly-user dev readonly@example.com 'ChangeMe123!'
+```
+
+The frontend and Cognito stacks read `domain_name` from the shared Terragrunt global inputs in [infra/live/global_vars.hcl](../infra/live/global_vars.hcl).
+That keeps the deployed domain and auth callback/logout URLs consistent without extra CI wiring.
+
+Detailed auth and hosting contracts:
 
 - [infra/modules/aws/cognito/README.md](../infra/modules/aws/cognito/README.md)
 - [infra/modules/aws/frontend/README.md](../infra/modules/aws/frontend/README.md)
