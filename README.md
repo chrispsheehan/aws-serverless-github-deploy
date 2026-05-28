@@ -56,7 +56,7 @@ The AWS account must already have the landing-zone or StackSet network in place 
 - the expected VPC and subnets must therefore already exist
 - the private subnets must be tagged so the module lookups can find them, for example with names matching `*private*`
 - if you plan to deploy the frontend custom domain, the matching Route53 hosted zone must also already exist
-- the S3 Terraform state bucket should have bucket versioning enabled, because the repo uses the S3 backend lockfile path rather than DynamoDB state locking
+- the S3 Terraform state bucket should have bucket versioning enabled, because the repo uses the [Terraform S3 backend](https://developer.hashicorp.com/terraform/language/backend/s3) lockfile path rather than DynamoDB state locking
 
 If those shared network or DNS resources do not exist yet, the infra applies in this repo will fail during data lookup or certificate/DNS creation.
 
