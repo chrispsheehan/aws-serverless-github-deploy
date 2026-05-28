@@ -5,8 +5,8 @@ Lambda + ECS with CodeDeploy rollouts, plus provisioned concurrency controls for
 
 ## Sections
 
-- [For AI Agents](#for-ai-agents)
 - [Overview](#overview)
+- [Bootstrap-Friendly Plans](#bootstrap-friendly-plans)
 - [Prerequisites](#prerequisites)
 - [Setup](#setup)
 - [Common Tasks](#common-tasks)
@@ -25,39 +25,10 @@ Lambda + ECS with CodeDeploy rollouts, plus provisioned concurrency controls for
 
 ## Bootstrap-Friendly Plans
 
-For cross-stack contracts that can block CI plans before upstream stacks exist, prefer:
-
-- Terragrunt `dependency` wiring in the live stack
-- `mock_outputs` for non-mutating commands such as `plan` and `validate`
-- explicit Terraform module inputs instead of direct sibling state reads
-
-Keep those `dependency` blocks in the consuming stack.
-
-Terragrunt graph commands only emit direct stack edges, so avoid hiding those edges behind `read_terragrunt_config(...)` helper indirection.
-
-When a dependency may have partial real state during bootstrap, drift, or destroy, default the live Terragrunt `dependency` block to:
-
-```hcl
-mock_outputs_merge_strategy_with_state = "shallow"
-```
+This repo uses Terragrunt `dependency` wiring and plan-time mocks for bootstrap-sensitive cross-stack contracts.
+See [infra/README.md](infra/README.md#dependency-notes) for the dependency strategy, mock-output rules, and saved-plan caveats.
 
 Use [CONTRIBUTING.md](CONTRIBUTING.md) for expectations when changing the repo itself.
-
-## For AI Agents
-
-Example prompts:
-
-```text
-add a new environment called qa
-```
-
-```text
-Give me a site with a backend and a database
-```
-
-```text
-look at ../sandbox and tell me how to deploy
-```
 
 ## Prerequisites
 

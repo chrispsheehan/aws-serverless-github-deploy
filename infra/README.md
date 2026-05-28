@@ -110,7 +110,10 @@ That `containers/lib` directory is helper code only and is not treated as a depl
 ### Dependency Strategy
 
 - prefer `dependency` blocks for all cross-stack communication
+- keep those `dependency` blocks in the consuming live stack so Terragrunt can see the direct stack edge
+- avoid hiding dependency edges behind `read_terragrunt_config(...)` helper indirection, because graph commands only emit direct stack edges
 - use `mock_outputs` for dependencies during `plan`, `validate`, and other non-apply commands to allow independent iteration without requiring upstream stacks to be deployed
+- when a dependency may have partial real state during bootstrap, drift, or destroy, set `mock_outputs_merge_strategy_with_state = "shallow"`
 - restrict mocks using `mock_outputs_allowed_terraform_commands` to ensure real outputs are always used during `apply`
 - treat saved `plan` artifacts as apply-intent only: Terraform will reuse the exact variable values captured in the plan file during `apply_plan`
 - for first deploys or other bootstrap-sensitive stacks, do not reuse a saved plan that captured `mock_outputs`; re-plan after the upstream real outputs exist before running `apply_plan`

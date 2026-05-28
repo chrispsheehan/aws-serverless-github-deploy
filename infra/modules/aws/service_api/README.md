@@ -47,6 +47,6 @@ Concrete ECS API service wrapper for the sample API service.
 
 ## Inherits Behavior From
 
-- [infra/modules/aws/_shared/service/README.md](_shared/service/README.md) for deployment strategies, connection-type rules, feasibility constraints, and drift ownership
+- [infra/modules/aws/_shared/service/README.md](../_shared/service/README.md) for deployment strategies, connection-type rules, feasibility constraints, and drift ownership
 
 This module wires the sample ECS API service into the shared API Gateway and ALB infrastructure.

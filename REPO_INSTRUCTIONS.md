@@ -34,11 +34,17 @@ These instructions apply to the entire repository.
 ## Documentation Contract
 
 - keep docs aligned with behavior changes
-- entry point: `README.md` (high-level map only)
+- README files explain the system to humans and agents; `REPO_INSTRUCTIONS.md` tells agents how to work in this repo
+- keep human-facing technical contracts in the nearest owning README, not duplicated in `REPO_INSTRUCTIONS.md`
+- use `REPO_INSTRUCTIONS.md` as the agent operating manual and context router
+- entry point: `README.md` (human-facing high-level map only)
 - workflow contracts: `.github/docs/README.md`
+- infra layout, stack ownership, dependency strategy, and phased infra rollout: `infra/README.md`
 - module contracts: `infra/modules/**/README.md` (shared contracts live under `infra/modules/aws/_shared/**/README.md`)
+- frontend behavior: `frontend/README.md`
 - runtime behavior: `lambdas/**/README.md` and `containers/**/README.md`
 - before editing, read the relevant local contract docs for the files you plan to touch and follow those contracts
+- when adding or reorganizing docs, prefer short README sections that point to the owning nested README rather than expanding the root README with deep implementation detail
 
 ## Script Ownership
 
@@ -54,6 +60,20 @@ These instructions apply to the entire repository.
 - next read only the relevant contract docs for the capability subset being considered
 - only after that inspect implementation files for the selected shape
 - avoid loading unrelated capability areas unless the task requires them
+
+## Context Router
+
+| Task touches | Read next |
+| --- | --- |
+| `.github/workflows/**` or `.github/actions/**` | `.github/docs/README.md` |
+| `infra/live/**` | `infra/README.md`, then the affected `infra/modules/**/README.md` |
+| `infra/modules/aws/_shared/**` | the affected `_shared/**/README.md` plus downstream concrete module READMEs when relevant |
+| `infra/modules/aws/<module>/**` | `infra/README.md` and `infra/modules/aws/<module>/README.md` |
+| `lambdas/**` | `lambdas/README.md`, the affected Lambda README, and the matching infra module README when behavior or configuration changes |
+| `containers/**` | `containers/README.md`, the affected service README, and matching `task_*` / `service_*` infra module READMEs when behavior or configuration changes |
+| `frontend/**` | `frontend/README.md`, plus `infra/modules/aws/frontend/README.md` and `infra/modules/aws/cognito/README.md` when deployed hosting or auth changes |
+| `justfile.ci`, `justfile.deploy`, or reusable workflow behavior | `.github/docs/README.md` |
+| `justfile.destroy` | `.github/docs/README.md` and destroy-path notes before editing |
 
 ## Task Interpretation
 
@@ -114,8 +134,7 @@ These instructions apply to the entire repository.
 - check apply/deploy/destroy, and avoid unnecessary `terraform_remote_state` coupling (especially for fast-changing outputs)
 - for bootstrap-sensitive or plan-sensitive cross-stack contracts, prefer Terragrunt `dependency` inputs in the live stack and `mock_outputs` for non-mutating commands rather than reading upstream state directly inside Terraform modules
 - if CI plan failures are caused by missing upstream state, fix the contract shape first instead of papering over the issue with more direct `terraform_remote_state` reads
-- keep this approach visible to users as well: when you introduce or expand this pattern, update the top-level `README.md` so the bootstrap-friendly mock strategy is documented outside agent-only instructions
-- if you intentionally add a Terraform `data "terraform_remote_state"` block, add a `# remote_state_reason: ...` comment immediately above it explaining why Terragrunt `dependency` plus `mock_outputs` is not practical for that case
+- keep this approach visible to users as well: when you introduce or expand this pattern, update the nearest owning human-facing README, usually `infra/README.md` or the affected module README, so the bootstrap-friendly mock strategy is documented outside agent-only instructions
 - if you intentionally add a Terraform `data "terraform_remote_state"` block, add a `# remote_state_reason: ...` comment immediately above it explaining why Terragrunt `dependency` plus `mock_outputs` is not practical for that case
 
 ## Terragrunt Plan Expectation
