@@ -6,8 +6,10 @@ Use this when changing `.github/actions/**`, OIDC role ARN construction, release
 
 The repo vendors internal GitHub Actions under `.github/actions`, so workflow `uses:` references point at local paths rather than external action tags.
 
-- The release workflow uses a repo-local version action.
-- The change-detection path uses the repo-local Docker action under `.github/actions/get-changes`.
+- [get-next-version](../actions/get-next-version/README.md) is the repo-local Docker action used by release/version checks.
+- [get-changes](../actions/get-changes/README.md) is the repo-local Docker action used by the change-detection path.
+- [just](../actions/just/README.md) is the repo-local composite action for installing and running `just`.
+- [terragrunt](../actions/terragrunt/README.md) is the repo-local composite action for installing Terraform/Terragrunt and running Terragrunt operations.
 - `.github/actions/just` and `.github/actions/terragrunt` assume AWS credentials are already configured in the current job when they need AWS access.
 - The repo pattern is to run `aws-actions/configure-aws-credentials` at the top of each AWS-using job, then call local actions without extra auth inputs.
 

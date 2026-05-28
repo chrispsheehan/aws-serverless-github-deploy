@@ -27,6 +27,15 @@ This README is the router. The contract details live in focused docs so humans a
 | Environment entry points | `dev_infra_apply_no_plan.yml`, `dev_infra_plan.yml`, `dev_infra_plan_and_apply.yml`, `dev_infra_apply_from_plan.yml`, `dev_code_deploy.yml`, `prod_infra_apply_no_plan.yml`, `prod_infra_plan.yml`, `prod_infra_apply_from_plan.yml`, `prod_code_deploy.yml` |
 | Cleanup | `destroy.yml` |
 
+## Repo-Local Actions
+
+- [get-next-version](../actions/get-next-version/README.md)
+- [get-changes](../actions/get-changes/README.md)
+- [just](../actions/just/README.md)
+- [terragrunt](../actions/terragrunt/README.md)
+
+For action ownership, OIDC ARN construction, and action-specific checks, see [repo-local-actions.md](repo-local-actions.md).
+
 ## Fast Paths
 
 For most workflow edits:
