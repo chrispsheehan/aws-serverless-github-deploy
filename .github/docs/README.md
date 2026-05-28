@@ -1,257 +1,42 @@
 # CI And Workflow Contracts
 
-This is the source of truth for GitHub Actions workflow behavior in this repo.
+Use this directory when changing GitHub Actions, repo-local actions, CI helpers, deploy workflows, or workflow-owned `just` behavior.
 
-Use it when you need to understand:
+This README is the router. The contract details live in focused docs so humans and agents can load only the context they need.
 
-- which workflow to edit
-- what each workflow is allowed to do
-- which reusable-workflow inputs and outputs are part of the contract
-- what downstream feasibility checks to make before changing CI or deploy behavior
+## Read Next
 
-## How To Read This
-
-1. Start with `Workflow Groups`.
-2. Use the Mermaid diagram in the relevant section for the fast path.
-3. Use `Workflow Contracts` and `Feasibility Checks` before changing any workflow or Terragrunt dependency wiring.
+| Task | Read |
+| --- | --- |
+| Find the workflow a user should trigger | [workflow-entrypoints.md](workflow-entrypoints.md) |
+| Change reusable build, infra, deploy, or release workflow behavior | [reusable-workflows.md](reusable-workflows.md) |
+| Change saved plan, apply-from-plan, artifact naming, or plan metadata behavior | [artifacts-and-plans.md](artifacts-and-plans.md) |
+| Change directory discovery, service/container matrices, or Terragrunt graph waves | [discovery-and-matrices.md](discovery-and-matrices.md) |
+| Change `.github/actions/**`, OIDC role ARN construction, release tagging, or action tests | [repo-local-actions.md](repo-local-actions.md) |
+| Change destroy behavior, post-destroy cleanup, or tagged-resource sweeps | [destroy.md](destroy.md) |
+| Review any workflow or CI contract change | [feasibility-checks.md](feasibility-checks.md) |
 
 ## Workflow Groups
 
-- Release and validation: `release.yml`, `pull_request.yml`
-- Shared artifact prep and build: `shared_infra_releases.yml`, `shared_build.yml`, `shared_build_get.yml`
-- Shared infra and code rollout: `shared_infra_plan.yml`, `shared_infra_apply_no_plan.yml`, `shared_infra_apply_from_plan.yml`, `shared_infra.yml`, `shared_deploy.yml`, `shared_directories_get.yml`
-- Environment entry points: `dev_infra_apply_no_plan.yml`, `dev_infra_plan.yml`, `dev_infra_plan_and_apply.yml`, `dev_infra_apply_from_plan.yml`, `dev_code_deploy.yml`, `prod_infra_apply_no_plan.yml`, `prod_infra_plan.yml`, `prod_infra_apply_from_plan.yml`
-- Cleanup: `destroy.yml`
+| Group | Workflows |
+| --- | --- |
+| Release and validation | `release.yml`, `pull_request.yml` |
+| Shared artifact prep and build | `shared_infra_releases.yml`, `shared_build.yml`, `shared_build_get.yml` |
+| Shared infra and code rollout | `shared_infra_plan.yml`, `shared_infra_apply_no_plan.yml`, `shared_infra_apply_from_plan.yml`, `shared_infra.yml`, `shared_deploy.yml` |
+| Discovery | `shared_directories_get.yml`, `shared_get_modules.yml` |
+| Environment entry points | `dev_infra_apply_no_plan.yml`, `dev_infra_plan.yml`, `dev_infra_plan_and_apply.yml`, `dev_infra_apply_from_plan.yml`, `dev_code_deploy.yml`, `prod_infra_apply_no_plan.yml`, `prod_infra_plan.yml`, `prod_infra_apply_from_plan.yml`, `prod_code_deploy.yml` |
+| Cleanup | `destroy.yml` |
 
-## Workflow Contracts
+## Fast Paths
 
-The repo vendors its internal GitHub Actions under `.github/actions`, so workflow `uses:` references point at local paths rather than external action tags. The release workflow uses a repo-local version action, and the change-detection path uses a repo-local Docker action under `.github/actions/get-changes`.
-The reusable infra, build, deploy, and destroy workflows now build `AWS_OIDC_ROLE_ARN` from two GitHub variables, `AWS_ACCOUNT_ID` and `PROJECT_NAME`, plus the workflow environment input. Runtime and deploy steps that need a region should read `AWS_REGION` from GitHub variables instead of hardcoding it in workflow YAML. In this repo the role name comes from `infra/root.hcl`:
+For most workflow edits:
 
-```hcl
-deploy_role_name = "${local.project_name}-${local.environment}-github-oidc-role"
-```
+1. Start with the task-specific doc above.
+2. Check [feasibility-checks.md](feasibility-checks.md) before editing.
+3. If the change touches Terragrunt graph edges, saved plans, deploy ordering, or runtime discovery, also read the relevant infra/runtime README named by `REPO_INSTRUCTIONS.md`.
 
-The workflow shape is:
+For entry-point behavior, use [workflow-entrypoints.md](workflow-entrypoints.md).
 
-```text
-arn:aws:iam::<AWS_ACCOUNT_ID>:role/<PROJECT_NAME>-<environment>-github-oidc-role
-```
+For reusable workflow inputs, outputs, artifacts, and action behavior, use [reusable-workflows.md](reusable-workflows.md), [artifacts-and-plans.md](artifacts-and-plans.md), and [repo-local-actions.md](repo-local-actions.md).
 
-So for the current repo and environment pattern, examples are:
-
-- `aws-serverless-github-deploy-ci-github-oidc-role`
-- `aws-serverless-github-deploy-dev-github-oidc-role`
-- `aws-serverless-github-deploy-prod-github-oidc-role`
-
-If you are unsure, the live `aws/oidc` stack in the target environment is the source of truth, since Terragrunt passes `deploy_role_name` into the shared OIDC module from `infra/root.hcl`.
-
-### Release And Validation
-
-- `release.yml`
-  Creates release tags, prepares shared CI artifacts, builds release outputs, and publishes the GitHub release. Version bumps come from a repo-local action that scans commit subjects since the latest semver tag and matches configurable major/minor/patch prefixes. The workflow uses the action's `createNewTag` output as its tag-creation predicate and `createNewRelease` as its full-release predicate. The action's `release_bumps` input defaults to `major,minor`, so patch bumps still create semver tags, but skip artifact discovery, shared artifact prep, runtime builds, commit-note collection, and GitHub release publishing.
-- `pull_request.yml`
-  Provides fast validation for workflow syntax, Terraform formatting/linting, changed runtime builds, an agent-wrapper sync check that verifies `AGENTS.md` and `CLAUDE.md` both match the standard wrapper directing agents to `REPO_INSTRUCTIONS.md`, and a direct execution check of the repo-local `get-next-version` Docker action. The version preview job classifies the PR title, so it reflects the tag version, `createNewTag` flag, `createNewRelease` flag, and bump level that would be implied if that PR title lands on `main`. Its `check` job normally runs the repo-local `get-changes` Docker action directly, using the PR base SHA for a PR-style `base...HEAD` diff, but manual `workflow_dispatch` runs now force every change flag on and rerun the full validation surface without a PR diff. When `.github/actions/**` changed, the workflow reuses `shared_directories_get.yml` to discover action directories with `Dockerfile`s and runs a Docker unit-test matrix for them after the GitHub formatting job. The Lambda naming check only runs when Lambda sources changed, and the ECS task/service pair check runs when container sources or Terragrunt live-stack directories changed; each is an explicit prerequisite for the corresponding build job. Terragrunt installation in that workflow now uses `jdx/mise-action@v4`, and TFLint setup now uses the Node 24 `terraform-linters/setup-tflint@v6` line.
-
-The local version action can also be tested outside GitHub Actions, either by running the Python entrypoint directly or through its dedicated Docker image.
-
-```mermaid
-flowchart LR
-  trigger["Push / PR / Dispatch"] --> validate["Validate Or Version"]
-  validate --> artifacts["Prepare Artifacts"]
-  artifacts --> build["Build Outputs"]
-  build --> publish["Publish Result"]
-```
-
-### Shared Artifact Prep And Build
-
-- `shared_infra_releases.yml`
-  Prepares or reads shared artifact infrastructure such as ECR and the code bucket, and exposes those bucket/repository values as reusable-workflow outputs. The `ecr` job configures AWS credentials once and lets the Terraform ECR module own the stable bootstrap `:bootstrap` image through the Docker provider, so the workflow no longer performs a separate mirror/push step. The code-bucket job reads the Lambda, frontend, AppSpec, and infra-plan S3 prefix names from string-returning `justfile.ci` recipes and forwards them as `TF_VAR_*`, so the workflow does not duplicate those key names inline.
-- `shared_build.yml`
-  Builds and publishes frontend, Lambda, and ECS artifacts.
-- `shared_build_get.yml`
-  Resolves artifact locations and derives matrices used by downstream deploy wrappers. Its multi-step `images` and `lambdas` jobs configure AWS credentials once and then reuse that ambient session across repeated `just` calls against the same account.
-
-```mermaid
-flowchart LR
-  call["Workflow Call"] --> prep["Prepare / Read Shared Artifacts"]
-  prep --> build["Build Runtime Artifacts"]
-  build --> resolve["Resolve Matrices + References"]
-```
-
-### Infra And Code Rollout
-
-- `shared_infra_plan.yml`
-  Plan wrapper around `shared_infra.yml`. It takes resolved workflow inputs directly, starts `shared_get_modules.yml` to derive the current wave outputs, writes those waves plus the direct workflow inputs into one run-level `plan-metadata.json` file, uploads that file as a GitHub Actions artifact named `infra-plan-metadata`, and then calls `shared_infra.yml` with `tg_action: plan` plus `plan_run_id: ${{ github.run_id }}`. After the plan completes, it prints the current workflow `github.run_id` into both the logs and the GitHub Actions step summary as `plan_artifact_run_id`, exposes that value as a reusable-workflow output, and adds a plan summary listing modules whose saved `terragrunt.plan.meta.json` reports `has_changes: true`.
-- `shared_infra_apply_no_plan.yml`
-  Direct-input apply wrapper around `shared_infra.yml`. It takes resolved workflow inputs directly and calls `shared_infra.yml` with `tg_action: apply`.
-- `shared_infra_apply_from_plan.yml`
-  Apply-from-plan wrapper around `shared_infra.yml`. It takes `plan_artifact_run_id`, downloads the `infra-plan-metadata` GitHub artifact from that earlier workflow run, reads the frozen graph inputs and saved wave arrays back out, and then reruns the same `wave_0`, `wave_1`, `wave_2`, and `wave_3` module order. Each per-module job downloads its matching `terragrunt-plan-<environment>-<module>` GitHub artifact into the live stack directory and then invokes the repo-local Terragrunt action with `tg_action: apply_plan`.
-- Release, infra plan, infra apply/destroy, and code deploy each have explicit GitHub Actions concurrency guardrails:
-  - `release` uses a single global `release` group
-  - infra plans use `infra-plan-<environment>`
-  - infra applies and destroys use `infra-mutate-<environment>`
-  - code deploys use `deploy-<environment>`
-- The mutating infra workflows share one environment-scoped GitHub Actions concurrency group, `infra-mutate-<environment>`, so only one apply or destroy can run at a time for a given environment.
-- `shared_infra.yml`
-  Temporary wave-based executor. It delegates graph and wave discovery to `shared_get_modules.yml`, exposes the resulting `waves_json` as the reusable-workflow output, and then runs `wave_0`, `wave_1`, `wave_2`, and `wave_3` jobs in dependency order. Each wave only runs when its module array is non-empty, fans that array out as a matrix, checks out the requested ref, configures AWS credentials once per matrix job, and invokes the shared repo-local Terragrunt action against `infra/live/<environment>/aws/<module>`. The deprecated `changed_items_json` workflow output is still present for compatibility and currently mirrors `waves_json`.
-- `just --justfile justfile.ci tg-graph-json-to-waves`
-  CI helper that expects compact graph JSON in `TG_GRAPH_JSON` and returns a sequential JSON array of wave objects like `[{ "wave": 0, "modules": [...] }, ...]`, with each wave containing only modules whose direct dependencies were satisfied by earlier waves.
-- The shared infra wrappers must forward the permissions required by the nested reusable call chain. In practice that means `id-token: write` everywhere the Terragrunt action may assume AWS OIDC and `contents: read` for checkout. The shared plan/apply wrappers now rely on AWS access to the shared code bucket rather than GitHub artifact permissions for cross-run recovery.
-- The shared infra wrappers no longer accept `lambda_matrix` or `service_matrix`. Infra selection now comes from the Terragrunt dependency graph and derived waves, not from precomputed runtime directory matrices.
-- The shared infra wrappers no longer accept `code_bucket` or `bootstrap_image_uri`. The current graph-wave placeholder path only needs `environment`, `infra_version`, and the Terragrunt action context.
-- `shared_deploy.yml`
-  Rolls out Lambda code, optional migrations, optional reconciliation Lambdas, ECS task and service updates, and optional frontend deploys. Its multi-step AWS jobs now configure credentials once at job start and let the local `just` and Terragrunt actions reuse that ambient session. The reusable workflow renders its Lambda and ECS CodeDeploy AppSpec files from the shared templates under `config/deploy/`, and its mutating `just` steps should target `justfile.deploy` rather than the repo-root `justfile`.
-
-```mermaid
-flowchart LR
-  infra["Infra Apply"] --> runtimes["Runtime Infra"]
-  runtimes --> frontend["Frontend Infra"]
-  frontend --> deploy["Code Deploy"]
-  deploy --> migrate["Optional Migrations"]
-  deploy --> reconcile["Optional Reconciliation"]
-  migrate --> ecs["ECS Rollout"]
-  reconcile --> ecs
-```
-
-### Wrapper Workflows
-
-- `dev_infra_apply_no_plan.yml`
-  Entry point for dev infra apply. It first prepares shared artifact infrastructure through `shared_infra_releases.yml`, then runs the shared infra apply wrapper with the target environment and infra ref.
-- `dev_infra_plan.yml`
-  Entry point for dev infra plan. It calls the shared infra plan wrapper directly with the target environment and infra ref.
-- `dev_infra_plan_and_apply.yml`
-  Entry point for dev infra plan-then-apply. It captures the current workflow `run_id` as plan context, runs the shared infra wrapper in direct-input `plan` mode so that the wrapper emits both plan artifacts and `infra-plan-metadata`, and then reruns the same ordered infra graph in metadata-backed `apply_plan` mode.
-- `prod_infra_plan.yml`
-  Entry point for prod infra plan. It runs the shared infra wrapper in direct-input `plan` mode so that it emits both the reusable metadata artifact and the derived per-stack plan artifacts for the requested infra ref.
-- `prod_infra_apply_no_plan.yml`
-  Entry point for prod infra apply using the requested infra ref.
-- `dev_infra_apply_from_plan.yml`
-  Entry point for dev infra apply-from-plan. It takes a prior `plan_artifact_run_id` from an earlier `dev_infra_plan.yml` or `dev_infra_plan_and_apply.yml` run and reruns the ordered dev infra graph through `shared_infra_apply_from_plan.yml`.
-- `prod_infra_apply_from_plan.yml`
-  Entry point for prod infra apply-from-plan. It only needs the earlier `plan_artifact_run_id`; the shared infra wrapper runs in metadata mode to recover the exact resolved infra graph inputs from that run and then downloads and applies the plan artifacts from that same run.
-- `dev_code_deploy.yml`
-  Entry point for dev code build and deploy.
-- `prod_code_deploy.yml`
-  Entry point for prod code deploy from released artifacts.
-
-### Cleanup And Discovery
-
-- `destroy.yml`
-  Tears down infrastructure through the same Terragrunt graph contract as plan/apply, but in reverse shared-infra wave order. It shares the same environment-scoped GitHub Actions concurrency group as the mutating apply workflows, so a destroy cannot overlap an apply in the same environment. It derives the current module waves through `shared_get_modules.yml`, using that reusable workflow's filtering inputs to omit `oidc` entirely and to omit `code_bucket` and `ecr` unless `allow_cleanup` is enabled, and then runs `wave_2`, `wave_1`, and `wave_0`. The dedicated `wave_3` destroy stage is intentionally omitted. The only remaining module-specific destroy placeholder vars are the required ECS task image inputs for `task_*`; the frontend, service, and database stacks now rely on Terragrunt dependency mocks instead of workflow-injected destroy placeholders. When `allow_cleanup` is enabled, the workflow first counts tagged leftovers through `justfile.destroy`, prints a warning only when any remain, and then runs the cleanup recipe. That cleanup only deregisters and deletes tagged ECS task-definition revisions and force-deletes tagged Secrets Manager secrets, then validates those resource types against the underlying service APIs rather than treating the tagging index as the source of truth. Already-removed ECS task-definition revisions or Secrets Manager secrets are treated as successful no-ops so stale tagging API results do not fail cleanup. If unsupported or still-live tagged resources remain after that sweep, the workflow now records a warning and step summary instead of failing the whole destroy run. `prod` runs that same path only when `allow_cleanup` is enabled, and the workflow prints a conspicuous warning first.
-- `shared_directories_get.yml`
-  Derives the directory-based matrices used by wrapper workflows and PR action-test discovery.
-  The distinction between `service_dirs` and `container_dirs` is intentional: `service_dirs` contains deployable ECS service image directories only, while `container_dirs` also includes shared ECS sidecar image targets such as `debug` and `otel_collector`. ECS artifact builds that feed `shared_build.yml` should use `container_dirs` for `ecs_matrix`, because ECS task deploys need the shared sidecar images as well as the service images. Workflows that only need app service names or task/service stack derivation should use `service_dirs`.
-- `shared_get_modules.yml`
-  Reusable module-discovery workflow for infra waves. It renders the Terragrunt graph for the target environment, converts that graph into compact JSON, derives dependency-safe waves, and exposes `waves_json`, `wave_0_modules`, `wave_1_modules`, `wave_2_modules`, and `wave_3_modules` as reusable-workflow outputs. Callers can pass `ignore_task_modules: true` to exclude any `task_*` modules from the emitted rollout waves for the current bootstrap-oriented infra path, `ignore_shared_artifact_modules: true` to omit shared artifact stacks such as `code_bucket` and `ecr`, `ignore_oidc_module: true` to exclude `oidc` entirely, and `show_wave_summary: false` to suppress the raw wave matrix step summary when a caller provides a more focused summary.
-
-## Feasibility Checks
-
-Run these checks on every CI, workflow, or deploy-contract change.
-
-### Reusable Workflow Contracts
-
-- compare every caller `with:` block against the callee `workflow_call.inputs`
-- compare expected outputs against actual `jobs.<job>.outputs.*`
-- verify optional inputs are intentionally omitted, not accidentally missing
-- the repo-local `./.github/actions/terragrunt` action supports `tg_action: plan` for producing the binary plan in the live stack directory, writes `terragrunt.plan.meta.json` there for every saved plan including `has_changes` and `contains_mocked_outputs`, and writes `terragrunt.plan.txt` alongside the binary plan when the plan has changes
-- `apply_plan` now expects the calling workflow job to download the matching per-stack GitHub artifact into the live stack directory before invoking Terragrunt, including `terragrunt.plan.meta.json`, and it fails immediately if that metadata file is missing or says `contains_mocked_outputs: true`
-- when a live Terragrunt `dependency` block uses `mock_outputs` for planability or destroy safety, default it to `mock_outputs_merge_strategy_with_state = "shallow"` so partial real upstream state does not suppress missing mock keys
-- both repo-local composite actions, `./.github/actions/just` and `./.github/actions/terragrunt`, now assume AWS credentials are already configured in the current job when they need AWS access. The repo pattern is to run `aws-actions/configure-aws-credentials` at the top of each AWS-using job and then call the local actions without extra auth inputs
-- `./.github/actions/just` installs the requested `just` version through `extractions/setup-crate@v2` in the same minimal composite-action shape as `extractions/setup-just`, rather than depending on `extractions/setup-just` itself
-- `./.github/actions/terragrunt` installs the requested Terragrunt version through `jdx/mise-action@v4`, while Terraform stays pinned separately through `hashicorp/setup-terraform`
-- saved infra-plan storage is intentionally split into two levels:
-  - one run-level metadata artifact named `infra-plan-metadata` containing `plan-metadata.json`
-  - one per-stack GitHub artifact named `terragrunt-plan-<environment>-<module>`
-- `shared_infra_apply_from_plan.yml` now filters saved rollout waves through the read-only `infra-plan-filter-waves-by-changes` helper in `justfile.ci`, so the apply matrix excludes any module whose saved `terragrunt.plan.meta.json` reports `has_changes: false`
-- `./.github/actions/terragrunt` derives its plan artifact name from `tg_directory`, so callers do not need to pass artifact naming inputs
-- if `apply_plan` is used across separate workflow runs, pass the earlier workflow `run_id` through `plan_artifact_run_id`; the shared wrappers recover both metadata and per-stack plan files from GitHub artifacts in that earlier run
-- if a cross-run apply should not ask the operator to re-enter versions or recompute artifact resolution, store both the input versions and the resolved reusable-workflow outputs in a metadata artifact during plan and recover them in the apply wrapper from the earlier `run_id`
-- keep `shared_infra.yml` as the pure graph executor and prefer handling metadata creation/recovery in the dedicated plan/apply wrappers
-- when using `./.github/actions/just`, check whether the caller needs the repo-root `justfile` or an explicit `justfile_path`
-- if a deploy step passes `APP_SPEC_FILE`, keep it aligned with the shared AppSpec template location under `config/deploy/`
-- keep the split `just` ownership clear:
-  - repo-root `justfile` for local/developer commands
-  - `justfile.ci` for read-only CI helpers
-  - `justfile.deploy` for mutating CI build and deploy steps
-  - `justfile.destroy` for explicit teardown and post-destroy cleanup steps
-
-### Release Tagging Checks
-
-- if `release.yml` uses the local version action, keep its configured commit prefixes aligned with the team's commit convention
-- if the allowed PR title prefixes change, update `pull_request.yml` in the same change so the PR gate matches the release bump inputs
-- ensure the release job still reads plain semver tags from repo history in the same format it creates
-
-### Repo-Local Docker Action Checks
-
-- if a repo-local action uses `runs.using: docker` and needs to read git state, do not assume a fixed working directory inside the image
-- resolve the checkout from `GITHUB_WORKSPACE` first, and otherwise walk up to the nearest `.git` root for local test harnesses
-- before running `git` commands against the mounted checkout in GitHub Actions, add that path to git `safe.directory`
-- when changing a repo-local Docker action, prefer adding a PR validation job that executes the action itself so the real GitHub container path is exercised
-
-### Runtime Coverage
-
-- if Lambda directories are auto-detected, confirm matching live Terragrunt stacks still exist
-- if ECS directories are auto-detected, confirm matching `task_*` and `service_*` live Terragrunt stacks still exist
-- for `*_code` wrappers, confirm dispatch inputs cover every runtime being deployed
-- if ECS deploys are included, confirm `ecs_version` is exposed or intentionally derived
-
-### Dependency Safety
-
-- check apply, deploy, and destroy behavior, not just apply
-- verify Terragrunt dependencies and their downstream consumers still exist and are ordered correctly
-- confirm every `needs.<job>.outputs.*` reference is in scope
-- confirm matrix values still match the naming contract expected by workflows and modules
-- do not change CI ordering blindly; first check whether the real issue is avoidable cross-stack coupling
-
-### Infra Versus Code Ownership
-
-- `*_infra` wrappers should stop at infrastructure apply
-- `shared_deploy.yml` owns feature-code rollout
-- prod wrappers should continue reading shared artifact resources from `ci` while applying deploy targets in `prod`
-- do not add `shared_infra_releases.yml` to prod deploy wrappers unless the goal is explicitly deploy-time artifact creation
-
-### ECS-Specific Checks
-
-- if helper code is added under `containers/`, confirm discovery logic does not treat it as a deployable image target
-- if service topology changes, verify `connection_type`, load-balancer shape, listeners, and CodeDeploy wiring still satisfy the shared ECS feasibility rules
-
-### Destroy-Path Checks
-
-- confirm destroy ordering still removes downstream consumers before shared stacks
-- check required Terraform variables on destroy as well as apply
-- prefer depending on real downstream consumers rather than serializing unrelated shared stacks
-- when a module creates manual backup artifacts outside Terraform ownership, decide explicitly whether destroy should delete or retain them by environment
-- if destroy relies on a final tagged-resource sweep, keep both the scan/count step and the cleanup step in `justfile.destroy`, and surface unsupported tagged leftovers as an explicit workflow warning so new leak classes are still visible
-- if destroy relies on a final tagged-resource sweep, make sure the deploy OIDC role also allows `tag:GetResources`; the cleanup path uses the Resource Groups Tagging API before running service-specific deletions
-
-## Wrapper Workflow Summary
-
-These are the workflows most users trigger directly.
-
-- `dev_infra_apply_no_plan.yml`
-  Discovers directories, prepares dev artifacts, and applies dev infrastructure.
-- `dev_infra_plan.yml`
-  Discovers directories, prepares dev artifacts, and plans the ordered dev infra graph through `shared_infra_plan.yml`.
-- `dev_infra_plan_and_apply.yml`
-  Discovers directories, prepares dev artifacts, captures the current run as plan context, plans the ordered dev infra graph through `shared_infra_plan.yml` so that the wrapper emits both the metadata artifact and derived uploaded plan artifacts, and then reapplies the same graph through `shared_infra_apply_from_plan.yml`.
-- `dev_infra_apply_from_plan.yml`
-  Reapplies the ordered dev infra graph from plan artifacts created by an earlier dev plan run, using the shared `plan_artifact_run_id` contract end-to-end.
-- `prod_infra_plan.yml`
-  Resolves released artifacts from `ci`, then plans the ordered prod infra graph so that shared infra emits both the metadata artifact and the derived per-stack plan artifacts.
-- `prod_infra_apply_no_plan.yml`
-  Resolves released artifacts from `ci` and applies prod infrastructure.
-- `prod_infra_apply_from_plan.yml`
-  Reapplies the ordered prod infra graph from plan artifacts created by a prior `prod_infra_plan` run, using the shared `plan_artifact_run_id` contract end-to-end. `shared_infra_apply_from_plan.yml` reads the matching metadata artifact first, then each apply job downloads its matching per-stack GitHub artifact before invoking `apply_plan`.
-- `dev_code_deploy.yml`
-  Discovers directories, builds fresh dev artifacts, resolves deploy inputs, and deploys code to dev.
-- `prod_code_deploy.yml`
-  Resolves released artifacts from `ci` and deploys code to prod.
-
-## Discovery Notes
-
-- `shared_directories_get.yml` is the workflow-level source for directory-derived matrices
-- top-level Lambda directories under `lambdas/` are treated as deployable functions, excluding generated build output
-- top-level deployable ECS service directories under `containers/` are exposed through `service_dirs`
-- the broader `container_dirs` matrix includes those service directories plus shared ECS sidecar image targets such as `debug` and `otel_collector`
-- use `container_dirs` when building the full ECS deploy artifact set, and use `service_dirs` when you only need service/task naming
+For destroy behavior, use [destroy.md](destroy.md) before editing `destroy.yml` or `justfile.destroy`.

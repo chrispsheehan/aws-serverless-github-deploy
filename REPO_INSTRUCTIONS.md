@@ -67,15 +67,15 @@ These instructions apply to the entire repository.
 
 | Task touches | Read next |
 | --- | --- |
-| `.github/workflows/**` or `.github/actions/**` | `.github/docs/README.md` |
+| `.github/workflows/**` or `.github/actions/**` | `.github/docs/README.md`, then the focused workflow doc it routes to |
 | `infra/live/**` | `infra/README.md`, then the affected `infra/modules/**/README.md` |
 | `infra/modules/aws/_shared/**` | the affected `_shared/**/README.md` plus downstream concrete module READMEs when relevant |
 | `infra/modules/aws/<module>/**` | `infra/README.md` and `infra/modules/aws/<module>/README.md` |
 | `lambdas/**` | `lambdas/README.md`, the affected Lambda README, and the matching infra module README when behavior or configuration changes |
 | `containers/**` | `containers/README.md`, the affected service README, and matching `task_*` / `service_*` infra module READMEs when behavior or configuration changes |
 | `frontend/**` | `frontend/README.md`, plus `infra/modules/aws/frontend/README.md` and `infra/modules/aws/cognito/README.md` when deployed hosting or auth changes |
-| `justfile.ci`, `justfile.deploy`, or reusable workflow behavior | `.github/docs/README.md` |
-| `justfile.destroy` | `.github/docs/README.md` and destroy-path notes before editing |
+| `justfile.ci`, `justfile.deploy`, or reusable workflow behavior | `.github/docs/README.md`, then `reusable-workflows.md`, `artifacts-and-plans.md`, or `discovery-and-matrices.md` as relevant |
+| `justfile.destroy` | `.github/docs/README.md` and `.github/docs/destroy.md` before editing |
 
 ## Task Interpretation
 
