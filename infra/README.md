@@ -162,6 +162,7 @@ That `containers/lib` directory is helper code only and is not treated as a depl
 - `*_infra` wrappers need the inputs required to apply infra safely, such as directory-derived stack matrices and any artifact-derived bootstrap references
 - in `prod`, the `*_infra` wrappers read shared artifact resources from `ci` but only apply service and task stacks in `prod`
 - saved `plan` / `apply_plan` artifacts live in GitHub Actions artifacts keyed by workflow run id, with one run-level metadata artifact plus one per-stack plan artifact
+- saved plan artifacts are time-limited; the run-level metadata artifact is retained for 14 days, so apply-from-plan must happen before artifact expiry
 - each saved-plan stack always uploads `terragrunt.plan.meta.json`; the binary `terragrunt.tfplan` and rendered `terragrunt.plan.txt` are uploaded only when the plan contains real changes
 - Code artifact retention and infra-plan retention are configured separately in the shared code bucket module
 - rerunning infrastructure apply does not roll out new feature code

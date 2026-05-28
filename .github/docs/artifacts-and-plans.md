@@ -52,6 +52,8 @@ Saved infra-plan storage is intentionally split into two levels:
 - run-level artifact: `infra-plan-metadata`, containing `plan-metadata.json`
 - per-stack artifact: `terragrunt-plan-<environment>-<module>`
 
+The saved plan set is time-limited. `infra-plan-metadata` is uploaded with `retention-days: 14`, so apply-from-plan must happen before that artifact expires. Per-stack plan artifacts should keep their retention aligned with the metadata artifact; if they do not set `retention-days` explicitly, they inherit the repository or GitHub artifact default.
+
 `./.github/actions/terragrunt` derives its plan artifact name from `tg_directory`, so callers do not need to pass artifact naming inputs.
 
 ## Cross-Run Recovery
@@ -59,6 +61,7 @@ Saved infra-plan storage is intentionally split into two levels:
 If `apply_plan` is used across separate workflow runs, pass the earlier workflow `run_id` through `plan_artifact_run_id`.
 
 - Shared wrappers recover run-level metadata and per-stack plan files from GitHub artifacts in that earlier run.
+- Recovery only works while the metadata and per-stack plan artifacts are still retained.
 - If cross-run apply should not ask the operator to re-enter versions or recompute artifact resolution, store both input versions and resolved reusable-workflow outputs in metadata during plan.
 - Recover those values in the apply wrapper from the earlier `run_id`.
 
