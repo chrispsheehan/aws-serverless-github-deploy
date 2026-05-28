@@ -14,6 +14,7 @@ Use this when changing saved plans, apply-from-plan behavior, plan metadata, art
 - After planning, prints `github.run_id` in logs and step summary as `plan_artifact_run_id`.
 - Exposes `plan_artifact_run_id` as a reusable-workflow output.
 - Adds a plan summary listing modules whose saved `terragrunt.plan.meta.json` reports `has_changes: true`.
+- Writes a step-summary warning that saved plan artifacts are time-limited and must be applied before artifact expiry.
 
 ## Apply Wrappers
 

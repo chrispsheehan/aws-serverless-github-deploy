@@ -222,6 +222,7 @@ jobs:
             echo "## Infra Plan Context"
             echo
             echo "- \`plan_artifact_run_id\`: \`$PLAN_ARTIFACT_RUN_ID\`"
+            echo "- Saved plan artifacts are time-limited. Apply from this plan before the metadata artifact expires after 14 days."
           } >> "$GITHUB_STEP_SUMMARY"
 
   plan_summary:
@@ -272,6 +273,7 @@ jobs:
             echo "- \`environment\`: \`$ENVIRONMENT\`"
             echo "- \`planned_modules\`: \`$(jq -r 'map(.modules | length) | add // 0' <<<"$WAVES_JSON")\`"
             echo "- \`modules_to_apply\`: \`$(jq -r 'length' <<<"$changed_modules_json")\`"
+            echo "- Saved plan artifacts are time-limited. Apply from this plan before the metadata artifact expires after 14 days."
             echo
 
             if [[ "$(jq -r 'length' <<<"$changed_modules_json")" -eq 0 ]]; then
