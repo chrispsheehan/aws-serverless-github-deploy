@@ -22,3 +22,15 @@ Shared messaging stack.
 - `ecs_worker_queue_read_policy_arn`
 
 Use this stack when both worker runtimes should receive the same event payload independently.
+
+## Direct Publish
+
+Publish directly to the shared worker SNS topic:
+
+```sh
+TOPIC_ARN=arn:aws:sns:eu-west-2:123456789012:aws-serverless-github-deploy-dev-worker-events \
+MESSAGE='{"job_id":"demo-1","source":"local","payload":{"hello":"world"}}' \
+just sns-publish
+```
+
+That fanout path delivers the same message to the Lambda worker and ECS worker queues.

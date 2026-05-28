@@ -47,4 +47,4 @@ During bootstrap applies, it uses placeholder values instead of reading task out
 
 ## Inherits Behavior From
 
-- [infra/modules/aws/_shared/service/README.md](_shared/service/README.md) for deployment strategies, connection-type rules, feasibility constraints, and drift ownership
+- [infra/modules/aws/_shared/service/README.md](../_shared/service/README.md) for deployment strategies, connection-type rules, feasibility constraints, and drift ownership

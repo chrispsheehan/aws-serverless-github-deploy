@@ -32,6 +32,18 @@ Lambda source directories for this boilerplate.
 - the `migrations` Lambda shape is intended for VPC-attached schema changes against the shared database
 - event-driven helper Lambdas can subscribe to EventBridge rules for shared infra automation, such as reacting to Aurora reader scale-out events
 
+## Local Runtime
+
+- local Lambda services run through the reusable harnesses under `local/`
+- `lambda_api` is exposed at `http://localhost:18080`
+- `lambda_worker` polls the local `lambda-worker-queue`
+- `watchfiles` restarts local Lambda services when Python files change
+
+Concrete runtime notes:
+
+- API publish contract: [lambda_api/README.md](lambda_api/README.md)
+- worker queue publishing: [lambda_worker/README.md](lambda_worker/README.md)
+
 ## Logging
 
 - Lambda runtimes should use the shared JSON logger from `lib/runtime_logging.py`
