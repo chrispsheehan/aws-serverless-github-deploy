@@ -131,6 +131,8 @@ Use this shared flow when the user is adapting an external app, replacing the pl
 - still confirm before removing expensive or shared infrastructure capabilities, such as load balancers, ECS clusters, databases, Cognito, Route53/CloudFront, or messaging, unless the user explicitly names them for removal
 - when removal would affect major capabilities, briefly list what would remain and what would be removed before editing
 - align local development, workflows, infra stacks, runtime code, docs, and verification commands with the selected app shape
+- for AWS-backed deployment shapes, offer to check required deployment prerequisites at the point the selected environment/domain is known; expected checks include the VPC, tagged subnets, and Route53 hosted zone required by the selected domain
+- before relying on a hosted zone, confirm the intended hosted zone name with the user and verify it matches the selected `domain_name`/frontend domain shape
 - always consider security during app shaping; if a proposed API would be exposed to the public internet, say that explicitly and suggest at least one more secure option
 - do not assume a public unauthenticated API is acceptable just because it is the simplest technical shape
 - before closing an app-shaping task, explicitly name what remains, what was removed, what still needs operational setup, and any bootstrap commands the user should run
@@ -139,6 +141,7 @@ Use this shared flow when the user is adapting an external app, replacing the pl
 
 - at the end of app-shaping work, offer the next operational bootstrap steps needed to make the selected app shape real end to end
 - for AWS-backed deployments, this usually includes creating or updating GitHub OIDC roles, applying foundational stacks in dependency order, deploying initial infrastructure, publishing first runtime artifacts, running migrations, and seeding initial users when Cognito is enabled
+- before the first plan, apply, prerequisite check, or other AWS interaction in a task, confirm which AWS role, user, and account will be used
 - do not run AWS-mutating bootstrap commands without explicit user approval
 - when offering OIDC setup, name the exact commands, for example `just tg ci aws/oidc apply`, `just tg dev aws/oidc apply`, or `just tg prod aws/oidc apply`
 - when offering first environment setup, separate infra bootstrap from code deployment and call out any prerequisite shared resources such as VPCs, tagged subnets, hosted zones, ECR images, code buckets, or Terraform state
