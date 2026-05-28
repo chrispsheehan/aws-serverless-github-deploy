@@ -6,6 +6,7 @@ Lambda + ECS with CodeDeploy rollouts, plus provisioned concurrency controls for
 ## Sections
 
 - [Overview](#overview)
+- [Using This Template With An AI Agent](#using-this-template-with-an-ai-agent)
 - [Bootstrap-Friendly Plans](#bootstrap-friendly-plans)
 - [Prerequisites](#prerequisites)
 - [Setup](#setup)
@@ -21,6 +22,24 @@ Lambda + ECS with CodeDeploy rollouts, plus provisioned concurrency controls for
 - GitHub Actions workflows for infrastructure apply, artifact build, code deploy, and destroy
 - shared deployment patterns for Lambda and ECS, with repo-local `just` commands for local and CI operations
 - runtime and infrastructure layouts designed to be extended without having to rediscover the whole repo each time
+
+## Using This Template With An AI Agent
+
+If you are using an AI coding agent, start with plain-language requests like:
+
+```text
+add a new environment called qa
+```
+
+```text
+Give me a site with a backend and a database
+```
+
+```text
+look at ../sandbox and tell me how to deploy it with this repo
+```
+
+The agent instructions live in [REPO_INSTRUCTIONS.md](REPO_INSTRUCTIONS.md); these examples are human-friendly starting prompts.
 
 ## Bootstrap-Friendly Plans
 
