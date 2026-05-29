@@ -25,8 +25,15 @@ variable "vpc_id" {
   type = string
 }
 
-variable "private_subnet_ids" {
-  type = list(string)
+variable "subnet_ids" {
+  type        = list(string)
+  description = "Subnet ids to place ECS task ENIs in."
+}
+
+variable "assign_public_ip" {
+  type        = bool
+  description = "Whether to assign public IPs to ECS task ENIs."
+  default     = false
 }
 
 variable "cluster_id" {

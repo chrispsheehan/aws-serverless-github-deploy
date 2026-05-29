@@ -17,6 +17,7 @@ Concrete ECS worker service wrapper.
 - uses the worker task revision exported by `task_worker`
 - uses autoscaling inputs derived from the shared ECS worker queue owned by `messaging`
 - uses placeholder values during bootstrap applies so the first service apply does not require pre-existing task state
+- defaults to private subnets with `assign_public_ip = false`
 
 ## Outputs Consumers Rely On
 

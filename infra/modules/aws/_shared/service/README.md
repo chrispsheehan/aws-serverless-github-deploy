@@ -31,11 +31,21 @@ This module keeps its own `versions.tf` so it can be lifted into another repo wi
 - `codedeploy_alarm_names`
 - `desired_task_count`
 - `scaling_strategy`
+- `subnet_ids`
+- `assign_public_ip`
 - optional `dedicated_listener_port`
 
 Subpath services match both `/<root_path>` and `/<root_path>/*`.
 If `dedicated_listener_port` is set, the service gets its own ALB listener and uses that listener for API Gateway integration and ECS CodeDeploy traffic routing.
 When `connection_type = "vpc_link"`, the module can also attach a shared API Gateway JWT authorizer to both the exact and proxy routes.
+
+## Subnet Selection
+
+By default, callers should pass private `subnet_ids` with `assign_public_ip = false`.
+Services that need direct public internet egress without a NAT gateway or service-specific VPC endpoints can pass public `subnet_ids` and set `assign_public_ip = true`.
+
+These inputs change the task ENI placement only. They do not make the service publicly reachable unless the attached security groups and routing resources also allow inbound traffic.
+Callers must provide non-empty `subnet_ids`.
 
 ## Bootstrap behavior
 

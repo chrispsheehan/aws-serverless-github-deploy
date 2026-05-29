@@ -50,6 +50,12 @@ variable "connection_type" {
   }
 }
 
+variable "assign_public_ip" {
+  type        = bool
+  description = "Whether to place ECS tasks in public subnets and assign public IPs for direct internet egress."
+  default     = true
+}
+
 variable "local_tunnel" {
   type    = bool
   default = false

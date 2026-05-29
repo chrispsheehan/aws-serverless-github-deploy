@@ -147,6 +147,7 @@ That `containers/lib` directory is helper code only and is not treated as a depl
 - prefer explicit ownership boundaries between stacks
 
 - some shared infrastructure, such as the landing-zone VPC and tagged private subnets, is discovered via `data` lookups and must already exist
+- ECS service wrappers can optionally discover tagged public subnets when `assign_public_ip = true`; those subnets must have names matching `*public*`
 
 - frontend custom-domain deploys require the matching Route53 hosted zone to already exist
 
