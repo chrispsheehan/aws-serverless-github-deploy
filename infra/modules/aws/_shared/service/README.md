@@ -45,64 +45,11 @@ Bootstrap and real task deploys use the same app health path, such as `/health` 
 
 ## Decision Rules
 
-Choose deployment strategy based on connection type and whether the service is load-balanced in this repo's model.
-
-### `rolling`
-
-- use for ECS services that are not load-balanced in this repo's model, such as internal workers without `internal_dns` or `vpc_link`
-- this uses native ECS rolling updates rather than ECS CodeDeploy
-
-### `all_at_once`
-
-- use for load-balanced ECS services when you want CodeDeploy but do not need gradual traffic shifting
-
-```hcl
-deployment_strategy = "all_at_once"
-```
-
-### `canary`
-
-- use for load-balanced ECS services where you want partial traffic shifting before full promotion
-
-```hcl
-deployment_strategy = "canary"
-```
-
-### `linear`
-
-- use for load-balanced ECS services where you want a gradual, repeated traffic shift
-
-```hcl
-deployment_strategy = "linear"
-```
-
-### `blue_green`
-
-- use when you want explicit blue/green intent in the service configuration
-- in the current repo shape this maps to the ECS CodeDeploy all-at-once traffic switch
-
-```hcl
-deployment_strategy = "blue_green"
-```
+Use [deployment strategies](docs/deployment-strategies.md) when choosing `rolling`, `all_at_once`, `canary`, `linear`, or `blue_green`.
 
 ## Connection Types
 
-### `internal`
-
-- use for internal services without API Gateway or shared-ALB traffic switching
-- prefer `rolling`
-- this shape is not compatible with this repo's ECS CodeDeploy path
-
-### `internal_dns`
-
-- use for load-balanced internal services that should be addressable through the shared internal ALB and DNS path
-- supports ECS CodeDeploy in this repo
-
-### `vpc_link`
-
-- use for HTTP services exposed through the shared API Gateway via VPC link
-- supports ECS CodeDeploy in this repo
-- if JWT auth is enabled, the shared API Gateway authorizer is attached in this service shape
+Use [connection types](docs/connection-types.md) when deciding between `internal`, `internal_dns`, and `vpc_link`.
 
 ## Feasibility Constraints
 
@@ -114,110 +61,10 @@ deployment_strategy = "blue_green"
 
 ## Scaling Patterns
 
-Use `desired_task_count` as the steady-state baseline and `scaling_strategy` when you want autoscaling above that baseline.
-
-### Fixed task count
-
-- use for predictable or low-volume services where a fixed number of tasks is enough
-- leave `scaling_strategy = {}`
-
-```hcl
-desired_task_count = 1
-
-scaling_strategy = {}
-```
-
-### CPU scaling
-
-- use when task CPU is the best leading signal for scale pressure
-- best fit for internal workers or APIs whose load correlates with compute saturation
-
-```hcl
-desired_task_count = 1
-
-scaling_strategy = {
-  max_scaled_task_count = 4
-  cpu = {
-    scale_out_threshold  = 70
-    scale_in_threshold   = 30
-    scale_out_adjustment = 1
-    scale_in_adjustment  = -1
-    cooldown_out         = 120
-    cooldown_in          = 300
-  }
-}
-```
-
-### SQS scaling
-
-- use for queue-driven workers
-- scale decisions are based on the named queue's visible-message count
-
-```hcl
-desired_task_count = 1
-
-scaling_strategy = {
-  max_scaled_task_count = 6
-  sqs = {
-    queue_name           = "my-worker-queue"
-    scale_out_threshold  = 10
-    scale_in_threshold   = 0
-    scale_out_adjustment = 1
-    scale_in_adjustment  = -1
-    cooldown_out         = 60
-    cooldown_in          = 300
-  }
-}
-```
-
-### ALB request scaling
-
-- use for load-balanced HTTP services
-- scale decisions are based on target requests per task behind the ALB
-
-```hcl
-desired_task_count = 2
-
-scaling_strategy = {
-  max_scaled_task_count = 6
-  alb = {
-    target_requests_per_task = 100
-    cooldown_out             = 60
-    cooldown_in              = 300
-  }
-}
-```
+Use [scaling patterns](docs/scaling-patterns.md) for fixed task count, CPU, SQS, and ALB request examples.
 
 ## CI / Deploy Expectations
 
-- infrastructure applies create the stable service shape and any CodeDeploy wiring needed for load-balanced services
-- deploy workflows register and promote real `task_*` revisions
-- the deployment workflow applies the new task revision, uses CodeDeploy for load-balanced services, and uses native rolling deploys for internal services
-- the shared module accepts `codedeploy_alarm_names` for automatic rollback
+Infrastructure applies create the stable service shape and deploy workflows own real task rollouts.
 
-## Rollback
-
-Use CloudWatch alarms with `codedeploy_alarm_names` when you want ECS CodeDeploy to roll back a load-balanced service deployment automatically.
-
-```hcl
-codedeploy_alarm_names = [
-  local.api_5xx_alarm_name
-]
-```
-
-The alarm resources themselves are owned by the caller. This shared module consumes the alarm names and wires them into the ECS deployment group.
-
-## Drift / Ownership Rules
-
-The ECS service ignores:
-
-- `task_definition`
-- `load_balancer`
-- dedicated-listener `default_action`
-
-Reason:
-
-- deploy workflows own the live revision
-- infra owns the stable service shape
-- CodeDeploy ECS services reject `load_balancer` updates via `UpdateService`
-- CodeDeploy also owns the live target-group switch on dedicated listeners
+Read [rollout and drift](docs/rollout-and-drift.md) for CI deploy expectations, rollback alarms, and ignored-drift ownership.
