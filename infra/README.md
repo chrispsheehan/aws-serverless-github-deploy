@@ -18,6 +18,8 @@ This directory contains the Terraform and Terragrunt layout for the repo.
   Main development environment. This repo also sets `otel_sampling_percentage = 100` there so ECS tracing is fully sampled while iterating.
 - `prod`
   Production environment.
+- `_catalog`
+  Canonical full menu/source of optional stacks. Use it as the reference list when deciding which subset belongs in `dev`, `prod`, or another live environment. The leading underscore marks it as a catalog rather than a normal deploy target. See `infra/live/_catalog/README.md` before editing or deploying it.
 - `ci`
   Shared CI-only infra such as ECR and code bucket where applicable. The `aws/oidc` stack here is intentionally scoped to CI artifact management only, including ECR image publishing, rather than the broader deploy permissions used in `dev` and `prod`.
 
