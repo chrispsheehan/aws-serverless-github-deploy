@@ -3,16 +3,6 @@
 **Terraform + GitHub Actions for AWS serverless deployments.**  
 Lambda + ECS with CodeDeploy rollouts, plus provisioned concurrency controls for Lambda — driven by clean module variables and `just` recipes.
 
-## Sections
-
-- [Overview](#overview)
-- [Using This Template With An AI Agent](#using-this-template-with-an-ai-agent)
-- [Bootstrap-Friendly Plans](#bootstrap-friendly-plans)
-- [Get Started Locally](#get-started-locally)
-- [Infra Deployment Use Cases](#infra-deployment-use-cases)
-- [Reference](#reference)
-- [Read This Next](#read-this-next)
-
 ## Overview
 
 - Terraform/Terragrunt stacks for a typical AWS application shape: APIs, workers, frontend, database, auth, and messaging
