@@ -45,6 +45,7 @@ By default, callers should pass private `subnet_ids` with `assign_public_ip = fa
 Services that need direct public internet egress without a NAT gateway or service-specific VPC endpoints can pass public `subnet_ids` and set `assign_public_ip = true`.
 
 These inputs change the task ENI placement only. They do not make the service publicly reachable unless the attached security groups and routing resources also allow inbound traffic.
+For `connection_type = "vpc_link"`, the public request path remains API Gateway to VPC Link to the internal ALB to the task's private IP; `assign_public_ip = true` only changes the task's outbound internet path.
 Callers must provide non-empty `subnet_ids`.
 
 ## Bootstrap behavior
@@ -113,6 +114,7 @@ deployment_strategy = "blue_green"
 - use for HTTP services exposed through the shared API Gateway via VPC link
 - supports ECS CodeDeploy in this repo
 - if JWT auth is enabled, the shared API Gateway authorizer is attached in this service shape
+- task public IP assignment is not part of the inbound path; API Gateway still reaches the internal ALB through the VPC link, and the ALB targets task private IPs
 
 ## Feasibility Constraints
 

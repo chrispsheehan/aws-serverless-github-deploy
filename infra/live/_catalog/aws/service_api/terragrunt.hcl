@@ -63,6 +63,7 @@ terraform {
 inputs = merge(
   {
     ecs_security_group_id = dependency.security.outputs.ecs_sg
+    assign_public_ip      = true
   },
   {
     cluster_id   = dependency.cluster.outputs.cluster_id

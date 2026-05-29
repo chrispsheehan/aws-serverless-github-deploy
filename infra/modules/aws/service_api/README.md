@@ -20,6 +20,7 @@ Concrete ECS API service wrapper for the sample API service.
 - uses `deployment_strategy = "blue_green"`
 - uses a dedicated ALB listener on port `8080` so ECS CodeDeploy can own traffic
 - defaults to public subnets with `assign_public_ip = true` for direct internet egress
+- public task IPs are for outbound internet egress only; inbound API traffic still follows CloudFront/API Gateway to VPC Link to the internal ALB to the task private IP
 - defaults `local_tunnel` and `xray_enabled` to `false` unless explicitly enabled
 
 ## Outputs Consumers Rely On
@@ -38,6 +39,8 @@ Concrete ECS API service wrapper for the sample API service.
 - load-balanced through the shared internal ALB
 - reached through CloudFront at `/api/ecs/*`
 - reached through API Gateway at `/ecs/*`
+- effective inbound path: Internet -> CloudFront/API Gateway -> VPC Link -> internal ALB -> ECS task private IP
+- effective outbound path with `assign_public_ip = true`: ECS task public IP -> Internet Gateway -> public internet
 
 ## Dependency Notes
 
