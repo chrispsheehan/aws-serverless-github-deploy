@@ -132,6 +132,9 @@ Keep this high-level contract in mind even before loading the detailed flow:
 
 - determine additive versus replacement intent unless it is already clear
 - determine selected capabilities and list major unused capabilities rather than assuming they should stay forever
+- guide the human through unresolved app-shaping decisions step by step instead of presenting a long questionnaire
+- prefer selectable options with a recommended default when the interface supports them, and explain the consequence of each option briefly
+- keep the human oriented during app-shaping and bootstrap work with short updates about what is being inspected, decided, changed, or run
 - record durable app-shaping answers in `BOOTSTRAP_DECISIONS.md`
 - align local development, workflows, infra stacks, runtime code, docs, and verification commands with the selected app shape
 - always surface public exposure, authentication, cost, bootstrap implications, and any needed README/context refresh before closing the task

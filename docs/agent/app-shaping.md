@@ -6,9 +6,15 @@ Use this shared flow when adapting an external app, replacing the placeholder ap
 - when the target repo is empty or effectively empty, enter this flow immediately; treat a repo as effectively empty when it has no meaningful app, infra, runtime, or workflow code beyond placeholders, starter files, or minimal scaffolding
 - determine the selected app capabilities, such as frontend, backend API, batch/worker runtime, database, auth, messaging, containers/ECS, Lambda, scheduled jobs, or static hosting
 - ask only the missing app-shaping questions that are not already answered in `BOOTSTRAP_DECISIONS.md`
+- prefer a staged question-and-answer flow over asking every open question at once
+- ask the smallest useful next question, usually one decision at a time, and only group questions when they are tightly coupled
+- when the interface supports selectable options, present 2-3 concrete choices with a recommended option first; include an escape hatch for a custom answer when possible
+- explain the practical effect of each option in one short sentence so the human can answer without already knowing this repo's architecture
+- after each answer, restate the recorded decision briefly, then continue to the next unresolved decision
 - persist durable bootstrap, simplification, replacement, and capability-selection answers in `BOOTSTRAP_DECISIONS.md` so they do not need to be asked repeatedly
 - before asking a recorded app-shaping question, check `BOOTSTRAP_DECISIONS.md` first and reuse the recorded answer unless the user changes it
 - if the user gives an answer that conflicts with an existing entry in `BOOTSTRAP_DECISIONS.md`, warn that the recorded decision is changing, then update the file
+- while in app-shaping or bootstrap flow, keep the human oriented with short progress updates that say what context is being inspected, what decision is being resolved, or what operation is about to run
 - if the user says the work is replacement, remove placeholder/demo code, docs, local services, infra stacks, workflow surface, and stale runtime paths that no longer serve the selected app shape
 - do not keep unused demo capabilities just because they existed in the template
 - do not delete or replace template/example code solely because a new feature request could be implemented more cleanly without it; replacement intent or a recorded decision must be clear
