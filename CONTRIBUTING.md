@@ -69,7 +69,7 @@ PRs should make the rollout path obvious:
 
 The workflow docs own deeper CI contract detail:
 
-- entrypoints: `.github/docs/workflow-entrypoints.md`
-- saved plans: `.github/docs/artifacts-and-plans.md`
-- discovery and matrices: `.github/docs/discovery-and-matrices.md`
-- reusable workflow contracts: `.github/docs/reusable-workflows.md`
+- entrypoints: [.github/docs/workflow-entrypoints.md](.github/docs/workflow-entrypoints.md)
+- saved plans: [.github/docs/artifacts-and-plans.md](.github/docs/artifacts-and-plans.md)
+- discovery and matrices: [.github/docs/discovery-and-matrices.md](.github/docs/discovery-and-matrices.md)
+- reusable workflow contracts: [.github/docs/reusable-workflows.md](.github/docs/reusable-workflows.md)
