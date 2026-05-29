@@ -53,7 +53,7 @@ variable "connection_type" {
 variable "assign_public_ip" {
   type        = bool
   description = "Whether to place ECS tasks in public subnets and assign public IPs for direct internet egress."
-  default     = true
+  default     = false
 }
 
 variable "local_tunnel" {
