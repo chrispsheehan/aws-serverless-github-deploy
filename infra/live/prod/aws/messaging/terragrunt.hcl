@@ -7,5 +7,5 @@ dependencies {
 }
 
 terraform {
-  source = "../../../../modules//aws//_shared//code_bucket"
+  source = "../../../../modules//aws//messaging"
 }

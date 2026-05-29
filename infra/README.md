@@ -15,11 +15,9 @@ This directory contains the Terraform and Terragrunt layout for the repo.
 ## Environments
 
 - `dev`
-  Main development environment. It is a deployable subset of `_catalog` focused on the ECS `service_api` path. This repo also sets `otel_sampling_percentage = 100` there so ECS tracing is fully sampled while iterating.
+  Main development environment. It includes the deployable application stack set and keeps `aws/ecr` and `aws/code_bucket` locally for development artifact workflows. This repo also sets `otel_sampling_percentage = 100` there so ECS tracing is fully sampled while iterating.
 - `prod`
-  Production environment. It is a deployable subset of `_catalog` focused on the ECS `service_api` path.
-- `_catalog`
-  Canonical full menu/source of optional stacks. Use it as the reference list when deciding which subset belongs in `dev`, `prod`, or another live environment. The leading underscore marks it as a catalog rather than a normal deploy target. See `infra/live/_catalog/README.md` before editing it; do not deploy it directly.
+  Production environment. It includes the deployable application stack set and reads shared code/container artifacts from the CI-owned artifact resources.
 - `ci`
   Shared CI-only infra such as ECR and code bucket where applicable. The `aws/oidc` stack here is intentionally scoped to CI artifact management only, including ECR image publishing, rather than the broader deploy permissions used in `dev` and `prod`.
 
@@ -88,7 +86,7 @@ stores state at:
 - `service_*`
   Own the ECS services and, when applicable, CodeDeploy resources.
 
-Current catalog examples include:
+Current stack examples include:
 
 - `database`
   Shared Aurora PostgreSQL Serverless v2 shape for repo-managed relational data stores.
@@ -241,7 +239,7 @@ just --justfile justfile.deploy lambda-get-version
 just --justfile justfile.deploy frontend-build
 ```
 
-`infra/live/_catalog` is intentionally blocked as a Terragrunt target. Create a real environment under `infra/live/<name>` from the catalog, then deploy that environment with `just tg <env> <module> <op>` or the matching workflow.
+Deploy a real environment under `infra/live/<name>` with `just tg <env> <module> <op>` or the matching workflow.
 
 ### Terragrunt Graph Helpers
 

@@ -42,16 +42,6 @@ outputs:
 runs:
   using: "composite"
   steps:
-    - name: Reject catalog Terragrunt target
-      shell: bash
-      run: |
-        case "${{ inputs.tg_directory }}" in
-          infra/live/_catalog|infra/live/_catalog/*|*/infra/live/_catalog|*/infra/live/_catalog/*)
-            echo "::error title=Catalog is not deployable::infra/live/_catalog is a source catalog, not a deployable environment. Create a new environment under infra/live/<name> from _catalog and deploy that environment instead."
-            exit 1
-            ;;
-        esac
-
     - name: Install Terraform
       uses: hashicorp/setup-terraform@v4
       with:

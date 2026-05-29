@@ -7,5 +7,5 @@ dependencies {
 }
 
 terraform {
-  source = "../../../../modules//aws//cognito"
+  source = "../../../../modules//aws//observability"
 }

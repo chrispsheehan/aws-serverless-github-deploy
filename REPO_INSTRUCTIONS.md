@@ -157,7 +157,6 @@ look at ../sandbox and tell me how to deploy
 - when a workflow input, output, or metadata field is no longer consumed, remove it from the shared contract and callers in the same change rather than leaving dead plumbing behind
 - when changing Terragrunt `*.hcl` dependency edges or pruning a live environment to a selected dependency closure, run `just tg-graph-waves <env>` for every affected live environment, count the dependency levels after applying the same module filters used by the workflow, and keep workflow wave outputs/jobs/docs aligned with that derived count
 - for shared infra plan/apply workflows, exclude `task_*` stacks from the derived wave count; task-definition stacks are owned by code deploy and must not force extra infra apply waves
-- never treat `infra/live/_catalog` as deployable; it is a source menu for creating real environments, so prompt the user to create or target `infra/live/<environment>` if they ask to deploy `_catalog`
 - when adding or renaming Terraform module `output` values that are intended for Terragrunt `dependency.<name>.outputs` passthrough, verify every downstream consumer wrapper declares a `variable` with the exact same name
 - if that same-name output-to-variable contract does not hold yet, do not leave it implicit: either add the matching variables, or call out the mismatch explicitly before closing the task
 - check apply/deploy/destroy, and avoid unnecessary `terraform_remote_state` coupling (especially for fast-changing outputs)
