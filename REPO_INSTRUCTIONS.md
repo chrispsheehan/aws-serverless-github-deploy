@@ -8,15 +8,6 @@ These instructions apply to the entire repository.
 - if the user mentions another local repository or folder, treat it as external reference material unless the user explicitly says to move the work there
 - do not assume another repository inherits instructions from this repository
 
-## Template Role
-
-- treat this repository as the deployable template and implementation target unless the user explicitly says otherwise
-- when the user supplies a path to different source code, treat that code as reference input by default and make changes in this repository unless the user explicitly redirects the work
-- when the user points to another repository, inspect that repository to understand the app shape, product behavior, and capability needs, then propose or implement the corresponding changes in this repository
-- prefer translating the external app into this repository's existing platform patterns rather than copying code across verbatim
-- treat external repositories as read-only unless the user explicitly requests edits there
-- when the external app shape does not map cleanly to this repository, explain the gap, state the closest repo-native deployment shape, and ask the user to confirm before making broad changes
-
 ## Keep `AGENTS.md` and `CLAUDE.md` identical
 
 `REPO_INSTRUCTIONS.md` is the shared source of truth for repo guidance.
@@ -76,77 +67,26 @@ These instructions apply to the entire repository.
 | `frontend/**` | `frontend/README.md`, plus `infra/modules/aws/frontend/README.md` and `infra/modules/aws/cognito/README.md` when deployed hosting or auth changes |
 | `justfile.ci`, `justfile.deploy`, or reusable workflow behavior | `.github/docs/README.md`, then `reusable-workflows.md`, `artifacts-and-plans.md`, or `discovery-and-matrices.md` as relevant |
 | `justfile.destroy` | `.github/docs/README.md` and `.github/docs/destroy.md` before editing |
-| external app adaptation, placeholder replacement, template simplification, or app bootstrapping | `docs/agent/app-shaping.md` |
 
 ## Task Interpretation
 
 - interpret brief requests using this repo's existing patterns and contracts rather than taking them literally
-- when a request mentions external source code and asks how to build, make ready, or deploy it, interpret that as "understand the external app, then answer in terms of how this repository should implement or deploy it" unless the user explicitly redirects the work
 - read the relevant local contract docs before editing and follow them
 - prefer the smallest complete change that matches existing repo patterns
 - remove stale code, temporary helpers, and abandoned experiment residue as part of the same change rather than leaving dead paths behind
 - verify related workflows, infra, docs, and downstream dependencies when the request affects shared behavior
 - state material assumptions when the intended shape is not fully explicit
 - when ambiguity is material or a wrong assumption could cause the repo shape or contract to drift, ask the user a clarifying question before editing
-- for broad product or app-shaping requests, provide a short pre-implementation summary of the inferred app shape, likely capability choices, major assumptions, important questions, and notable cost or security implications before making changes
-
-Example requests to interpret through these repo-native rules:
-
-```text
-add a new environment called qa
-```
-
-```text
-Give me a site with a backend and a database
-```
-
-```text
-look at ../sandbox and tell me how to deploy
-```
-
-## Capability Selection
-
-- treat this repo as a menu of optional platform capabilities, not just a single fixed app shape
-- infer which capabilities the user is selecting from the request, and which existing capabilities fall outside that target shape
-- when the requested shape uses only a subset of the repo's current capabilities, explicitly list the major unused capabilities and ask whether they should be kept for future use or removed
-- do not assume that unmentioned capabilities should stay forever, and do not remove them without confirmation
-- when a user asks for a website or frontend with a backend but does not specify the backend runtime, prefer the simplest repo-native backend shape as the default starting assumption
-- in this repo, default that assumption to a Lambda-backed API unless the user asks for ECS, long-running workers, containers, or another specific runtime
-- state that assumption and ask for confirmation before making changes when backend choice materially affects infrastructure shape, cost, or security
 
 ## Runtime Network Placement
 
 - do not assume ECS services must run in private subnets
-- when adapting an app that needs outbound internet access, explicitly ask whether the runtime should run in public subnets or private subnets before recommending NAT gateways
+- when a service needs outbound internet access, explicitly ask whether the runtime should run in public subnets or private subnets before recommending NAT gateways
 - only recommend NAT gateways when private subnet placement is required, explicitly chosen, or otherwise necessary for the selected security model
 - if a service can safely run in public subnets, call out that public subnet placement with task public IPs may be the lower-cost deployment shape and explain the security implications
 - for public-subnet ECS services, require a clear ingress model before implementation: public load balancer or API Gateway path, security group restrictions, authentication requirements, and whether tasks should receive public IPs
-- for scraper, polling, webhook, or external-API-heavy services, treat subnet placement as an app-shaping decision because outbound connectivity affects architecture, cost, and security
+- for scraper, polling, webhook, or external-API-heavy services, treat subnet placement as an explicit architecture decision because outbound connectivity affects architecture, cost, and security
 - do not list NAT as an AWS prerequisite unless the selected runtime placement uses private subnets and needs outbound internet access
-
-## App Shaping Flow
-
-When the user is adapting an external app, replacing the placeholder app, simplifying the template, or bootstrapping a new app from this repo, read and follow `docs/agent/app-shaping.md` before proposing or editing the app shape.
-
-Keep this high-level contract in mind even before loading the detailed flow:
-
-- determine additive versus replacement intent unless it is already clear
-- determine selected capabilities and list major unused capabilities rather than assuming they should stay forever
-- guide the human through unresolved app-shaping decisions step by step instead of presenting a long questionnaire
-- prefer selectable options with a recommended default when the interface supports them, and explain the consequence of each option briefly
-- keep the human oriented during app-shaping and bootstrap work with short updates about what is being inspected, decided, changed, or run
-- record durable app-shaping answers in `BOOTSTRAP_DECISIONS.md`
-- align local development, workflows, infra stacks, runtime code, docs, and verification commands with the selected app shape
-- always surface public exposure, authentication, cost, bootstrap implications, and any needed README/context refresh before closing the task
-
-## Bootstrap Operations
-
-- at the end of app-shaping work, offer the next operational bootstrap steps needed to make the selected app shape real end to end
-- for AWS-backed deployments, this usually includes creating or updating GitHub OIDC roles, applying foundational stacks in dependency order, deploying initial infrastructure, publishing first runtime artifacts, running migrations, and seeding initial users when Cognito is enabled
-- before the first plan, apply, prerequisite check, or other AWS interaction in a task, confirm which AWS role, user, and account will be used
-- do not run AWS-mutating bootstrap commands without explicit user approval
-- when offering OIDC setup, name the exact commands, for example `just tg ci aws/oidc apply`, `just tg dev aws/oidc apply`, or `just tg prod aws/oidc apply`
-- when offering first environment setup, separate infra bootstrap from code deployment and call out any prerequisite shared resources such as VPCs, tagged subnets, hosted zones, ECR images, code buckets, or Terraform state
 
 ## CI OIDC Scope
 

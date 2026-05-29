@@ -10,23 +10,17 @@ Lambda + ECS with CodeDeploy rollouts, plus provisioned concurrency controls for
 - shared deployment patterns for Lambda and ECS, with repo-local `just` commands for local and CI operations
 - runtime and infrastructure layouts designed to be extended without having to rediscover the whole repo each time
 
-## Using This Template With An AI Agent
+## Using This As A Reference Template
 
-If you are using an AI coding agent, start with plain-language requests like:
+To bootstrap another repo from this one, use the `repo-reference-scaffold` skill.
 
-```text
-add a new environment called qa
-```
+Placeholder prompt:
 
 ```text
-Give me a site with a backend and a database
+Use $repo-reference-scaffold with this repo as the reference.
 ```
 
-```text
-look at ../sandbox and tell me how to deploy it with this repo
-```
-
-The agent instructions live in [REPO_INSTRUCTIONS.md](REPO_INSTRUCTIONS.md); these examples are human-friendly starting prompts.
+The local repo instructions live in [REPO_INSTRUCTIONS.md](REPO_INSTRUCTIONS.md).
 
 ## Bootstrap-Friendly Plans
 
