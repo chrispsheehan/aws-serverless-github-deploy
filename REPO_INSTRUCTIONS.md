@@ -141,6 +141,11 @@ look at ../sandbox and tell me how to deploy
 
 - verify runtime type (Lambda/ECS), deploy mode, and (for ECS) connection type and load-balancer shape
 - verify required infra resources exist (CodeDeploy app/deployment group, listeners/target groups, alarms, VPC link if applicable)
+- when changing ECS service subnet placement or `assign_public_ip`, reason about effective egress rather than subnet names alone: a Fargate task in a public subnet with `assign_public_ip = false` still lacks direct internet egress through the Internet Gateway
+- treat ECS direct internet egress as requiring a public-routed subnet, `assign_public_ip = true`, and outbound network policy that permits the traffic
+- if every ECS service that needs AWS or public API access has direct internet egress, suggest that ECS-only VPC endpoints may no longer be needed; if any ECS service lacks direct internet egress, suggest keeping the required VPC endpoints or NAT path
+- before suggesting VPC endpoint removal, also check whether non-ECS private runtimes still depend on those endpoints
+- do not remove VPC endpoints automatically when changing ECS egress; suggest the cleanup to the user unless explicitly asked to implement it
 - before adding a Terragrunt `dependency` or `dependencies` path, verify the target live stack actually exists in that environment/repo slice
 - when changing reusable workflow contracts, compare every caller `with:` block to the callee `workflow_call.inputs`
 - when a workflow input, output, or metadata field is no longer consumed, remove it from the shared contract and callers in the same change rather than leaving dead plumbing behind
