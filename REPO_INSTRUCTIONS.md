@@ -137,6 +137,12 @@ look at ../sandbox and tell me how to deploy
 - do not broaden the CI role to match the shared `allowed_role_actions` set unless the user explicitly asks for that contract change
 - if a task needs deploy permissions, call out that this fails the CI-role scope and name the missing AWS actions/services
 
+## Protected Live Stacks
+
+- never remove `aws/oidc`, `aws/ecr`, or `aws/code_bucket` from `infra/live/dev` or `infra/live/ci`
+- treat those stacks as protected deployment scaffolding even when pruning an environment to a smaller runtime subset
+- if a requested subset appears to exclude one of those protected stacks, keep the stack and call out that it is retained for workflow/bootstrap support
+
 ## Feasibility + Dependency Checks (When Editing Infra / Workflows)
 
 - verify runtime type (Lambda/ECS), deploy mode, and (for ECS) connection type and load-balancer shape
@@ -149,7 +155,8 @@ look at ../sandbox and tell me how to deploy
 - before adding a Terragrunt `dependency` or `dependencies` path, verify the target live stack actually exists in that environment/repo slice
 - when changing reusable workflow contracts, compare every caller `with:` block to the callee `workflow_call.inputs`
 - when a workflow input, output, or metadata field is no longer consumed, remove it from the shared contract and callers in the same change rather than leaving dead plumbing behind
-- when changing Terragrunt `*.hcl` dependency edges, re-check the derived infra wave count; the current shared module-discovery/workflow contract only exposes `wave_0_modules`, `wave_1_modules`, and `wave_2_modules`
+- when changing Terragrunt `*.hcl` dependency edges or pruning a live environment to a selected dependency closure, run `just tg-graph-waves <env>` for every affected live environment, count the returned dependency levels, and keep workflow wave outputs/jobs/docs aligned with that derived count
+- never treat `infra/live/_catalog` as deployable; it is a source menu for creating real environments, so prompt the user to create or target `infra/live/<environment>` if they ask to deploy `_catalog`
 - when adding or renaming Terraform module `output` values that are intended for Terragrunt `dependency.<name>.outputs` passthrough, verify every downstream consumer wrapper declares a `variable` with the exact same name
 - if that same-name output-to-variable contract does not hold yet, do not leave it implicit: either add the matching variables, or call out the mismatch explicitly before closing the task
 - check apply/deploy/destroy, and avoid unnecessary `terraform_remote_state` coupling (especially for fast-changing outputs)
