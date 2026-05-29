@@ -113,15 +113,15 @@ just --justfile justfile.deploy lambda-get-version
 just --justfile justfile.deploy frontend-build
 ```
 
-### Local Plan Some Infra
+### Local Plan Infra
 
-Given a Terragrunt file is found at `infra/live/dev/aws/lambda_api/terragrunt.hcl`
+After changing HCL, Terraform modules, live stack dependencies, or infra workflow ordering, run the dev environment plan:
 
 ```sh
-just tg dev aws/lambda_api plan
+just tg-all dev plan
 ```
 
-Detailed Terragrunt graph and saved-plan helper commands live in [infra/README.md](infra/README.md#terragrunt-graph-helpers).
+Use `just tg <env> <module> ...` only for targeted debugging or focused follow-up operations. Detailed Terragrunt graph and saved-plan helper commands live in [infra/README.md](infra/README.md#terragrunt-graph-helpers).
 
 Placeholder app runtime tasks live with the code that owns them:
 

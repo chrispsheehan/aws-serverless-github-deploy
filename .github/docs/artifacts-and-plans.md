@@ -28,7 +28,7 @@ Use this when changing saved plans, apply-from-plan behavior, plan metadata, art
 - Takes `plan_artifact_run_id`.
 - Downloads `infra-plan-metadata` from the earlier workflow run.
 - Reads frozen graph inputs and saved wave arrays.
-- Reruns the same `wave_0`, `wave_1`, `wave_2`, and `wave_3` module order.
+- Reruns the same `wave_0` through `wave_3` module order.
 - Each per-module job downloads its matching `terragrunt-plan-<environment>-<module>` artifact into the live stack directory.
 - Each per-module job invokes the repo-local Terragrunt action with `tg_action: apply_plan`.
 - The wrapper filters saved rollout waves through the read-only `infra-plan-filter-waves-by-changes` helper in `justfile.ci`, so apply excludes modules whose saved `terragrunt.plan.meta.json` reports `has_changes: false`.

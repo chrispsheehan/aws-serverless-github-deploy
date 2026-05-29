@@ -142,13 +142,20 @@ format:
 # Run a Terragrunt operation for one environment/module pair.
 tg env module op:
     #!/usr/bin/env bash
-    cd {{justfile_directory()}}/infra/live/{{env}}/{{module}} ; terragrunt {{op}}
+    set -euo pipefail
+    cd {{justfile_directory()}}/infra/live/{{env}}/{{module}}
+    terragrunt {{op}}
 
 
 # Run a Terragrunt operation across all live stacks.
-tg-all op:
+tg-all env op:
     #!/usr/bin/env bash
-    cd {{justfile_directory()}}/infra/live
+    set -euo pipefail
+    cd {{justfile_directory()}}/infra/live/{{env}}
+    export TF_VAR_lambda_version="this"
+    export TF_VAR_image_uri="plan-placeholder"
+    export TF_VAR_aws_otel_collector_image_uri="plan-placeholder"
+    export TF_VAR_debug_image_uri="plan-placeholder"
     terragrunt run-all {{op}}
 
 

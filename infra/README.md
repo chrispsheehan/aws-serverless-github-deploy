@@ -15,13 +15,15 @@ This directory contains the Terraform and Terragrunt layout for the repo.
 ## Environments
 
 - `dev`
-  Main development environment. This repo also sets `otel_sampling_percentage = 100` there so ECS tracing is fully sampled while iterating.
+  Main development environment. It is a deployable subset of `_catalog` focused on the ECS `service_api` path. This repo also sets `otel_sampling_percentage = 100` there so ECS tracing is fully sampled while iterating.
 - `prod`
-  Production environment.
+  Production environment. It is a deployable subset of `_catalog` focused on the ECS `service_api` path.
 - `_catalog`
-  Canonical full menu/source of optional stacks. Use it as the reference list when deciding which subset belongs in `dev`, `prod`, or another live environment. The leading underscore marks it as a catalog rather than a normal deploy target. See `infra/live/_catalog/README.md` before editing or deploying it.
+  Canonical full menu/source of optional stacks. Use it as the reference list when deciding which subset belongs in `dev`, `prod`, or another live environment. The leading underscore marks it as a catalog rather than a normal deploy target. See `infra/live/_catalog/README.md` before editing it; do not deploy it directly.
 - `ci`
   Shared CI-only infra such as ECR and code bucket where applicable. The `aws/oidc` stack here is intentionally scoped to CI artifact management only, including ECR image publishing, rather than the broader deploy permissions used in `dev` and `prod`.
+
+`aws/oidc`, `aws/ecr`, and `aws/code_bucket` are protected scaffolding in `dev` and `ci`. Keep them in place when pruning a live environment to a smaller runtime subset because local workflows, artifact builds, and bootstrap deploys rely on them.
 
 ## How State Is Named
 
@@ -86,7 +88,7 @@ stores state at:
 - `service_*`
   Own the ECS services and, when applicable, CodeDeploy resources.
 
-Current examples include:
+Current catalog examples include:
 
 - `database`
   Shared Aurora PostgreSQL Serverless v2 shape for repo-managed relational data stores.
@@ -201,7 +203,15 @@ flowchart TD
 
 ## Infra Deployment Use Cases
 
-These are good examples of infra changes that should normally be made in isolation, reviewed with a focused plan, and then applied before any separate feature-code rollout.
+These are good examples of infra changes that should normally be made in isolation, reviewed with the environment plan, and then applied before any separate feature-code rollout.
+
+For local verification after changing HCL, Terraform modules, live stack dependencies, or workflow-owned infra ordering, run the environment plan:
+
+```sh
+just tg-all dev plan
+```
+
+Use individual `just tg <env> <module> ...` commands for targeted debugging or apply steps after the wider plan has shown the environment impact.
 
 - upgrade the database
   Plan and apply the `database` stack first. If that changes outputs consumed elsewhere, such as the shared credentials secret ARN, re-plan and then apply downstream consumers like `migrations`, `task_worker`, and other stacks that read `database` remote state.
@@ -230,6 +240,8 @@ just --justfile justfile.ci tf-lint-check
 just --justfile justfile.deploy lambda-get-version
 just --justfile justfile.deploy frontend-build
 ```
+
+`infra/live/_catalog` is intentionally blocked as a Terragrunt target. Create a real environment under `infra/live/<name>` from the catalog, then deploy that environment with `just tg <env> <module> <op>` or the matching workflow.
 
 ### Terragrunt Graph Helpers
 

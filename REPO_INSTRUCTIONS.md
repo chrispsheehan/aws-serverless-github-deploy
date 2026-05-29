@@ -27,7 +27,7 @@ These instructions apply to the entire repository.
 
 ## Escalation (Commands That Often Need Real AWS/Network/Docker)
 
-- request escalation for `just tg <env> <module> plan|validate` and `just tg-all <op>`
+- request escalation for `just tg <env> <module> validate` and `just tg-all <env> plan|apply|destroy`
 - request escalation for Docker local-stack debugging (for example `docker compose -f docker-compose.local.yml logs|ps|exec|up|down`)
 - prefer asking for escalation up front when the task clearly depends on AWS, remote state, or the local Docker daemon
 
@@ -155,7 +155,8 @@ look at ../sandbox and tell me how to deploy
 - before adding a Terragrunt `dependency` or `dependencies` path, verify the target live stack actually exists in that environment/repo slice
 - when changing reusable workflow contracts, compare every caller `with:` block to the callee `workflow_call.inputs`
 - when a workflow input, output, or metadata field is no longer consumed, remove it from the shared contract and callers in the same change rather than leaving dead plumbing behind
-- when changing Terragrunt `*.hcl` dependency edges or pruning a live environment to a selected dependency closure, run `just tg-graph-waves <env>` for every affected live environment, count the returned dependency levels, and keep workflow wave outputs/jobs/docs aligned with that derived count
+- when changing Terragrunt `*.hcl` dependency edges or pruning a live environment to a selected dependency closure, run `just tg-graph-waves <env>` for every affected live environment, count the dependency levels after applying the same module filters used by the workflow, and keep workflow wave outputs/jobs/docs aligned with that derived count
+- for shared infra plan/apply workflows, exclude `task_*` stacks from the derived wave count; task-definition stacks are owned by code deploy and must not force extra infra apply waves
 - never treat `infra/live/_catalog` as deployable; it is a source menu for creating real environments, so prompt the user to create or target `infra/live/<environment>` if they ask to deploy `_catalog`
 - when adding or renaming Terraform module `output` values that are intended for Terragrunt `dependency.<name>.outputs` passthrough, verify every downstream consumer wrapper declares a `variable` with the exact same name
 - if that same-name output-to-variable contract does not hold yet, do not leave it implicit: either add the matching variables, or call out the mismatch explicitly before closing the task
@@ -167,9 +168,9 @@ look at ../sandbox and tell me how to deploy
 
 ## Terragrunt Plan Expectation
 
-- when a change touches `*.hcl`, Terraform modules, live Terragrunt stacks, or downstream dependencies that can affect Terraform evaluation or plan output, run the relevant `just tg <env> <module> plan` command before closing the task when feasible
-- choose the smallest relevant plan surface rather than defaulting to `run-all`; for example, plan only the affected `dev`, `ci`, or `prod` stack(s)
-- when shared modules or remote-state contracts change, consider the downstream consumer stacks too and run plans for the affected dependents, not just the module wrapper you edited
+- when a change touches `*.hcl`, Terraform modules, live Terragrunt stacks, or downstream dependencies that can affect Terraform evaluation or plan output, run `just tg-all dev plan` before closing the task when feasible
+- use `just tg-all <env> plan` as the default verification surface for infra changes; run targeted `just tg <env> <module> validate` or focused plans only as additional debugging, not as the replacement for the environment plan
+- when shared modules or remote-state contracts change, rely on the environment plan to cover downstream consumers rather than planning only the module wrapper you edited
 - treat saved plans as apply-intent artifacts, not as general previews: only keep a `plan` you expect to apply, because Terraform reuses the exact planned variable values during `apply_plan`
 - be especially careful on first deploys or bootstrap-sensitive stacks that use Terragrunt `mock_outputs` for planability; if a saved plan captured mock values, discard it and create a fresh plan after the upstream real outputs exist
 - if a plan is not feasible because credentials, network, permissions, or state access are unavailable, say that explicitly in the final response and name the plan command that should be run manually

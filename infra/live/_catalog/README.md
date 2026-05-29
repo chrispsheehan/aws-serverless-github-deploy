@@ -11,6 +11,6 @@ Use it as the source menu when deciding which stacks a real environment should i
 - Do not assume every stack in `_catalog` must be deployed to `dev` or `prod`.
 - When creating or simplifying a real environment, copy or keep only the selected stack subset from this catalog and preserve the required dependency closure.
 - Do not modify `infra/live/dev`, `infra/live/prod`, or `infra/modules` when adjusting this catalog unless the user explicitly asks for a live environment or module contract change.
-- If you run Terragrunt directly against this catalog, the environment name is derived from the path by `infra/root.hcl`, so these stacks write state under `_catalog/aws/<stack>/terraform.tfstate`.
+- Do not run Terragrunt, `just tg`, or deploy workflows against `_catalog`. Create a new environment under `infra/live/<name>` from the catalog and deploy that environment instead.
 
 Plans can use mock dependency outputs before upstream stacks exist. Do not apply a saved plan that captured mocks; re-plan after real upstream outputs exist.

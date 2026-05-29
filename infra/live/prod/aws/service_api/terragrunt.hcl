@@ -52,20 +52,6 @@ dependency "network" {
   mock_outputs_allowed_terraform_commands = ["validate", "plan", "destroy", "init", "show", "graph-dependencies", "output-module-groups"]
 }
 
-dependency "task_api" {
-  config_path = "${get_original_terragrunt_dir()}/../task_api"
-
-  mock_outputs = {
-    task_definition_arn  = "arn:aws:ecs:eu-west-2:111111111111:task-definition/mock-task-api:1"
-    cloudwatch_log_group = "/ecs/mock-task-api"
-    root_path            = "ecs"
-    service_name         = "ecs-service-api"
-  }
-
-  mock_outputs_merge_strategy_with_state  = "shallow"
-  mock_outputs_allowed_terraform_commands = ["validate", "plan", "destroy", "init", "show", "graph-dependencies", "output-module-groups"]
-}
-
 terraform {
   source = "../../../../modules//aws//service_api"
 }
@@ -77,9 +63,6 @@ inputs = merge(
   {
     cluster_id   = dependency.cluster.outputs.cluster_id
     cluster_name = dependency.cluster.outputs.cluster_name
-  },
-  {
-    task_definition_arn = dependency.task_api.outputs.task_definition_arn
   },
   {
     network_default_target_group_arn  = dependency.network.outputs.default_target_group_arn
