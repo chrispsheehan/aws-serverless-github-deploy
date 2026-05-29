@@ -134,7 +134,7 @@ Keep this high-level contract in mind even before loading the detailed flow:
 - determine selected capabilities and list major unused capabilities rather than assuming they should stay forever
 - record durable app-shaping answers in `BOOTSTRAP_DECISIONS.md`
 - align local development, workflows, infra stacks, runtime code, docs, and verification commands with the selected app shape
-- always surface public exposure, authentication, cost, and bootstrap implications before closing the task
+- always surface public exposure, authentication, cost, bootstrap implications, and any needed README/context refresh before closing the task
 
 ## Bootstrap Operations
 

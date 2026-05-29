@@ -21,3 +21,8 @@ Use this shared flow when adapting an external app, replacing the placeholder ap
 - always consider security during app shaping; if a proposed API would be exposed to the public internet, say that explicitly and suggest at least one more secure option
 - do not assume a public unauthenticated API is acceptable just because it is the simplest technical shape
 - before closing an app-shaping task, explicitly name what remains, what was removed, what still needs operational setup, and any bootstrap commands the user should run
+- at the end of a bootstrap, simplification, or replacement flow, offer to update the README and related context docs so they describe the selected app rather than the original template
+- when replacement or bootstrap intent is confirmed, the root README title should become the app/product/repo name rather than a template name; if the right title is not obvious, ask the user to confirm it before renaming the title
+- remove or rewrite stale references to "template", "placeholder", "boilerplate", demo apps, and unused capabilities in human-facing docs unless the reference is still intentionally describing this repo's reusable scaffolding behavior
+- review all relevant README/docs at that point for human readability and agent parsability: clear title, short purpose statement, current capability list, accurate "read next" links, no stale runtime paths, and enough ownership/routing detail for future agents to load only the needed context
+- when doc titles, product name, or app positioning are subjective, check the proposed title or naming with the user before making broad doc rewrites
