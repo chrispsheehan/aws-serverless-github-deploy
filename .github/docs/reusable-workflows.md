@@ -22,8 +22,8 @@ Use this when editing shared workflows under `.github/workflows/shared_*.yml` or
 - Manual `workflow_dispatch` runs force every change flag on and rerun the full validation surface without a PR diff.
 - When `.github/actions/**` changed, it reuses `shared_directories_get.yml` to discover action directories with `Dockerfile`s and runs a Docker unit-test matrix after GitHub formatting.
 - Lambda manifest validation only runs when Lambda sources changed, and checks both the deploy manifest and matching live stack paths.
-- ECS task/service pair checks run when container sources or Terragrunt live-stack directories changed.
-- Lambda manifest validation and ECS task/service pair checks are explicit prerequisites for the corresponding build jobs.
+- ECS manifest validation runs when container sources or Terragrunt live-stack directories changed, and checks both the deploy manifest and task/service stack pairs.
+- Lambda and ECS manifest validation are explicit prerequisites for the corresponding build jobs.
 - Terragrunt installation uses `jdx/mise-action@v4`.
 - TFLint setup uses the Node 24 `terraform-linters/setup-tflint@v6` line.
 

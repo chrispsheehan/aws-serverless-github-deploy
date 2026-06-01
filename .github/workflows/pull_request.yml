@@ -186,7 +186,7 @@ jobs:
     name: ECS Build Records
     needs:
       - check
-      - check-ecs-module-pairs
+      - check-ecs-manifest
     if: ${{ needs.check.outputs.containers == 'true' }}
     runs-on: ubuntu-latest
     outputs:
@@ -286,11 +286,11 @@ jobs:
           justfile_path: justfile.ci
           just_action: lambda-check-deploy-stacks
 
-  check-ecs-module-pairs:
+  check-ecs-manifest:
     needs: check
     runs-on: ubuntu-latest
     if: ${{ needs.check.outputs.containers == 'true' || needs.check.outputs.terragrunt == 'true' }}
-    name: ECS Pairs
+    name: ECS Manifest
     steps:
       - uses: actions/checkout@v6
 
@@ -371,7 +371,7 @@ jobs:
     if: ${{ needs.check.outputs.containers == 'true' }}
     needs:
       - check
-      - check-ecs-module-pairs
+      - check-ecs-manifest
       - ecs-build-matrix
     runs-on: ubuntu-latest
     strategy:
