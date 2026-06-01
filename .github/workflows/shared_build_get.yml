@@ -31,21 +31,6 @@ on:
       repository_url:
         description: "Resolved ECR repository URL"
         value: ${{ jobs.ecr.outputs.repository_url }}
-      ecs_image_uris:
-        description: "List of full ECS image URIs"
-        value: ${{ jobs.images.outputs.ecs_image_uris }}
-      ecs_task_matrix:
-        description: "List of ECS service names for the version"
-        value: ${{ jobs.images.outputs.ecs_task_matrix }}
-      ecs_service_matrix:
-        description: "List of ECS service stack names for the version"
-        value: ${{ jobs.images.outputs.ecs_service_matrix }}
-      lambda_version_files:
-        description: "List of lambda names"
-        value: ${{ jobs.lambdas.outputs.lambda_version_files }}
-      lambda_s3_keys:
-        description: "List of lambda S3 object keys"
-        value: ${{ jobs.lambdas.outputs.lambda_s3_keys }}
 
 concurrency: # only run one instance of workflow at any one time
   group: ${{ github.workflow }}-${{ inputs.environment }}
@@ -67,7 +52,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: ${{ inputs.lambda_version }}
+          ref: ${{ inputs.ecs_version != '' && inputs.ecs_version || inputs.lambda_version }}
 
       - uses: aws-actions/configure-aws-credentials@v6
         with:
@@ -141,10 +126,6 @@ jobs:
   images:
     needs: ecr
     runs-on: ubuntu-latest
-    outputs:
-      ecs_image_uris: ${{ steps.image_uris.outputs.ecs_image_uris }}
-      ecs_task_matrix: ${{ steps.task_matrix.outputs.just_outputs }}
-      ecs_service_matrix: ${{ steps.service_matrix.outputs.ecs_service_matrix }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -155,48 +136,14 @@ jobs:
           role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Get ECR version images
-        id: get_version_images
+      - name: Check ECS images exist
         uses: ./.github/actions/just
         env:
           REPOSITORY_URL: ${{ needs.ecr.outputs.repository_url }}
           VERSION: ${{ inputs.ecs_version != '' && inputs.ecs_version || inputs.lambda_version }}
         with:
           justfile_path: justfile.ci
-          just_action: get-ecr-version-images
-
-      - name: Build full image URIs
-        id: image_uris
-        shell: bash
-        env:
-          REPOSITORY_URL: ${{ needs.ecr.outputs.repository_url }}
-          VERSION: ${{ inputs.ecs_version != '' && inputs.ecs_version || inputs.lambda_version }}
-          IMAGE_NAMES: ${{ steps.get_version_images.outputs.just_outputs }}
-        run: |
-          echo "ecs_image_uris=$(jq -cn \
-            --arg repo "$REPOSITORY_URL" \
-            --arg version "$VERSION" \
-            --argjson images "$IMAGE_NAMES" \
-            '$images | map("\($repo):\(.)-\($version)")')" >> "$GITHUB_OUTPUT"
-
-      - name: Build ECS task matrix
-        id: task_matrix
-        uses: ./.github/actions/just
-        env:
-          REPOSITORY_URL: ${{ needs.ecr.outputs.repository_url }}
-          VERSION: ${{ inputs.ecs_version != '' && inputs.ecs_version || inputs.lambda_version }}
-        with:
-          justfile_path: justfile.ci
-          just_action: get-ecr-version-tasks
-
-      - name: Build ECS service matrix
-        id: service_matrix
-        env:
-          ECS_TASK_MATRIX: ${{ steps.task_matrix.outputs.just_outputs }}
-        run: |
-          echo "ecs_service_matrix=$(jq -cn \
-            --argjson tasks "$ECS_TASK_MATRIX" \
-            '$tasks | map("service_" + .)')" >> "$GITHUB_OUTPUT"
+          just_action: ecs-check-deploy-images
 
   frontend:
     needs: bucket
@@ -223,9 +170,6 @@ jobs:
   lambdas:
     needs: bucket
     runs-on: ubuntu-latest
-    outputs:
-      lambda_version_files: ${{ steps.get_build_files.outputs.just_outputs }}
-      lambda_s3_keys: ${{ steps.get_build_file_keys.outputs.just_outputs }}
 
     steps:
       - uses: actions/checkout@v6
@@ -246,22 +190,11 @@ jobs:
           justfile_path: justfile.ci
           just_action: lambda-check-version
 
-      - name: Get lambda names
-        id: get_build_files
+      - name: Check Lambda deploy artifacts exist
         uses: ./.github/actions/just
         env:
           BUCKET_NAME: ${{ needs.bucket.outputs.code_bucket_name }}
           VERSION: ${{ inputs.lambda_version }}
         with:
           justfile_path: justfile.ci
-          just_action: get-version-files
-
-      - name: Get lambda S3 keys
-        id: get_build_file_keys
-        uses: ./.github/actions/just
-        env:
-          BUCKET_NAME: ${{ needs.bucket.outputs.code_bucket_name }}
-          VERSION: ${{ inputs.lambda_version }}
-        with:
-          justfile_path: justfile.ci
-          just_action: get-version-file-keys
+          just_action: lambda-check-deploy-artifacts

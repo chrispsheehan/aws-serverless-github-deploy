@@ -14,8 +14,8 @@ Shared ECS task-definition module.
 
 - `image_uri`
 - `ecr_repository_name`
-- `debug_image_uri`
-- `aws_otel_collector_image_uri`
+- `debug_uri`
+- `otel_collector_uri`
 - `local_tunnel`
 - `xray_enabled`
 - `command`

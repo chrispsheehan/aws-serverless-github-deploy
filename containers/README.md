@@ -4,11 +4,10 @@ Container source directories for this boilerplate.
 
 ## Structure
 
+- `deploy.yml` is the ECS image build/service deploy manifest
 - each deployable service lives in its own top-level directory such as `api/` or `worker/`
 - `lib/` contains ECS-only helper code used by deployable services and is intentionally not treated as a deployable image target
-- a deployable ECS runtime also needs the corresponding live Terragrunt stacks
-- task stacks use `infra/live/<environment>/aws/task_<name>/terragrunt.hcl`
-- service stacks use `infra/live/<environment>/aws/service_<name>/terragrunt.hcl` when applicable
+- a deployable ECS runtime also needs the live Terragrunt task and service stacks declared by its manifest entry
 
 ## Common Shape
 
@@ -19,11 +18,15 @@ Container source directories for this boilerplate.
 
 ## Build Behavior
 
-- ECS directory discovery auto-detects deployable top-level directories under `containers/`
-- ECS image discovery only includes deployable service directories
+- ECS discovery reads `containers/deploy.yml`
+- `task_stack` and `service_stack` are repo-relative Terragrunt stack path templates and must use `{environment}` for the environment segment, for example `infra/live/{environment}/aws/task_api`
+- `image` is the ECR image tag prefix and maps to the default source directory `containers/<image>`
+- build workflows deduplicate by `image`; deploy workflows keep every manifest entry so the same image can roll out to multiple ECS services
+- wrapper workflows do not pass ECS or task matrices; update this manifest to add, remove, or remap deployed ECS services
+- `support_images` lists shared images such as `debug` and `otel_collector` that are built alongside service images because task definitions require them
 - container images copy only the files referenced by the Dockerfile for the selected service shape, including shared helpers from `lib/` and `containers/lib/`
 - markdown files in `containers/` are documentation only and are not included in container image artifacts
-- detection alone is not enough: the runtime still needs matching Terragrunt task and service stacks
+- manifest detection alone is not enough: the runtime still needs the declared Terragrunt task and service stacks
 - local Docker services should be added explicitly to `docker-compose.local.yml` and `Dockerfile.local`
 - the local Dockerfile can mirror the production parameterized pattern by passing a `SERVICE` build arg for each target
 - Compose owns service-specific local commands and env overrides

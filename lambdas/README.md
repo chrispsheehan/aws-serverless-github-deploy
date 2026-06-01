@@ -4,10 +4,11 @@ Lambda source directories for this boilerplate.
 
 ## Structure
 
-- each top-level directory under `lambdas/` is treated as a deployable Lambda
+- `deploy.yml` is the Lambda build/deploy manifest
+- each entry in `deploy.yml` maps a Lambda source directory to a live Terragrunt stack path template
 - the generated `lambdas/build` directory is build output only and is intentionally excluded from Lambda discovery
 - `lambdas/lib/` contains Lambda-only helper modules and is intentionally excluded from Lambda discovery
-- a deployable Lambda also needs a corresponding live Terragrunt stack under `infra/live/<environment>/aws/<lambda_name>/terragrunt.hcl`
+- a deployable Lambda also needs the live Terragrunt stack declared by its manifest `stack` value
 
 ## Common Shape
 
@@ -18,12 +19,17 @@ Lambda source directories for this boilerplate.
 
 ## Build Behavior
 
-- Lambda directory discovery auto-detects top-level directories under `lambdas/` for build and deploy workflows
-- discovery excludes `lambdas/build` and `lambdas/lib`
+- Lambda discovery reads `lambdas/deploy.yml`
+- `stack` is a repo-relative Terragrunt stack path template and must use `{environment}` for the environment segment, for example `infra/live/{environment}/aws/lambda_api`
+- `source_dir` is the repo-relative source directory to package, for example `lambdas/lambda_api`
+- the zip artifact name is computed from `basename(source_dir)`, so `lambdas/lambda_api` publishes `lambdas/<version>/lambda_api.zip`
+- build workflows deduplicate by `source_dir`; deploy workflows keep every manifest entry so the same source can roll out to multiple Lambda stacks
+- wrapper workflows do not pass Lambda matrices; update this manifest to add, remove, or remap deployed Lambdas
+- `after_deploy: invoke` can be set on a manifest entry when the deployed Lambda should be invoked after CodeDeploy completes
 - the Lambda build flow installs `requirements.txt` into a per-Lambda build directory
 - it copies Python source files, shared helpers from `lib/` and `lambdas/lib/`, and supported package directories into the zip artifact
 - markdown files in Lambda source trees are documentation only and are pruned before the zip artifact is created
-- detection alone is not enough: the runtime still needs the matching Terragrunt stack to participate in infra apply and code rollout correctly
+- manifest detection alone is not enough: the runtime still needs the declared Terragrunt stack to participate in infra apply and code rollout correctly
 
 ## Boilerplate Patterns
 

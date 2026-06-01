@@ -1,0 +1,16 @@
+version: 1
+
+lambdas:
+  - stack: infra/live/{environment}/aws/lambda_api
+    source_dir: lambdas/lambda_api
+
+  - stack: infra/live/{environment}/aws/lambda_worker
+    source_dir: lambdas/lambda_worker
+
+  - stack: infra/live/{environment}/aws/migrations
+    source_dir: lambdas/migrations
+    after_deploy: invoke
+
+  - stack: infra/live/{environment}/aws/rds_reader_tagger
+    source_dir: lambdas/rds_reader_tagger
+    after_deploy: invoke

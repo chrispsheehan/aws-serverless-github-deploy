@@ -15,14 +15,6 @@ on:
       ecs_version:
         required: true
         type: string
-      lambda_matrix:
-        required: false
-        type: string
-        default: "[]"
-      ecs_matrix:
-        required: false
-        type: string
-        default: "[]"
     outputs:
       code_bucket:
         description: "Bucket containing build artifacts"
@@ -39,12 +31,6 @@ on:
       repository_url:
         description: "ECR repository url"
         value: ${{ jobs.ecr.outputs.repository_url }}
-      ecs_image_uris:
-        description: "List of full ECS image URIs built by this workflow"
-        value: ${{ jobs.containers.outputs.ecs_image_uris }}
-      lambda_s3_keys:
-        description: "List of lambda S3 object keys built by this workflow"
-        value: ${{ jobs.lambdas.outputs.lambda_s3_keys }}
 
 concurrency: # only run one instance of workflow at any one time
   group: build-${{ inputs.environment }}
@@ -60,6 +46,38 @@ env:
   AWS_REGION: ${{ vars.AWS_REGION }}
 
 jobs:
+  lambda-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      lambda_build_matrix: ${{ steps.lambda_build_matrix.outputs.just_outputs }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.lambda_version }}
+
+      - name: Get Lambda Build Matrix
+        id: lambda_build_matrix
+        uses: ./.github/actions/just
+        with:
+          justfile_path: justfile.ci
+          just_action: lambda-get-build-matrix
+
+  ecs-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      ecs_build_matrix: ${{ steps.ecs_build_matrix.outputs.just_outputs }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ecs_version }}
+
+      - name: Get ECS Build Matrix
+        id: ecs_build_matrix
+        uses: ./.github/actions/just
+        with:
+          justfile_path: justfile.ci
+          just_action: ecs-get-build-matrix
+
   bucket:
     runs-on: ubuntu-latest
     outputs:
@@ -133,14 +151,15 @@ jobs:
           echo "repository_url=$(echo $TG_OUTPUTS | jq -r '.repository_url.value')" >> $GITHUB_OUTPUT
 
   containers:
-    needs: ecr
+    name: "${{ matrix.value.image }}"
+    needs:
+      - ecr
+      - ecs-matrix
     runs-on: ubuntu-latest
-    outputs:
-      ecs_image_uris: ${{ steps.image_uris.outputs.ecs_image_uris }}
     strategy:
       fail-fast: true
       matrix:
-        value: ${{ fromJson(inputs.ecs_matrix) }}
+        value: ${{ fromJson(needs.ecs-matrix.outputs.ecs_build_matrix) }}
     steps:
       - uses: actions/checkout@v6
 
@@ -149,39 +168,25 @@ jobs:
           role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: "Build ${{ matrix.value }} ECS image"
+      - name: "Build ${{ matrix.value.image }} ECS image"
         uses: ./.github/actions/just
         env:
-          CONTAINER_NAME: ${{ matrix.value }}
-          IMAGE_URI: ${{ needs.ecr.outputs.repository_url }}:${{ matrix.value }}-${{ inputs.ecs_version }}
+          CONTAINER_NAME: ${{ matrix.value.image }}
+          IMAGE_URI: ${{ needs.ecr.outputs.repository_url }}:${{ matrix.value.image }}-${{ inputs.ecs_version }}
         with:
           justfile_path: justfile.deploy
           just_action: docker-build docker-push
 
-      - name: Build ECS image URI list
-        if: ${{ matrix.value == fromJson(inputs.ecs_matrix)[0] }}
-        id: image_uris
-        shell: bash
-        env:
-          REPOSITORY_URL: ${{ needs.ecr.outputs.repository_url }}
-          ECS_VERSION: ${{ inputs.ecs_version }}
-          ECS_MATRIX: ${{ inputs.ecs_matrix }}
-        run: |
-          echo "ecs_image_uris=$(jq -cn \
-            --arg repo "$REPOSITORY_URL" \
-            --arg version "$ECS_VERSION" \
-            --argjson images "$ECS_MATRIX" \
-            '$images | map("\($repo):\(.)-\($version)")')" >> "$GITHUB_OUTPUT"
-
   lambdas:
-    needs: bucket
+    name: "${{ matrix.value.artifact_name }}"
+    needs:
+      - bucket
+      - lambda-matrix
     runs-on: ubuntu-latest
-    outputs:
-      lambda_s3_keys: ${{ steps.lambda_s3_keys.outputs.lambda_s3_keys }}
     strategy:
       fail-fast: true
       matrix:
-        value: ${{ fromJson(inputs.lambda_matrix) }}
+        value: ${{ fromJson(needs.lambda-matrix.outputs.lambda_build_matrix) }}
     steps:
       - uses: actions/checkout@v6
 
@@ -190,25 +195,13 @@ jobs:
           role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: "Upload ${{ matrix.value }} Lambda"
+      - name: "Upload ${{ matrix.value.artifact_name }} Lambda"
         uses: ./.github/actions/just
         env:
-          LAMBDA_NAME: ${{ matrix.value }}
+          LAMBDA_SOURCE_DIR: ${{ matrix.value.source_dir }}
+          LAMBDA_ARTIFACT_NAME: ${{ matrix.value.artifact_name }}
           BUCKET_NAME: ${{ needs.bucket.outputs.code_bucket_name }}
           VERSION: ${{ inputs.lambda_version }}
         with:
           justfile_path: justfile.deploy
           just_action: lambda-build lambda-upload
-
-      - name: Build lambda S3 key list
-        if: ${{ matrix.value == fromJson(inputs.lambda_matrix)[0] }}
-        id: lambda_s3_keys
-        shell: bash
-        env:
-          LAMBDA_VERSION: ${{ inputs.lambda_version }}
-          LAMBDA_MATRIX: ${{ inputs.lambda_matrix }}
-        run: |
-          echo "lambda_s3_keys=$(jq -cn \
-            --arg version "$LAMBDA_VERSION" \
-            --argjson lambdas "$LAMBDA_MATRIX" \
-            '$lambdas | map("lambdas/\($version)/\(.).zip")')" >> "$GITHUB_OUTPUT"

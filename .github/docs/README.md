@@ -11,7 +11,7 @@ This README is the router. The contract details live in focused docs so humans a
 | Find the workflow a user should trigger | [workflow-entrypoints.md](workflow-entrypoints.md) |
 | Change reusable build, infra, deploy, or release workflow behavior | [reusable-workflows.md](reusable-workflows.md) |
 | Change saved plan, apply-from-plan, artifact naming, or plan metadata behavior | [artifacts-and-plans.md](artifacts-and-plans.md) |
-| Change directory discovery, service/container matrices, or Terragrunt graph waves | [discovery-and-matrices.md](discovery-and-matrices.md) |
+| Change runtime manifests, action discovery, or Terragrunt graph waves | [discovery-and-matrices.md](discovery-and-matrices.md) |
 | Change `.github/actions/**`, OIDC role ARN construction, release tagging, or action tests | [repo-local-actions.md](repo-local-actions.md) |
 | Change destroy behavior, post-destroy cleanup, or tagged-resource sweeps | [destroy.md](destroy.md) |
 | Review any workflow or CI contract change | [feasibility-checks.md](feasibility-checks.md) |

@@ -16,23 +16,20 @@ on:
         required: false
         type: string
         default: ""
+      ecs_version:
+        description: "Valid ECS version"
+        required: false
+        type: string
+        default: ""
       code_bucket:
         description: "Bucket containing lambda and frontend zips"
         required: true
         type: string
-      ecs_image_uris:
-        description: "List of full ECS image URIs"
+      repository_url:
+        description: "ECR repository URL hosting the ECS images"
         required: false
         type: string
-        default: "[]"
-      lambda_matrix:
-        required: false
-        type: string
-        default: "[]"
-      task_matrix:
-        required: false
-        type: string
-        default: "[]"
+        default: ""
       lambda_keep:
         description: "Number of lambda versions to keep"
         default: '5'
@@ -52,12 +49,54 @@ env:
   AWS_REGION: ${{ vars.AWS_REGION }}
 
 jobs:
+  lambda-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      lambda_deploy_matrix: ${{ steps.lambda_deploy_matrix.outputs.just_outputs }}
+      lambda_invoke_matrix: ${{ steps.lambda_invoke_matrix.outputs.just_outputs }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.lambda_version }}
+
+      - name: Get Lambda Deploy Matrix
+        id: lambda_deploy_matrix
+        uses: ./.github/actions/just
+        with:
+          justfile_path: justfile.ci
+          just_action: lambda-get-deploy-matrix
+
+      - name: Get Lambda Invoke Matrix
+        id: lambda_invoke_matrix
+        uses: ./.github/actions/just
+        with:
+          justfile_path: justfile.ci
+          just_action: lambda-get-invoke-matrix
+
+  ecs-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      ecs_deploy_matrix: ${{ steps.ecs_deploy_matrix.outputs.just_outputs }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ecs_version != '' && inputs.ecs_version || inputs.lambda_version }}
+
+      - name: Get ECS Deploy Matrix
+        id: ecs_deploy_matrix
+        uses: ./.github/actions/just
+        with:
+          justfile_path: justfile.ci
+          just_action: ecs-get-deploy-matrix
+
   lambdas:
+    name: "${{ matrix.value.artifact_name }}"
+    needs: lambda-matrix
     runs-on: ubuntu-latest
     strategy:
       fail-fast: true
       matrix:
-        value: ${{ fromJson(inputs.lambda_matrix) }}
+        value: ${{ fromJson(needs.lambda-matrix.outputs.lambda_deploy_matrix) }}
     steps:
       - uses: actions/checkout@v6
 
@@ -66,20 +105,27 @@ jobs:
           role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Set AppSpec paths
-        id: appspec
+      - name: Set Lambda deploy paths
+        id: lambda_paths
         shell: bash
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+          STACK_TEMPLATE: ${{ matrix.value.stack }}
+          ARTIFACT_FILE: ${{ matrix.value.artifact_file }}
         run: |
-          lambda_zip_key="lambdas/${{ inputs.lambda_version }}/${{ matrix.value }}.zip"
-          lambda_appspec_key="lambdas/${{ inputs.lambda_version }}/${{ matrix.value }}-appspec.zip"
+          stack_path="${STACK_TEMPLATE//\{environment\}/$ENVIRONMENT}"
+          stack_name="${stack_path##*/}"
+          lambda_zip_key="lambdas/${{ inputs.lambda_version }}/$ARTIFACT_FILE"
+          lambda_appspec_key="lambdas/${{ inputs.lambda_version }}/$stack_name-appspec.zip"
+          echo "stack_path=$stack_path" >> $GITHUB_OUTPUT
           echo "lambda_zip_key=$lambda_zip_key" >> $GITHUB_OUTPUT
           echo "lambda_appspec_key=$lambda_appspec_key" >> $GITHUB_OUTPUT
 
-      - name: Get ${{ matrix.value }} infra
+      - name: Get ${{ matrix.value.stack }} infra
         uses: ./.github/actions/terragrunt
         id: get-infra
         with:
-          tg_directory: infra/live/${{ inputs.environment }}/aws/${{ matrix.value }}
+          tg_directory: ${{ steps.lambda_paths.outputs.stack_path }}
           tg_action: init
 
       - name: Get infra detail
@@ -96,7 +142,7 @@ jobs:
         env:
           BUCKET_NAME: ${{ inputs.code_bucket }}
           FUNCTION_NAME: ${{ steps.get_infra_detail.outputs.lambda_function_name }}
-          LAMBDA_ZIP_KEY: ${{ steps.appspec.outputs.lambda_zip_key }}
+          LAMBDA_ZIP_KEY: ${{ steps.lambda_paths.outputs.lambda_zip_key }}
         with:
           justfile_path: justfile.deploy
           just_action: lambda-create-version
@@ -121,86 +167,53 @@ jobs:
           CURRENT_VERSION: ${{ steps.get-version.outputs.just_outputs }}
           NEW_VERSION: ${{ steps.publish.outputs.just_outputs }}
           APP_SPEC_FILE: ${{ github.workspace }}/config/deploy/appspec-lambda.rendered.yml
-          APP_SPEC_KEY: ${{ steps.appspec.outputs.lambda_appspec_key }}
+          APP_SPEC_KEY: ${{ steps.lambda_paths.outputs.lambda_appspec_key }}
         with:
           justfile_path: justfile.deploy
           just_action: lambda-upload-bundle lambda-set-code-deploy-alarms lambda-deploy lambda-prune
 
-  run-migrations:
+  invoke-lambdas:
+    name: "${{ matrix.value.artifact_name }}"
     runs-on: ubuntu-latest
-    needs: lambdas
+    needs:
+      - lambdas
+      - lambda-matrix
+    strategy:
+      fail-fast: false
+      matrix:
+        value: ${{ fromJson(needs.lambda-matrix.outputs.lambda_invoke_matrix) }}
     steps:
       - uses: actions/checkout@v6
 
       - uses: aws-actions/configure-aws-credentials@v6
-        if: ${{ contains(fromJson(inputs.lambda_matrix), 'migrations') }}
         with:
           role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Skip when migrations is not in the lambda matrix
-        if: ${{ !contains(fromJson(inputs.lambda_matrix), 'migrations') }}
-        run: echo "No migrations Lambda in this deploy matrix."
+      - name: Set Lambda stack path
+        id: lambda_paths
+        shell: bash
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+          STACK_TEMPLATE: ${{ matrix.value.stack }}
+        run: |
+          echo "stack_path=${STACK_TEMPLATE//\{environment\}/$ENVIRONMENT}" >> "$GITHUB_OUTPUT"
 
-      - name: Get migrations infra
-        if: ${{ contains(fromJson(inputs.lambda_matrix), 'migrations') }}
+      - name: Get Lambda infra
         uses: ./.github/actions/terragrunt
         id: get-infra
         with:
-          tg_directory: infra/live/${{ inputs.environment }}/aws/migrations
+          tg_directory: ${{ steps.lambda_paths.outputs.stack_path }}
           tg_action: init
 
-      - name: Get migrations function name
-        if: ${{ contains(fromJson(inputs.lambda_matrix), 'migrations') }}
+      - name: Get Lambda function name
         id: get_infra_detail
         env:
           TG_OUTPUTS: ${{ steps.get-infra.outputs.tg_outputs }}
         run: |
           echo "lambda_function_name=$(echo "$TG_OUTPUTS" | jq -r '.lambda_function_name.value')" >> "$GITHUB_OUTPUT"
 
-      - name: Run database migrations
-        if: ${{ contains(fromJson(inputs.lambda_matrix), 'migrations') }}
-        uses: ./.github/actions/just
-        env:
-          LAMBDA_NAME: ${{ steps.get_infra_detail.outputs.lambda_function_name }}
-        with:
-          justfile_path: justfile.deploy
-          just_action: lambda-invoke
-
-  run-rds-reader-tagger:
-    runs-on: ubuntu-latest
-    needs: lambdas
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: aws-actions/configure-aws-credentials@v6
-        if: ${{ contains(fromJson(inputs.lambda_matrix), 'rds_reader_tagger') }}
-        with:
-          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Skip when rds_reader_tagger is not in the lambda matrix
-        if: ${{ !contains(fromJson(inputs.lambda_matrix), 'rds_reader_tagger') }}
-        run: echo "No rds_reader_tagger Lambda in this deploy matrix."
-
-      - name: Get rds_reader_tagger infra
-        if: ${{ contains(fromJson(inputs.lambda_matrix), 'rds_reader_tagger') }}
-        uses: ./.github/actions/terragrunt
-        id: get-infra
-        with:
-          tg_directory: infra/live/${{ inputs.environment }}/aws/rds_reader_tagger
-          tg_action: init
-
-      - name: Get rds_reader_tagger function name
-        if: ${{ contains(fromJson(inputs.lambda_matrix), 'rds_reader_tagger') }}
-        id: get_infra_detail
-        env:
-          TG_OUTPUTS: ${{ steps.get-infra.outputs.tg_outputs }}
-        run: |
-          echo "lambda_function_name=$(echo "$TG_OUTPUTS" | jq -r '.lambda_function_name.value')" >> "$GITHUB_OUTPUT"
-
-      - name: Run reader tag reconciliation
-        if: ${{ contains(fromJson(inputs.lambda_matrix), 'rds_reader_tagger') }}
+      - name: Invoke Lambda
         uses: ./.github/actions/just
         env:
           LAMBDA_NAME: ${{ steps.get_infra_detail.outputs.lambda_function_name }}
@@ -249,11 +262,13 @@ jobs:
           just_action: frontend-deploy frontend-invalidate
 
   tasks:
+    name: "${{ matrix.value.image }}"
     runs-on: ubuntu-latest
+    needs: ecs-matrix
     strategy:
       fail-fast: false
       matrix:
-        value: ${{ fromJson(inputs.task_matrix) }}
+        value: ${{ fromJson(needs.ecs-matrix.outputs.ecs_deploy_matrix) }}
     steps:
       - uses: actions/checkout@v6
 
@@ -263,40 +278,53 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Resolve image URIs
-        id: image_uris
-        env:
-          ECS_IMAGE_URIS: ${{ inputs.ecs_image_uris }}
-          TASK_NAME: ${{ matrix.value }}
-        uses: ./.github/actions/just
-        with:
-          justfile_path: justfile.ci
-          just_action: ecs-task-get-image-uris
-
-      - name: Set image outputs
         id: task_inputs
+        shell: bash
         env:
-          IMAGE_URIS_JSON: ${{ steps.image_uris.outputs.just_outputs }}
+          REPOSITORY_URL: ${{ inputs.repository_url }}
+          ECS_VERSION: ${{ inputs.ecs_version != '' && inputs.ecs_version || inputs.lambda_version }}
+          ECS_IMAGE_NAME: ${{ matrix.value.image }}
         run: |
-          echo "service_image_uri=$(echo "$IMAGE_URIS_JSON" | jq -r '.service_image_uri')" >> "$GITHUB_OUTPUT"
-          echo "debug_image_uri=$(echo "$IMAGE_URIS_JSON" | jq -r '.debug_image_uri')" >> "$GITHUB_OUTPUT"
-          echo "otel_image_uri=$(echo "$IMAGE_URIS_JSON" | jq -r '.otel_image_uri')" >> "$GITHUB_OUTPUT"
+          if [ -z "$REPOSITORY_URL" ]; then
+            echo "::error::repository_url input is required to resolve ECS image URIs"
+            exit 1
+          fi
+          echo "service_image_uri=${REPOSITORY_URL}:${ECS_IMAGE_NAME}-${ECS_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "debug_uri=${REPOSITORY_URL}:debug-${ECS_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "otel_collector_uri=${REPOSITORY_URL}:otel_collector-${ECS_VERSION}" >> "$GITHUB_OUTPUT"
 
-      - name: Deploy ${{ matrix.value }} ECS task
+      - name: Set ECS stack paths
+        id: ecs_paths
+        shell: bash
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+          TASK_STACK_TEMPLATE: ${{ matrix.value.task_stack }}
+          SERVICE_STACK_TEMPLATE: ${{ matrix.value.service_stack }}
+        run: |
+          task_stack_path="${TASK_STACK_TEMPLATE//\{environment\}/$ENVIRONMENT}"
+          service_stack_path="${SERVICE_STACK_TEMPLATE//\{environment\}/$ENVIRONMENT}"
+          echo "task_stack_path=$task_stack_path" >> "$GITHUB_OUTPUT"
+          echo "service_stack_path=$service_stack_path" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy ${{ matrix.value.task_stack }} ECS task
         uses: ./.github/actions/terragrunt
         env:
           TF_VAR_image_uri: ${{ steps.task_inputs.outputs.service_image_uri }}
-          TF_VAR_debug_image_uri: ${{ steps.task_inputs.outputs.debug_image_uri }}
-          TF_VAR_aws_otel_collector_image_uri: ${{ steps.task_inputs.outputs.otel_image_uri }}
+          TF_VAR_debug_uri: ${{ steps.task_inputs.outputs.debug_uri }}
+          TF_VAR_otel_collector_uri: ${{ steps.task_inputs.outputs.otel_collector_uri }}
         with:
-          tg_directory: infra/live/${{ inputs.environment }}/aws/task_${{ matrix.value }}
+          tg_directory: ${{ steps.ecs_paths.outputs.task_stack_path }}
 
   ecs:
+    name: "${{ matrix.value.image }}"
     runs-on: ubuntu-latest
-    needs: tasks
+    needs:
+      - tasks
+      - ecs-matrix
     strategy:
       fail-fast: false
       matrix:
-        value: ${{ fromJson(inputs.task_matrix) }}
+        value: ${{ fromJson(needs.ecs-matrix.outputs.ecs_deploy_matrix) }}
     steps:
       - uses: actions/checkout@v6
 
@@ -305,14 +333,29 @@ jobs:
           role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Get ${{ matrix.value }} task infra
+      - name: Set ECS stack paths
+        id: ecs_paths
+        shell: bash
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+          TASK_STACK_TEMPLATE: ${{ matrix.value.task_stack }}
+          SERVICE_STACK_TEMPLATE: ${{ matrix.value.service_stack }}
+        run: |
+          task_stack_path="${TASK_STACK_TEMPLATE//\{environment\}/$ENVIRONMENT}"
+          service_stack_path="${SERVICE_STACK_TEMPLATE//\{environment\}/$ENVIRONMENT}"
+          service_stack_name="${service_stack_path##*/}"
+          echo "task_stack_path=$task_stack_path" >> "$GITHUB_OUTPUT"
+          echo "service_stack_path=$service_stack_path" >> "$GITHUB_OUTPUT"
+          echo "service_stack_name=$service_stack_name" >> "$GITHUB_OUTPUT"
+
+      - name: Get ${{ matrix.value.task_stack }} task infra
         uses: ./.github/actions/terragrunt
         id: get-task-infra
         with:
-          tg_directory: infra/live/${{ inputs.environment }}/aws/task_${{ matrix.value }}
+          tg_directory: ${{ steps.ecs_paths.outputs.task_stack_path }}
           tg_action: init
 
-      - name: Get ${{ matrix.value }} task outputs
+      - name: Get ${{ matrix.value.task_stack }} task outputs
         id: get-task-outputs
         env:
           TG_OUTPUTS: ${{ steps.get-task-infra.outputs.tg_outputs }}
@@ -320,14 +363,14 @@ jobs:
           echo "task_definition_arn=$(echo "$TG_OUTPUTS" | jq -r '.task_definition_arn.value')" >> "$GITHUB_OUTPUT"
           echo "container_name=$(echo "$TG_OUTPUTS" | jq -r '.service_name.value')" >> "$GITHUB_OUTPUT"
 
-      - name: Get ${{ matrix.value }} service infra
+      - name: Get ${{ matrix.value.service_stack }} service infra
         uses: ./.github/actions/terragrunt
         id: get-service-infra
         with:
-          tg_directory: infra/live/${{ inputs.environment }}/aws/service_${{ matrix.value }}
+          tg_directory: ${{ steps.ecs_paths.outputs.service_stack_path }}
           tg_action: init
 
-      - name: Get ${{ matrix.value }} service outputs
+      - name: Get ${{ matrix.value.service_stack }} service outputs
         id: get-service-outputs
         env:
           SERVICE_OUTPUTS: ${{ steps.get-service-infra.outputs.tg_outputs }}
@@ -337,7 +380,7 @@ jobs:
           echo "container_port=$(echo "$SERVICE_OUTPUTS" | jq -r '.container_port.value')" >> "$GITHUB_OUTPUT"
           echo "codedeploy_app_name=$(echo "$SERVICE_OUTPUTS" | jq -r '.codedeploy_app_name.value')" >> "$GITHUB_OUTPUT"
           echo "codedeploy_group_name=$(echo "$SERVICE_OUTPUTS" | jq -r '.codedeploy_deployment_group_name.value')" >> "$GITHUB_OUTPUT"
-          echo "app_spec_key=ecs/${{ inputs.environment }}/${{ matrix.value }}-$(echo "${{ steps.get-task-outputs.outputs.task_definition_arn }}" | awk -F: '{print $NF}').yml" >> "$GITHUB_OUTPUT"
+          echo "app_spec_key=ecs/${{ inputs.environment }}/${{ steps.ecs_paths.outputs.service_stack_name }}-$(echo "${{ steps.get-task-outputs.outputs.task_definition_arn }}" | awk -F: '{print $NF}').yml" >> "$GITHUB_OUTPUT"
 
       - name: Work out ECS deployment mode
         id: deploy_mode

@@ -73,7 +73,6 @@ FRONTEND_DIR := "frontend"
 CONTAINERS_DIR := "containers"
 APPSPEC_DIR := "appspec"
 INFRA_PLAN_DIR := "terragrunt_plan"
-EXTRA_CONTAINER_DIRECTORIES := "[\"debug\",\"otel_collector\"]"
 NON_SERVICE_CONTAINER_DIRECTORIES := "[\"lib\",\"_shared\"]"
 
 
@@ -154,8 +153,8 @@ tg-all env op:
     cd {{justfile_directory()}}/infra/live/{{env}}
     export TF_VAR_lambda_version="this"
     export TF_VAR_image_uri="plan-placeholder"
-    export TF_VAR_aws_otel_collector_image_uri="plan-placeholder"
-    export TF_VAR_debug_image_uri="plan-placeholder"
+    export TF_VAR_otel_collector_uri="plan-placeholder"
+    export TF_VAR_debug_uri="plan-placeholder"
     terragrunt run-all {{op}}
 
 

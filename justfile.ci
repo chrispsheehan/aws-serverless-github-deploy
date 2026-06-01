@@ -8,8 +8,6 @@ FRONTEND_DIR := `just --justfile justfile --evaluate FRONTEND_DIR`
 APPSPEC_DIR := `just --justfile justfile --evaluate APPSPEC_DIR`
 CONTAINERS_DIR := `just --justfile justfile --evaluate CONTAINERS_DIR`
 INFRA_PLAN_DIR := `just --justfile justfile --evaluate INFRA_PLAN_DIR`
-EXTRA_CONTAINER_DIRECTORIES := `just --justfile justfile --evaluate EXTRA_CONTAINER_DIRECTORIES`
-NON_SERVICE_CONTAINER_DIRECTORIES := `just --justfile justfile --evaluate NON_SERVICE_CONTAINER_DIRECTORIES`
 
 
 # Convert raw Terragrunt graph output from TG_GRAPH_OUTPUT into compact JSON.
@@ -222,8 +220,165 @@ lambda-check-version:
     fi
 
 
-# List Lambda artifact basenames for a published version.
-get-version-files:
+# Render Lambda deploy manifest records as compact JSON.
+lambda-get-deploy-matrix:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    cd "{{PROJECT_DIR}}"
+
+    ruby -ryaml -rjson -rpathname -e '
+      manifest_path = ARGV.fetch(0)
+      project_dir = Pathname(ARGV.fetch(1)).realpath
+      manifest = YAML.safe_load(File.read(manifest_path), aliases: false)
+
+      unless manifest.is_a?(Hash) && manifest["version"] == 1
+        abort("Error: #{manifest_path} must declare version: 1")
+      end
+
+      lambdas = manifest["lambdas"] || []
+      unless lambdas.is_a?(Array)
+        abort("Error: #{manifest_path} lambdas must be a list when present")
+      end
+
+      artifacts = {}
+      stacks = {}
+      records = lambdas.each_with_index.map do |record, index|
+        unless record.is_a?(Hash)
+          abort("Error: lambdas[#{index}] must be a mapping")
+        end
+
+        stack = record["stack"]
+        source_dir = record["source_dir"]
+        after_deploy = record["after_deploy"]
+
+        unless stack.is_a?(String) && stack.start_with?("infra/live/{environment}/aws/")
+          abort("Error: lambdas[#{index}].stack must start with infra/live/{environment}/aws/")
+        end
+
+        if stacks.key?(stack)
+          abort("Error: lambdas[#{index}].stack duplicates lambdas[#{stacks[stack]}].stack: #{stack}")
+        end
+        stacks[stack] = index
+
+        unless source_dir.is_a?(String) && !source_dir.empty? && !Pathname(source_dir).absolute? && !source_dir.split("/").include?("..")
+          abort("Error: lambdas[#{index}].source_dir must be a repo-relative path")
+        end
+
+        source_path = project_dir.join(source_dir)
+        unless source_path.directory?
+          abort("Error: lambdas[#{index}].source_dir does not exist: #{source_dir}")
+        end
+
+        if after_deploy && after_deploy != "invoke"
+          abort("Error: lambdas[#{index}].after_deploy only supports invoke")
+        end
+
+        artifact_name = File.basename(source_dir)
+        artifact_file = "#{artifact_name}.zip"
+        prior_source_dir = artifacts[artifact_file]
+        if prior_source_dir && prior_source_dir != source_dir
+          abort("Error: Lambda artifact collision: #{prior_source_dir} and #{source_dir} both produce #{artifact_file}")
+        end
+        artifacts[artifact_file] = source_dir
+
+        output = {
+          "stack" => stack,
+          "source_dir" => source_dir,
+          "artifact_name" => artifact_name,
+          "artifact_file" => artifact_file
+        }
+        output["after_deploy"] = after_deploy if after_deploy
+        output
+      end
+
+      puts JSON.generate(records)
+    ' "{{PROJECT_DIR}}/{{LAMBDA_DIR}}/deploy.yml" "{{PROJECT_DIR}}"
+
+
+# Filter the Lambda deploy manifest to entries that invoke after deploy.
+lambda-get-invoke-matrix:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    deploy_matrix="$(just --justfile "{{PROJECT_DIR}}/justfile.ci" lambda-get-deploy-matrix)"
+
+    jq -cn --argjson lambdas "$deploy_matrix" '
+      [$lambdas[] | select(.after_deploy == "invoke")]
+    '
+
+
+# Discover unique Lambda source directories to build from the deploy manifest.
+lambda-get-build-matrix:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    deploy_matrix="$(just --justfile "{{PROJECT_DIR}}/justfile.ci" lambda-get-deploy-matrix)"
+
+    jq -cn --argjson lambdas "$deploy_matrix" '
+      reduce $lambdas[] as $lambda
+        ([];
+         if any(.[]; .source_dir == $lambda.source_dir) then
+           .
+         else
+           . + [{
+             source_dir: $lambda.source_dir,
+             artifact_name: $lambda.artifact_name,
+             artifact_file: $lambda.artifact_file
+           }]
+         end
+        )
+    '
+
+
+# Check every Lambda stack in the deploy manifest exists in runtime environments.
+lambda-check-deploy-stacks:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    deploy_matrix="$(just --justfile "{{PROJECT_DIR}}/justfile.ci" lambda-get-deploy-matrix)"
+
+    ruby -rjson -rpathname -e '
+      project_dir = Pathname(ARGV.fetch(0)).realpath
+      records = JSON.parse(STDIN.read)
+
+      if records.empty?
+        puts "Lambda manifest declares no entries; skipping stack-path check."
+        exit 0
+      end
+
+      stack_templates = records.map { |record| record.fetch("stack") }
+      env_dirs = project_dir.glob("infra/live/*/aws").select(&:directory?)
+      missing = []
+      checked = []
+
+      env_dirs.each do |aws_dir|
+        env_name = aws_dir.parent.basename.to_s
+        stack_paths = stack_templates.map { |template| template.gsub("{environment}", env_name) }
+        existing = stack_paths.select { |path| project_dir.join(path).directory? }
+        next if existing.empty?
+
+        checked << env_name
+        stack_paths.each do |path|
+          missing << path unless project_dir.join(path).directory?
+        end
+      end
+
+      if checked.empty?
+        abort("Error: no live environment contains any Lambda stack from lambdas/deploy.yml")
+      end
+
+      unless missing.empty?
+        missing.each { |path| warn("::error::Missing Lambda stack path: #{path}") }
+        exit 1
+      end
+
+      puts "Lambda manifest stacks are present in: #{checked.sort.join(", ")}"
+    ' "{{PROJECT_DIR}}" <<< "$deploy_matrix"
+
+
+# Check every Lambda artifact from the deploy manifest exists for the requested version.
+lambda-check-deploy-artifacts:
     #!/usr/bin/env bash
     set -euo pipefail
 
@@ -237,46 +392,16 @@ get-version-files:
         exit 1
     fi
 
-    FULL_BUCKET_PATH="s3://$BUCKET_NAME/lambdas/$VERSION/"
+    deploy_matrix="$(just --justfile "{{PROJECT_DIR}}/justfile.ci" lambda-get-deploy-matrix)"
 
-    aws s3api head-bucket --bucket "$BUCKET_NAME" >/dev/null
-    aws s3 ls "$FULL_BUCKET_PATH" >/dev/null
-
-    aws s3 ls "$FULL_BUCKET_PATH" --recursive \
-      | awk '{print $4}' \
-      | xargs -n1 basename \
-      | sed 's/\.[^.]*$//' \
-      | grep -v 'appspec' \
-      | jq -R . \
-      | jq -s -c .
-
-
-# List Lambda zip object keys for a published version.
-get-version-file-keys:
-    #!/usr/bin/env bash
-    set -euo pipefail
-
-    if [[ -z "$BUCKET_NAME" ]]; then
-        echo "❌ BUCKET_NAME environment variable is not set."
-        exit 1
-    fi
-
-    if [[ -z "$VERSION" ]]; then
-        echo "❌ VERSION environment variable is not set."
-        exit 1
-    fi
-
-    FULL_BUCKET_PATH="s3://$BUCKET_NAME/lambdas/$VERSION/"
-
-    aws s3api head-bucket --bucket "$BUCKET_NAME" >/dev/null
-    aws s3 ls "$FULL_BUCKET_PATH" >/dev/null
-
-    aws s3 ls "$FULL_BUCKET_PATH" --recursive \
-      | awk '{print $4}' \
-      | grep '\.zip$' \
-      | grep -v 'appspec' \
-      | jq -R . \
-      | jq -s -c .
+    jq -r '.[].artifact_file' <<< "$deploy_matrix" \
+      | sort -u \
+      | while read -r artifact_file; do
+          key="lambdas/$VERSION/$artifact_file"
+          aws s3 ls "s3://$BUCKET_NAME/$key" >/dev/null \
+            && echo "✅ $key found" \
+            || (echo "❌ $key not found in s3://$BUCKET_NAME" && exit 1)
+        done
 
 
 # Return the Lambda artifact directory name from the repo-root justfile.
@@ -299,8 +424,99 @@ code-bucket-get-appspec-artifact-dir:
     @just --justfile "{{PROJECT_DIR}}/justfile" code-bucket-get-appspec-artifact-dir
 
 
-# List ECR image tag prefixes for a published version.
-get-ecr-version-images:
+# Render ECS service deploy manifest records as compact JSON.
+ecs-get-deploy-matrix:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    cd "{{PROJECT_DIR}}"
+
+    ruby -ryaml -rjson -rpathname -e '
+      manifest_path = ARGV.fetch(0)
+      project_dir = Pathname(ARGV.fetch(1)).realpath
+      manifest = YAML.safe_load(File.read(manifest_path), aliases: false)
+
+      unless manifest.is_a?(Hash) && manifest["version"] == 1
+        abort("Error: #{manifest_path} must declare version: 1")
+      end
+
+      support_images = manifest["support_images"] || []
+      unless support_images.is_a?(Array) && support_images.all? { |image| image.is_a?(String) && image.match?(/\A[a-z0-9_][a-z0-9_-]*\z/) }
+        abort("Error: #{manifest_path} support_images must be a list of simple image names")
+      end
+
+      services = manifest["services"] || []
+      unless services.is_a?(Array)
+        abort("Error: #{manifest_path} services must be a list when present")
+      end
+
+      stacks = {}
+      records = services.each_with_index.map do |record, index|
+        unless record.is_a?(Hash)
+          abort("Error: services[#{index}] must be a mapping")
+        end
+
+        task_stack = record["task_stack"]
+        service_stack = record["service_stack"]
+        image = record["image"]
+
+        unless task_stack.is_a?(String) && task_stack.start_with?("infra/live/{environment}/aws/")
+          abort("Error: services[#{index}].task_stack must start with infra/live/{environment}/aws/")
+        end
+
+        unless service_stack.is_a?(String) && service_stack.start_with?("infra/live/{environment}/aws/")
+          abort("Error: services[#{index}].service_stack must start with infra/live/{environment}/aws/")
+        end
+
+        [["task_stack", task_stack], ["service_stack", service_stack]].each do |field, value|
+          if stacks.key?(value)
+            prior = stacks[value]
+            abort("Error: services[#{index}].#{field} duplicates services[#{prior[:index]}].#{prior[:field]}: #{value}")
+          end
+          stacks[value] = { index: index, field: field }
+        end
+
+        unless image.is_a?(String) && image.match?(/\A[a-z0-9_][a-z0-9_-]*\z/)
+          abort("Error: services[#{index}].image must be a simple image name")
+        end
+
+        source_path = project_dir.join("{{CONTAINERS_DIR}}", image)
+        unless source_path.directory?
+          abort("Error: services[#{index}].image source directory does not exist: {{CONTAINERS_DIR}}/#{image}")
+        end
+
+        {
+          "task_stack" => task_stack,
+          "service_stack" => service_stack,
+          "image" => image
+        }
+      end
+
+      puts JSON.generate(records)
+    ' "{{PROJECT_DIR}}/{{CONTAINERS_DIR}}/deploy.yml" "{{PROJECT_DIR}}"
+
+
+# Discover unique ECS image records to build from the deploy manifest.
+ecs-get-build-matrix:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    deploy_matrix="$(just --justfile "{{PROJECT_DIR}}/justfile.ci" ecs-get-deploy-matrix)"
+
+    jq -cn \
+      --argjson services "$deploy_matrix" \
+      --argjson manifest "$(ruby -ryaml -rjson -e 'puts JSON.generate(YAML.safe_load(File.read(ARGV.fetch(0)), aliases: false))' "{{PROJECT_DIR}}/{{CONTAINERS_DIR}}/deploy.yml")" \
+      '
+      (
+        ($services | map(.image)) + ($manifest.support_images // [])
+        | unique
+        | map({image: .})
+      )
+      '
+
+
+# Check every ECS image from the deploy manifest exists for the requested version.
+ecs-check-deploy-images:
     #!/usr/bin/env bash
     set -euo pipefail
 
@@ -315,116 +531,17 @@ get-ecr-version-images:
     fi
 
     repository_name="${REPOSITORY_URL#*/}"
+    build_matrix="$(just --justfile "{{PROJECT_DIR}}/justfile.ci" ecs-get-build-matrix)"
 
-    aws ecr describe-images \
-      --repository-name "$repository_name" \
-      --query 'imageDetails[].imageTags[]' \
-      --output text \
-      | tr '\t' '\n' \
-      | grep -- "-$VERSION\$" \
-      | sed "s/-$VERSION$//" \
-      | jq -R . \
-      | jq -s -c .
-
-
-# Derive the ECS task matrix from published ECR image tags.
-get-ecr-version-tasks:
-    #!/usr/bin/env bash
-    set -euo pipefail
-
-    image_names="$(just --justfile "{{PROJECT_DIR}}/justfile.ci" get-ecr-version-images)"
-
-    jq -cn \
-      --argjson images "$image_names" \
-      '
-      $images
-      | map(select(. != "bootstrap" and . != "debug" and . != "otel_collector"))
-      '
-
-
-# Discover deployable Lambda directory names.
-lambda-get-directories:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    find "{{LAMBDA_DIR}}" -mindepth 1 -maxdepth 1 -type d \
-      | xargs -I{} basename "{}" \
-      | grep -v '^build$' \
-      | grep -v '^lib$' \
-      | grep -v '^_shared$' \
-      | tr '-' '_' \
-      | jq -R . \
-      | jq -s -c .
-
-
-# Discover deployable ECS service/container directory names.
-service-get-directories:
-    #!/usr/bin/env bash
-    set -euo pipefail
-
-    find "{{CONTAINERS_DIR}}" -mindepth 1 -maxdepth 1 -type d \
-      | xargs -I{} basename "{}" \
-      | jq -R . \
-      | jq -sc --argjson reserved '{{NON_SERVICE_CONTAINER_DIRECTORIES}}' 'map(select(. as $name | ($reserved | index($name) | not)))' \
-      | jq -r '.[]' \
-      | tr '-' '_' \
-      | jq -R . \
-      | jq -s -c .
-
-
-# Derive Terragrunt `task_*` stack names from service directories.
-task-get-directories:
-    #!/usr/bin/env bash
-    set -euo pipefail
-
-    found_dirs="$(just --justfile "{{PROJECT_DIR}}/justfile.ci" service-get-directories)"
-
-    jq -cn \
-      --argjson found "$found_dirs" \
-      '$found | map("task_" + .)'
-
-
-# Resolve per-task ECS image URIs from the published image set.
-ecs-task-get-image-uris:
-    #!/usr/bin/env bash
-    set -euo pipefail
-
-    if [[ -z "${ECS_IMAGE_URIS:-}" ]]; then
-        echo "❌ ECS_IMAGE_URIS environment variable is not set."
-        exit 1
-    fi
-
-    if [[ -z "${TASK_NAME:-}" ]]; then
-        echo "❌ TASK_NAME environment variable is not set."
-        exit 1
-    fi
-
-    service_name="${TASK_NAME#task_}"
-
-    jq -cn \
-      --argjson image_uris "$ECS_IMAGE_URIS" \
-      --arg service_name "$service_name" \
-      '
-      {
-        service_image_uri: ($image_uris | map(select(test(":" + $service_name + "-")))[0] // ""),
-        debug_image_uri: ($image_uris | map(select(test(":debug-")))[0] // ""),
-        otel_image_uri: ($image_uris | map(select(test(":otel_collector-")))[0] // "")
-      }
-      | if .service_image_uri == "" then error("Missing ECS image URI for " + $service_name) else . end
-      | if .debug_image_uri == "" then error("Missing debug image URI") else . end
-      | if .otel_image_uri == "" then error("Missing otel_collector image URI") else . end
-      '
-
-
-# Derive Terragrunt `service_*` stack names from service directories.
-ecs-service-get-directories:
-    #!/usr/bin/env bash
-    set -euo pipefail
-
-    found_dirs="$(just --justfile "{{PROJECT_DIR}}/justfile.ci" service-get-directories)"
-
-    jq -cn \
-      --argjson found "$found_dirs" \
-      '$found | map("service_" + .)'
+    jq -r '.[].image' <<< "$build_matrix" \
+      | while read -r image; do
+          tag="$image-$VERSION"
+          aws ecr describe-images \
+            --repository-name "$repository_name" \
+            --image-ids "imageTag=$tag" >/dev/null \
+            && echo "✅ $tag found" \
+            || (echo "❌ $tag not found in $REPOSITORY_URL" && exit 1)
+        done
 
 
 # Discover repo-local Docker-based GitHub action directories.
@@ -441,19 +558,6 @@ action-get-directories:
       | sort \
       | jq -R . \
       | jq -s -c .
-
-
-# Discover container build targets including shared CI extras.
-container-get-directories:
-    #!/usr/bin/env bash
-    set -euo pipefail
-
-    found_dirs="$(just --justfile "{{PROJECT_DIR}}/justfile.ci" service-get-directories)"
-
-    jq -cn \
-      --argjson found "$found_dirs" \
-      --argjson extra '{{EXTRA_CONTAINER_DIRECTORIES}}' \
-      '$found + $extra | unique'
 
 
 # Check that the requested frontend artifact version exists in the code bucket.
