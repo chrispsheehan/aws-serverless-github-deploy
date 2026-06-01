@@ -46,6 +46,55 @@ stores state at:
 
 `dev/aws/task_worker/terraform.tfstate`
 
+## Clearing State Locks
+
+This repo uses the Terraform S3 backend `use_lockfile = true` setting rather than DynamoDB locking.
+That means each live stack lock is an S3 object next to the state key:
+
+```text
+<environment>/<provider>/<module>/terraform.tfstate.tflock
+```
+
+Only clear a lock after confirming no Terraform or Terragrunt command is still running for that stack.
+Do not remove a lock just to bypass an active apply, plan, or destroy.
+
+The `infra/root.hcl` init hook prints both values during Terragrunt init:
+
+```text
+STATE:<bucket>/<state-key> LOCKFILE:<state-key>.tflock
+```
+
+For example, the dev security stack lock is:
+
+```text
+s3://700060376888-eu-west-2-aws-serverless-github-deploy-tfstate/dev/aws/security/terraform.tfstate.tflock
+```
+
+Check whether the lock exists:
+
+```sh
+aws s3api head-object \
+  --bucket 700060376888-eu-west-2-aws-serverless-github-deploy-tfstate \
+  --key dev/aws/security/terraform.tfstate.tflock \
+  --region eu-west-2
+```
+
+If the command returns `404 Not Found`, there is no lock object to clear.
+If the lock is stale and no Terragrunt/Terraform process is active, remove it:
+
+```sh
+aws s3api delete-object \
+  --bucket 700060376888-eu-west-2-aws-serverless-github-deploy-tfstate \
+  --key dev/aws/security/terraform.tfstate.tflock \
+  --region eu-west-2
+```
+
+For another stack, keep the same bucket pattern and replace the key with:
+
+```text
+<environment>/aws/<module>/terraform.tfstate.tflock
+```
+
 ## Module Types
 
 - `_shared/*`
@@ -155,49 +204,9 @@ That `containers/lib` directory is helper code only and is not treated as a depl
 
 ## Deployment Model
 
-- infrastructure apply and feature-code rollout are intentionally decoupled in this boilerplate
-- infra workflows create or update infrastructure stacks
-- infra workflows create the stable runtime shape, including the Lambda and ECS CodeDeploy applications and deployment groups used later for real rollouts
-- `*_infra` workflows apply infrastructure only
-- build workflows produce Lambda zips and container images
-- `*_code` workflows deploy feature code only
-- code deploy workflows publish the real Lambda versions and ECS task revisions into that pre-created deploy surface
-- `*_infra` wrappers need the inputs required to apply infra safely, such as directory-derived stack matrices and any artifact-derived bootstrap references
-- in `prod`, the `*_infra` wrappers read shared artifact resources from `ci` but only apply service and task stacks in `prod`
-- saved `plan` / `apply_plan` artifacts live in GitHub Actions artifacts keyed by workflow run id, with one run-level metadata artifact plus one per-stack plan artifact
-- saved plan artifacts are time-limited; the run-level metadata artifact is retained for 14 days, so apply-from-plan must happen before artifact expiry
-- each saved-plan stack always uploads `terragrunt.plan.meta.json`; the binary `terragrunt.tfplan` and rendered `terragrunt.plan.txt` are uploaded only when the plan contains real changes
-- Code artifact retention and infra-plan retention are configured separately in the shared code bucket module
-- rerunning infrastructure apply does not roll out new feature code
-- the shared Lambda and ECS module READMEs are the canonical source for bootstrap, rollout, and rollback details for each runtime shape
-- detailed workflow contracts, reusable-workflow inputs, repo-local action behavior, and `justfile_path` rules live in [.github/docs/README.md](../.github/docs/README.md)
-- see [lambdas/README.md](../lambdas/README.md) and [containers/README.md](../containers/README.md) for runtime source layout, build behavior, and boilerplate patterns
-- deploy workflows:
-  - publish Lambda versions and use Lambda CodeDeploy
-  - optionally invoke the `migrations` Lambda when it is part of the Lambda deploy matrix
-  - register ECS task revisions
-  - then either:
-    - use ECS CodeDeploy for load-balanced services
-    - or use native ECS rolling updates for internal services
-  - ECS task rollout is not implicitly blocked on Lambda or migration jobs; add that ordering only where a caller actually needs it
+Infra applies create the stable runtime shape. Code deploy workflows publish and roll out feature code into that pre-created surface.
 
-### Deployment Overview
-
-```mermaid
-flowchart TD
-  start["Choose Runtime Shape"] --> lambda["Lambda"]
-  start --> ecs["ECS"]
-
-  lambda --> lambda_bg["Background / low-risk"]
-  lambda --> lambda_api["User-facing / request-serving"]
-  lambda_bg --> lambda_all["all_at_once"]
-  lambda_api --> lambda_canary["canary or linear"]
-
-  ecs --> ecs_internal["internal"]
-  ecs --> ecs_lb["internal_dns or vpc_link"]
-  ecs_internal --> ecs_roll["rolling"]
-  ecs_lb --> ecs_cd["all_at_once / canary / linear / blue_green"]
-```
+Read [Deployment Model](docs/deployment-model.md) for the full infra/code split, saved-plan artifact behavior, and runtime rollout overview.
 
 ## Infra Deployment Use Cases
 
@@ -243,68 +252,7 @@ Deploy a real environment under `infra/live/<name>` with `just tg <env> <module>
 
 ### Terragrunt Graph Helpers
 
-To return the direct dependencies for every module as a JSON object:
-
-```sh
-just tg-all-module-dependencies dev
-```
-
-To test the wave-matrix processor locally through the same split used by CI, run:
-
-```sh
-just tg-graph-waves dev
-```
-
-If you only need the raw Terragrunt graph output:
-
-```sh
-just tg-graph dev > graph.txt
-```
-
-That runs the same non-interactive Terragrunt graph command used in CI:
-
-```sh
-cd infra/live/dev/aws
-terragrunt run-all graph-dependencies \
-  --terragrunt-non-interactive \
-  --terragrunt-include-external-dependencies
-```
-
-To process that saved graph file into compact dependency JSON:
-
-```sh
-just tg-graph-process graph.json dev
-```
-
-To return only changed saved-plan items as an object array, set the saved-plan env vars and run:
-
-```sh
-BUCKET_NAME=700060376888-eu-west-2-aws-serverless-github-deploy-tfplan \
-TG_GRAPH_METADATA_PLAN_RUN_ID=26105102715 \
-just tg-graph-changed-items graph.json dev
-```
-
-To join the processed graph with saved-plan metadata for one plan run, set the saved-plan env vars before running the processing command:
-
-```sh
-BUCKET_NAME=700060376888-eu-west-2-aws-serverless-github-deploy-tfplan \
-TG_GRAPH_METADATA_PLAN_RUN_ID=26105102715 \
-just tg-graph-process graph.json dev
-```
-
-For a local saved-plan run, pass the Terragrunt operation as one quoted argument:
-
-```sh
-just tg dev aws/oidc 'plan -out=terragrunt.tfplan'
-```
-
-The `tg` recipe treats the final argument as the Terragrunt operation string, so quoting lets you pass flags such as `-out=...` through the wrapper. The workflow saved-plan path expects the binary plan filename to be `terragrunt.tfplan`.
-
-To apply that same saved plan later, reuse the same run id:
-
-```sh
-just tg dev aws/oidc 'apply terragrunt.tfplan'
-```
+Graph, wave, and saved-plan helper commands live in [Terragrunt Graph Helpers](docs/terragrunt-graph-helpers.md).
 
 ## Naming Conventions
 

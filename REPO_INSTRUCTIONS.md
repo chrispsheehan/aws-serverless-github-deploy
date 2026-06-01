@@ -8,15 +8,6 @@ These instructions apply to the entire repository.
 - if the user mentions another local repository or folder, treat it as external reference material unless the user explicitly says to move the work there
 - do not assume another repository inherits instructions from this repository
 
-## Template Role
-
-- treat this repository as the deployable template and implementation target unless the user explicitly says otherwise
-- when the user supplies a path to different source code, treat that code as reference input by default and make changes in this repository unless the user explicitly redirects the work
-- when the user points to another repository, inspect that repository to understand the app shape, product behavior, and capability needs, then propose or implement the corresponding changes in this repository
-- prefer translating the external app into this repository's existing platform patterns rather than copying code across verbatim
-- treat external repositories as read-only unless the user explicitly requests edits there
-- when the external app shape does not map cleanly to this repository, explain the gap, state the closest repo-native deployment shape, and ask the user to confirm before making broad changes
-
 ## Keep `AGENTS.md` and `CLAUDE.md` identical
 
 `REPO_INSTRUCTIONS.md` is the shared source of truth for repo guidance.
@@ -80,55 +71,22 @@ These instructions apply to the entire repository.
 ## Task Interpretation
 
 - interpret brief requests using this repo's existing patterns and contracts rather than taking them literally
-- when a request mentions external source code and asks how to build, make ready, or deploy it, interpret that as "understand the external app, then answer in terms of how this repository should implement or deploy it" unless the user explicitly redirects the work
 - read the relevant local contract docs before editing and follow them
 - prefer the smallest complete change that matches existing repo patterns
 - remove stale code, temporary helpers, and abandoned experiment residue as part of the same change rather than leaving dead paths behind
 - verify related workflows, infra, docs, and downstream dependencies when the request affects shared behavior
 - state material assumptions when the intended shape is not fully explicit
 - when ambiguity is material or a wrong assumption could cause the repo shape or contract to drift, ask the user a clarifying question before editing
-- for broad product or app-shaping requests, provide a short pre-implementation summary of the inferred app shape, likely capability choices, major assumptions, important questions, and notable cost or security implications before making changes
 
-Example requests to interpret through these repo-native rules:
+## Runtime Network Placement
 
-```text
-add a new environment called qa
-```
-
-```text
-Give me a site with a backend and a database
-```
-
-```text
-look at ../sandbox and tell me how to deploy
-```
-
-## Capability Selection
-
-- treat this repo as a menu of optional platform capabilities, not just a single fixed app shape
-- infer which capabilities the user is selecting from the request, and which existing capabilities fall outside that target shape
-- when the requested shape uses only a subset of the repo's current capabilities, explicitly list the major unused capabilities and ask whether they should be kept for future use or removed
-- do not assume that unmentioned capabilities should stay forever, and do not remove them without confirmation
-- when a user asks for a website or frontend with a backend but does not specify the backend runtime, prefer the simplest repo-native backend shape as the default starting assumption
-- in this repo, default that assumption to a Lambda-backed API unless the user asks for ECS, long-running workers, containers, or another specific runtime
-- state that assumption and ask for confirmation before making changes when backend choice materially affects infrastructure shape, cost, or security
-
-## New Repo Bootstrap Requests
-
-- when a request suggests the user is adapting this repo as a fresh app or new project, first determine whether this is a new repo/bootstrap scenario or a change to an existing app
-- when the target repo is empty or effectively empty, enter bootstrap flow immediately
-- treat a repo as effectively empty when it has no meaningful app, infra, runtime, or workflow code beyond placeholders, starter files, or minimal scaffolding
-- if it appears to be a new repo/bootstrap scenario, ask whether the user wants to keep or remove the boilerplate/example application code before making broad changes
-- treat clearly labeled example, demo, sample, or boilerplate code as removable only after confirming with the user
-- do not delete or replace template/example code solely because a new feature request could be implemented more cleanly without it
-- for potentially expensive infrastructure such as load balancers, ECS clusters, or other shared runtime components, ask whether the user wants to keep them for future use or remove them entirely before changing that footprint
-- do not assume expensive infrastructure should be deployed, retained, or removed without explicit user confirmation when the request is a bootstrap or simplification scenario
-- persist bootstrap-specific questions and user answers in `BOOTSTRAP_DECISIONS.md` so the same questions do not need to be asked repeatedly
-- before asking a bootstrap-related clarifying question, check `BOOTSTRAP_DECISIONS.md` first and reuse the recorded answer unless the user changes it
-- if the user gives an answer that conflicts with an existing entry in `BOOTSTRAP_DECISIONS.md`, warn that the recorded decision is changing, then update the file
-- always consider security during bootstrap and simplification work; if a proposed API would be exposed to the public internet, say that explicitly and suggest at least one more secure option
-- do not assume a public unauthenticated API is acceptable just because it is the simplest technical shape
-- at the end of a bootstrap or simplification flow, explicitly name any infrastructure that would remain but no longer be used by the proposed app shape, and ask whether the user wants to remove it or keep it for future use
+- do not assume ECS services must run in private subnets
+- when a service needs outbound internet access, explicitly ask whether the runtime should run in public subnets or private subnets before recommending NAT gateways
+- only recommend NAT gateways when private subnet placement is required, explicitly chosen, or otherwise necessary for the selected security model
+- if a service can safely run in public subnets, call out that public subnet placement with task public IPs may be the lower-cost deployment shape and explain the security implications
+- for public-subnet ECS services, require a clear ingress model before implementation: public load balancer or API Gateway path, security group restrictions, authentication requirements, and whether tasks should receive public IPs
+- for scraper, polling, webhook, or external-API-heavy services, treat subnet placement as an explicit architecture decision because outbound connectivity affects architecture, cost, and security
+- do not list NAT as an AWS prerequisite unless the selected runtime placement uses private subnets and needs outbound internet access
 
 ## CI OIDC Scope
 
