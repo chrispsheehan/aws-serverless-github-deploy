@@ -100,21 +100,11 @@ jobs:
           echo "$COMMITS" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-  get-apps:
-    name: Discover
-    needs:
-      - get-next-tag
-      - create-tag
-    if: ${{ needs.get-next-tag.outputs.create-new-release == 'true' }}
-    uses: ./.github/workflows/shared_directories_get.yml
-
-
   build:
     name: Build
     needs:
       - create-tag
       - get-next-tag
-      - get-apps
       - code
     if: ${{ needs.get-next-tag.outputs.create-new-release == 'true' }}
     uses: ./.github/workflows/shared_build.yml
@@ -126,7 +116,6 @@ jobs:
       lambda_version: ${{ needs.get-next-tag.outputs.tag }}
       frontend_version: ${{ needs.get-next-tag.outputs.tag }}
       ecs_version: ${{ needs.get-next-tag.outputs.tag }}
-      ecs_matrix: ${{ needs.get-apps.outputs.container_dirs }}
 
   code:
     name: Artifacts

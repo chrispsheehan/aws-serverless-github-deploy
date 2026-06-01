@@ -160,7 +160,7 @@ jobs:
     needs:
       - check
       - format-github
-    if: ${{ needs.check.outputs.containers == 'true' || needs.check.outputs.actions == 'true' }}
+    if: ${{ needs.check.outputs.actions == 'true' }}
     uses: ./.github/workflows/shared_directories_get.yml
 
   lambda-build-matrix:
@@ -181,6 +181,25 @@ jobs:
         with:
           justfile_path: justfile.ci
           just_action: lambda-get-build-matrix
+
+  ecs-build-matrix:
+    name: ECS Build Records
+    needs:
+      - check
+      - check-ecs-module-pairs
+    if: ${{ needs.check.outputs.containers == 'true' }}
+    runs-on: ubuntu-latest
+    outputs:
+      ecs_build_matrix: ${{ steps.ecs_build_matrix.outputs.just_outputs }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Get ECS Build Matrix
+        id: ecs_build_matrix
+        uses: ./.github/actions/just
+        with:
+          justfile_path: justfile.ci
+          just_action: ecs-get-build-matrix
 
   action-docker-unit-tests:
     name: GH Action Docker Unit Tests
@@ -269,6 +288,12 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Validate ECS deploy manifest
+        uses: ./.github/actions/just
+        with:
+          justfile_path: justfile.ci
+          just_action: ecs-get-deploy-matrix
+
       - name: Fail if task_/service_ pairs are incomplete
         shell: bash
         run: |
@@ -341,19 +366,19 @@ jobs:
     needs:
       - check
       - check-ecs-module-pairs
-      - setup
+      - ecs-build-matrix
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        value: ${{ fromJson(needs.setup.outputs.container_dirs) }}
+        value: ${{ fromJson(needs.ecs-build-matrix.outputs.ecs_build_matrix) }}
     steps:
       - uses: actions/checkout@v6
 
-      - name: "Build ${{ matrix.value }} ECS image"
+      - name: "Build ${{ matrix.value.image }} ECS image"
         uses: ./.github/actions/just
         env:
-          CONTAINER_NAME: ${{ matrix.value }}
+          CONTAINER_NAME: ${{ matrix.value.image }}
         with:
           justfile_path: justfile.deploy
           just_action: docker-build

@@ -15,10 +15,6 @@ on:
       ecs_version:
         required: true
         type: string
-      ecs_matrix:
-        required: false
-        type: string
-        default: "[]"
     outputs:
       code_bucket:
         description: "Bucket containing build artifacts"
@@ -37,7 +33,7 @@ on:
         value: ${{ jobs.ecr.outputs.repository_url }}
       ecs_image_uris:
         description: "List of full ECS image URIs built by this workflow"
-        value: ${{ jobs.containers.outputs.ecs_image_uris }}
+        value: ${{ jobs.ecs-image-uris.outputs.ecs_image_uris }}
 
 concurrency: # only run one instance of workflow at any one time
   group: build-${{ inputs.environment }}
@@ -68,6 +64,22 @@ jobs:
         with:
           justfile_path: justfile.ci
           just_action: lambda-get-build-matrix
+
+  ecs-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      ecs_build_matrix: ${{ steps.ecs_build_matrix.outputs.just_outputs }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ecs_version }}
+
+      - name: Get ECS Build Matrix
+        id: ecs_build_matrix
+        uses: ./.github/actions/just
+        with:
+          justfile_path: justfile.ci
+          just_action: ecs-get-build-matrix
 
   bucket:
     runs-on: ubuntu-latest
@@ -142,14 +154,14 @@ jobs:
           echo "repository_url=$(echo $TG_OUTPUTS | jq -r '.repository_url.value')" >> $GITHUB_OUTPUT
 
   containers:
-    needs: ecr
+    needs:
+      - ecr
+      - ecs-matrix
     runs-on: ubuntu-latest
-    outputs:
-      ecs_image_uris: ${{ steps.image_uris.outputs.ecs_image_uris }}
     strategy:
       fail-fast: true
       matrix:
-        value: ${{ fromJson(inputs.ecs_matrix) }}
+        value: ${{ fromJson(needs.ecs-matrix.outputs.ecs_build_matrix) }}
     steps:
       - uses: actions/checkout@v6
 
@@ -158,29 +170,37 @@ jobs:
           role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: "Build ${{ matrix.value }} ECS image"
+      - name: "Build ${{ matrix.value.image }} ECS image"
         uses: ./.github/actions/just
         env:
-          CONTAINER_NAME: ${{ matrix.value }}
-          IMAGE_URI: ${{ needs.ecr.outputs.repository_url }}:${{ matrix.value }}-${{ inputs.ecs_version }}
+          CONTAINER_NAME: ${{ matrix.value.image }}
+          IMAGE_URI: ${{ needs.ecr.outputs.repository_url }}:${{ matrix.value.image }}-${{ inputs.ecs_version }}
         with:
           justfile_path: justfile.deploy
           just_action: docker-build docker-push
 
+  ecs-image-uris:
+    needs:
+      - ecr
+      - ecs-matrix
+      - containers
+    runs-on: ubuntu-latest
+    outputs:
+      ecs_image_uris: ${{ steps.image_uris.outputs.ecs_image_uris }}
+    steps:
       - name: Build ECS image URI list
-        if: ${{ matrix.value == fromJson(inputs.ecs_matrix)[0] }}
         id: image_uris
         shell: bash
         env:
           REPOSITORY_URL: ${{ needs.ecr.outputs.repository_url }}
           ECS_VERSION: ${{ inputs.ecs_version }}
-          ECS_MATRIX: ${{ inputs.ecs_matrix }}
+          ECS_BUILD_MATRIX: ${{ needs.ecs-matrix.outputs.ecs_build_matrix }}
         run: |
           echo "ecs_image_uris=$(jq -cn \
             --arg repo "$REPOSITORY_URL" \
             --arg version "$ECS_VERSION" \
-            --argjson images "$ECS_MATRIX" \
-            '$images | map("\($repo):\(.)-\($version)")')" >> "$GITHUB_OUTPUT"
+            --argjson images "$ECS_BUILD_MATRIX" \
+            '$images | map("\($repo):\(.image)-\($version)")')" >> "$GITHUB_OUTPUT"
 
   lambdas:
     needs:

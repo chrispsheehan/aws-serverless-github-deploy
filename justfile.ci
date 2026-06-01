@@ -9,7 +9,6 @@ APPSPEC_DIR := `just --justfile justfile --evaluate APPSPEC_DIR`
 CONTAINERS_DIR := `just --justfile justfile --evaluate CONTAINERS_DIR`
 INFRA_PLAN_DIR := `just --justfile justfile --evaluate INFRA_PLAN_DIR`
 EXTRA_CONTAINER_DIRECTORIES := `just --justfile justfile --evaluate EXTRA_CONTAINER_DIRECTORIES`
-NON_SERVICE_CONTAINER_DIRECTORIES := `just --justfile justfile --evaluate NON_SERVICE_CONTAINER_DIRECTORIES`
 
 
 # Convert raw Terragrunt graph output from TG_GRAPH_OUTPUT into compact JSON.
@@ -362,8 +361,85 @@ code-bucket-get-appspec-artifact-dir:
     @just --justfile "{{PROJECT_DIR}}/justfile" code-bucket-get-appspec-artifact-dir
 
 
-# List ECR image tag prefixes for a published version.
-get-ecr-version-images:
+# Render ECS service deploy manifest records as compact JSON.
+ecs-get-deploy-matrix:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    cd "{{PROJECT_DIR}}"
+
+    ruby -ryaml -rjson -rpathname -e '
+      manifest_path = ARGV.fetch(0)
+      project_dir = Pathname(ARGV.fetch(1)).realpath
+      manifest = YAML.safe_load(File.read(manifest_path), aliases: false)
+
+      unless manifest.is_a?(Hash) && manifest["version"] == 1
+        abort("Error: #{manifest_path} must declare version: 1")
+      end
+
+      services = manifest["services"]
+      unless services.is_a?(Array) && !services.empty?
+        abort("Error: #{manifest_path} must declare a non-empty services list")
+      end
+
+      records = services.each_with_index.map do |record, index|
+        unless record.is_a?(Hash)
+          abort("Error: services[#{index}] must be a mapping")
+        end
+
+        task_stack = record["task_stack"]
+        service_stack = record["service_stack"]
+        image = record["image"]
+
+        unless task_stack.is_a?(String) && task_stack.start_with?("infra/live/{environment}/aws/")
+          abort("Error: services[#{index}].task_stack must start with infra/live/{environment}/aws/")
+        end
+
+        unless service_stack.is_a?(String) && service_stack.start_with?("infra/live/{environment}/aws/")
+          abort("Error: services[#{index}].service_stack must start with infra/live/{environment}/aws/")
+        end
+
+        unless image.is_a?(String) && image.match?(/\A[a-z0-9_][a-z0-9_-]*\z/)
+          abort("Error: services[#{index}].image must be a simple image name")
+        end
+
+        source_path = project_dir.join("{{CONTAINERS_DIR}}", image)
+        unless source_path.directory?
+          abort("Error: services[#{index}].image source directory does not exist: {{CONTAINERS_DIR}}/#{image}")
+        end
+
+        {
+          "task_stack" => task_stack,
+          "service_stack" => service_stack,
+          "image" => image
+        }
+      end
+
+      puts JSON.generate(records)
+    ' "{{PROJECT_DIR}}/{{CONTAINERS_DIR}}/deploy.yml" "{{PROJECT_DIR}}"
+
+
+# Discover unique ECS image records to build from the deploy manifest.
+ecs-get-build-matrix:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    deploy_matrix="$(just --justfile "{{PROJECT_DIR}}/justfile.ci" ecs-get-deploy-matrix)"
+
+    jq -cn \
+      --argjson services "$deploy_matrix" \
+      --argjson extra '{{EXTRA_CONTAINER_DIRECTORIES}}' \
+      '
+      (
+        ($services | map(.image)) + $extra
+        | unique
+        | map({image: .})
+      )
+      '
+
+
+# Check every ECS image from the deploy manifest exists for the requested version.
+ecs-check-deploy-images:
     #!/usr/bin/env bash
     set -euo pipefail
 
@@ -378,58 +454,41 @@ get-ecr-version-images:
     fi
 
     repository_name="${REPOSITORY_URL#*/}"
+    build_matrix="$(just --justfile "{{PROJECT_DIR}}/justfile.ci" ecs-get-build-matrix)"
 
-    aws ecr describe-images \
-      --repository-name "$repository_name" \
-      --query 'imageDetails[].imageTags[]' \
-      --output text \
-      | tr '\t' '\n' \
-      | grep -- "-$VERSION\$" \
-      | sed "s/-$VERSION$//" \
-      | jq -R . \
-      | jq -s -c .
+    jq -r '.[].image' <<< "$build_matrix" \
+      | while read -r image; do
+          tag="$image-$VERSION"
+          aws ecr describe-images \
+            --repository-name "$repository_name" \
+            --image-ids "imageTag=$tag" >/dev/null \
+            && echo "✅ $tag found" \
+            || (echo "❌ $tag not found in $REPOSITORY_URL" && exit 1)
+        done
 
 
-# Derive the ECS task matrix from published ECR image tags.
-get-ecr-version-tasks:
+# Build full ECS image URIs from the deploy manifest for a published version.
+ecs-get-version-image-uris:
     #!/usr/bin/env bash
     set -euo pipefail
 
-    image_names="$(just --justfile "{{PROJECT_DIR}}/justfile.ci" get-ecr-version-images)"
+    if [[ -z "${REPOSITORY_URL:-}" ]]; then
+        echo "❌ REPOSITORY_URL environment variable is not set."
+        exit 1
+    fi
+
+    if [[ -z "${VERSION:-}" ]]; then
+        echo "❌ VERSION environment variable is not set."
+        exit 1
+    fi
+
+    build_matrix="$(just --justfile "{{PROJECT_DIR}}/justfile.ci" ecs-get-build-matrix)"
 
     jq -cn \
-      --argjson images "$image_names" \
-      '
-      $images
-      | map(select(. != "bootstrap" and . != "debug" and . != "otel_collector"))
-      '
-
-
-# Discover deployable ECS service/container directory names.
-service-get-directories:
-    #!/usr/bin/env bash
-    set -euo pipefail
-
-    find "{{CONTAINERS_DIR}}" -mindepth 1 -maxdepth 1 -type d \
-      | xargs -I{} basename "{}" \
-      | jq -R . \
-      | jq -sc --argjson reserved '{{NON_SERVICE_CONTAINER_DIRECTORIES}}' 'map(select(. as $name | ($reserved | index($name) | not)))' \
-      | jq -r '.[]' \
-      | tr '-' '_' \
-      | jq -R . \
-      | jq -s -c .
-
-
-# Derive Terragrunt `task_*` stack names from service directories.
-task-get-directories:
-    #!/usr/bin/env bash
-    set -euo pipefail
-
-    found_dirs="$(just --justfile "{{PROJECT_DIR}}/justfile.ci" service-get-directories)"
-
-    jq -cn \
-      --argjson found "$found_dirs" \
-      '$found | map("task_" + .)'
+      --arg repo "$REPOSITORY_URL" \
+      --arg version "$VERSION" \
+      --argjson images "$build_matrix" \
+      '$images | map("\($repo):\(.image)-\($version)")'
 
 
 # Resolve per-task ECS image URIs from the published image set.
@@ -447,7 +506,7 @@ ecs-task-get-image-uris:
         exit 1
     fi
 
-    service_name="${TASK_NAME#task_}"
+    service_name="${ECS_IMAGE_NAME:-${TASK_NAME#task_}}"
 
     jq -cn \
       --argjson image_uris "$ECS_IMAGE_URIS" \
@@ -464,18 +523,6 @@ ecs-task-get-image-uris:
       '
 
 
-# Derive Terragrunt `service_*` stack names from service directories.
-ecs-service-get-directories:
-    #!/usr/bin/env bash
-    set -euo pipefail
-
-    found_dirs="$(just --justfile "{{PROJECT_DIR}}/justfile.ci" service-get-directories)"
-
-    jq -cn \
-      --argjson found "$found_dirs" \
-      '$found | map("service_" + .)'
-
-
 # Discover repo-local Docker-based GitHub action directories.
 action-get-directories:
     #!/usr/bin/env bash
@@ -490,19 +537,6 @@ action-get-directories:
       | sort \
       | jq -R . \
       | jq -s -c .
-
-
-# Discover container build targets including shared CI extras.
-container-get-directories:
-    #!/usr/bin/env bash
-    set -euo pipefail
-
-    found_dirs="$(just --justfile "{{PROJECT_DIR}}/justfile.ci" service-get-directories)"
-
-    jq -cn \
-      --argjson found "$found_dirs" \
-      --argjson extra '{{EXTRA_CONTAINER_DIRECTORIES}}' \
-      '$found + $extra | unique'
 
 
 # Check that the requested frontend artifact version exists in the code bucket.

@@ -16,16 +16,17 @@ on:
         required: false
         type: string
         default: ""
+      ecs_version:
+        description: "Valid ECS version"
+        required: false
+        type: string
+        default: ""
       code_bucket:
         description: "Bucket containing lambda and frontend zips"
         required: true
         type: string
       ecs_image_uris:
         description: "List of full ECS image URIs"
-        required: false
-        type: string
-        default: "[]"
-      task_matrix:
         required: false
         type: string
         default: "[]"
@@ -63,6 +64,22 @@ jobs:
         with:
           justfile_path: justfile.ci
           just_action: lambda-get-deploy-matrix
+
+  ecs-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      ecs_deploy_matrix: ${{ steps.ecs_deploy_matrix.outputs.just_outputs }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ecs_version != '' && inputs.ecs_version || inputs.lambda_version }}
+
+      - name: Get ECS Deploy Matrix
+        id: ecs_deploy_matrix
+        uses: ./.github/actions/just
+        with:
+          justfile_path: justfile.ci
+          just_action: ecs-get-deploy-matrix
 
   lambdas:
     needs: lambda-matrix
@@ -241,10 +258,11 @@ jobs:
 
   tasks:
     runs-on: ubuntu-latest
+    needs: ecs-matrix
     strategy:
       fail-fast: false
       matrix:
-        value: ${{ fromJson(inputs.task_matrix) }}
+        value: ${{ fromJson(needs.ecs-matrix.outputs.ecs_deploy_matrix) }}
     steps:
       - uses: actions/checkout@v6
 
@@ -257,7 +275,7 @@ jobs:
         id: image_uris
         env:
           ECS_IMAGE_URIS: ${{ inputs.ecs_image_uris }}
-          TASK_NAME: ${{ matrix.value }}
+          ECS_IMAGE_NAME: ${{ matrix.value.image }}
         uses: ./.github/actions/just
         with:
           justfile_path: justfile.ci
@@ -272,22 +290,37 @@ jobs:
           echo "debug_image_uri=$(echo "$IMAGE_URIS_JSON" | jq -r '.debug_image_uri')" >> "$GITHUB_OUTPUT"
           echo "otel_image_uri=$(echo "$IMAGE_URIS_JSON" | jq -r '.otel_image_uri')" >> "$GITHUB_OUTPUT"
 
-      - name: Deploy ${{ matrix.value }} ECS task
+      - name: Set ECS stack paths
+        id: ecs_paths
+        shell: bash
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+          TASK_STACK_TEMPLATE: ${{ matrix.value.task_stack }}
+          SERVICE_STACK_TEMPLATE: ${{ matrix.value.service_stack }}
+        run: |
+          task_stack_path="${TASK_STACK_TEMPLATE//\{environment\}/$ENVIRONMENT}"
+          service_stack_path="${SERVICE_STACK_TEMPLATE//\{environment\}/$ENVIRONMENT}"
+          echo "task_stack_path=$task_stack_path" >> "$GITHUB_OUTPUT"
+          echo "service_stack_path=$service_stack_path" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy ${{ matrix.value.task_stack }} ECS task
         uses: ./.github/actions/terragrunt
         env:
           TF_VAR_image_uri: ${{ steps.task_inputs.outputs.service_image_uri }}
           TF_VAR_debug_image_uri: ${{ steps.task_inputs.outputs.debug_image_uri }}
           TF_VAR_aws_otel_collector_image_uri: ${{ steps.task_inputs.outputs.otel_image_uri }}
         with:
-          tg_directory: infra/live/${{ inputs.environment }}/aws/task_${{ matrix.value }}
+          tg_directory: ${{ steps.ecs_paths.outputs.task_stack_path }}
 
   ecs:
     runs-on: ubuntu-latest
-    needs: tasks
+    needs:
+      - tasks
+      - ecs-matrix
     strategy:
       fail-fast: false
       matrix:
-        value: ${{ fromJson(inputs.task_matrix) }}
+        value: ${{ fromJson(needs.ecs-matrix.outputs.ecs_deploy_matrix) }}
     steps:
       - uses: actions/checkout@v6
 
@@ -296,14 +329,29 @@ jobs:
           role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Get ${{ matrix.value }} task infra
+      - name: Set ECS stack paths
+        id: ecs_paths
+        shell: bash
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+          TASK_STACK_TEMPLATE: ${{ matrix.value.task_stack }}
+          SERVICE_STACK_TEMPLATE: ${{ matrix.value.service_stack }}
+        run: |
+          task_stack_path="${TASK_STACK_TEMPLATE//\{environment\}/$ENVIRONMENT}"
+          service_stack_path="${SERVICE_STACK_TEMPLATE//\{environment\}/$ENVIRONMENT}"
+          service_stack_name="${service_stack_path##*/}"
+          echo "task_stack_path=$task_stack_path" >> "$GITHUB_OUTPUT"
+          echo "service_stack_path=$service_stack_path" >> "$GITHUB_OUTPUT"
+          echo "service_stack_name=$service_stack_name" >> "$GITHUB_OUTPUT"
+
+      - name: Get ${{ matrix.value.task_stack }} task infra
         uses: ./.github/actions/terragrunt
         id: get-task-infra
         with:
-          tg_directory: infra/live/${{ inputs.environment }}/aws/task_${{ matrix.value }}
+          tg_directory: ${{ steps.ecs_paths.outputs.task_stack_path }}
           tg_action: init
 
-      - name: Get ${{ matrix.value }} task outputs
+      - name: Get ${{ matrix.value.task_stack }} task outputs
         id: get-task-outputs
         env:
           TG_OUTPUTS: ${{ steps.get-task-infra.outputs.tg_outputs }}
@@ -311,14 +359,14 @@ jobs:
           echo "task_definition_arn=$(echo "$TG_OUTPUTS" | jq -r '.task_definition_arn.value')" >> "$GITHUB_OUTPUT"
           echo "container_name=$(echo "$TG_OUTPUTS" | jq -r '.service_name.value')" >> "$GITHUB_OUTPUT"
 
-      - name: Get ${{ matrix.value }} service infra
+      - name: Get ${{ matrix.value.service_stack }} service infra
         uses: ./.github/actions/terragrunt
         id: get-service-infra
         with:
-          tg_directory: infra/live/${{ inputs.environment }}/aws/service_${{ matrix.value }}
+          tg_directory: ${{ steps.ecs_paths.outputs.service_stack_path }}
           tg_action: init
 
-      - name: Get ${{ matrix.value }} service outputs
+      - name: Get ${{ matrix.value.service_stack }} service outputs
         id: get-service-outputs
         env:
           SERVICE_OUTPUTS: ${{ steps.get-service-infra.outputs.tg_outputs }}
@@ -328,7 +376,7 @@ jobs:
           echo "container_port=$(echo "$SERVICE_OUTPUTS" | jq -r '.container_port.value')" >> "$GITHUB_OUTPUT"
           echo "codedeploy_app_name=$(echo "$SERVICE_OUTPUTS" | jq -r '.codedeploy_app_name.value')" >> "$GITHUB_OUTPUT"
           echo "codedeploy_group_name=$(echo "$SERVICE_OUTPUTS" | jq -r '.codedeploy_deployment_group_name.value')" >> "$GITHUB_OUTPUT"
-          echo "app_spec_key=ecs/${{ inputs.environment }}/${{ matrix.value }}-$(echo "${{ steps.get-task-outputs.outputs.task_definition_arn }}" | awk -F: '{print $NF}').yml" >> "$GITHUB_OUTPUT"
+          echo "app_spec_key=ecs/${{ inputs.environment }}/${{ steps.ecs_paths.outputs.service_stack_name }}-$(echo "${{ steps.get-task-outputs.outputs.task_definition_arn }}" | awk -F: '{print $NF}').yml" >> "$GITHUB_OUTPUT"
 
       - name: Work out ECS deployment mode
         id: deploy_mode

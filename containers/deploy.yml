@@ -1,0 +1,10 @@
+version: 1
+
+services:
+  - task_stack: infra/live/{environment}/aws/task_api
+    service_stack: infra/live/{environment}/aws/service_api
+    image: api
+
+  - task_stack: infra/live/{environment}/aws/task_worker
+    service_stack: infra/live/{environment}/aws/service_worker
+    image: worker

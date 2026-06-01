@@ -41,12 +41,14 @@ The local version action can also be tested outside GitHub Actions by running th
 `shared_build.yml` builds and publishes frontend, Lambda, and ECS artifacts.
 
 - Lambda builds are derived internally from `lambdas/deploy.yml`; callers do not pass a Lambda matrix.
+- ECS image builds are derived internally from `containers/deploy.yml`; callers do not pass an ECS/container matrix.
 
-`shared_build_get.yml` resolves artifact locations and derives ECS matrices used by downstream deploy wrappers.
+`shared_build_get.yml` resolves artifact locations used by downstream deploy wrappers.
 
 - Its multi-step `images` and `lambdas` jobs configure AWS credentials once.
 - Repeated `just` calls reuse that ambient session against the same account.
 - Prod deploy resolution checks the computed Lambda zip keys from `lambdas/deploy.yml` exist in the shared code bucket.
+- Prod deploy resolution checks the computed ECS image tags from `containers/deploy.yml` exist in ECR.
 
 ```mermaid
 flowchart LR
@@ -89,6 +91,7 @@ Current infra selection comes from the Terragrunt dependency graph and derived w
 - Publishes Lambda versions.
 - Derives Lambda deploy records internally from `lambdas/deploy.yml`; callers do not pass a Lambda matrix.
 - Optionally invokes Lambdas whose deploy manifest entry sets `after_deploy: invoke`.
+- Derives ECS deploy records internally from `containers/deploy.yml`; callers do not pass an ECS task matrix.
 - Registers ECS task revisions.
 - Updates ECS services.
 - Optionally deploys frontend assets.

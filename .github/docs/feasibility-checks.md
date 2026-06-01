@@ -33,7 +33,7 @@ Run these checks on every CI, workflow, or deploy-contract change.
 ## Runtime Coverage
 
 - If Lambda manifest entries change, confirm each `source_dir` exists, each computed zip basename is unique, and each `stack` path exists for every deployed environment.
-- If ECS directories are auto-detected, confirm matching `task_*` and `service_*` live Terragrunt stacks still exist.
+- If ECS manifest entries change, confirm each `image` source exists and each `task_stack` / `service_stack` path exists for every deployed environment.
 - For `*_code` wrappers, confirm dispatch inputs cover every runtime being deployed.
 - If ECS deploys are included, confirm `ecs_version` is exposed or intentionally derived.
 

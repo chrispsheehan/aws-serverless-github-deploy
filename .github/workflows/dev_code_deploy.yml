@@ -9,22 +9,14 @@ permissions:
   contents: write
 
 jobs:
-  setup:
-    name: Discover
-    uses: ./.github/workflows/shared_directories_get.yml
-
   build:
     name: Build
     uses: ./.github/workflows/shared_build.yml
-    needs:
-      - setup
     with:
       environment: dev
       lambda_version: ${{ github.sha }}
       frontend_version: ${{ github.sha }}
       ecs_version: ${{ github.sha }}
-      ecs_matrix: ${{ needs.setup.outputs.container_dirs }}
-
 
   get_build:
     name: Resolve
@@ -46,6 +38,6 @@ jobs:
       environment: dev
       lambda_version: ${{ needs.build.outputs.lambda_version }}
       frontend_version: ${{ needs.build.outputs.frontend_version }}
+      ecs_version: ${{ needs.build.outputs.ecs_version }}
       code_bucket: ${{ needs.get_build.outputs.code_bucket }}
-      task_matrix: ${{ needs.get_build.outputs.ecs_task_matrix }}
       ecs_image_uris: ${{ needs.get_build.outputs.ecs_image_uris }}
