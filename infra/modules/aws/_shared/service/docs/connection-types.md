@@ -18,6 +18,7 @@ Choose connection type based on how the ECS service should be reached.
 - use for HTTP services exposed through the shared API Gateway via VPC link
 - supports ECS CodeDeploy in this repo
 - if JWT auth is enabled, the shared API Gateway authorizer is attached in this service shape
+- task public IP assignment is not part of the inbound path; API Gateway still reaches the internal ALB through the VPC link, and the ALB targets task private IPs
 
 ## Feasibility Notes
 

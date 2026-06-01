@@ -4,6 +4,7 @@ locals {
   image_uri                    = var.image_uri
   aws_otel_collector_image_uri = var.aws_otel_collector_image_uri
   debug_image_uri              = var.debug_image_uri
+  ecr_repository_arn           = "arn:aws:ecr:${var.aws_region}:${data.aws_caller_identity.current.account_id}:repository/${var.ecr_repository_name}"
   root_path_prefix             = var.root_path != "" ? "/${var.root_path}" : ""
 
   shared_environment = [

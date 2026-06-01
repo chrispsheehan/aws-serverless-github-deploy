@@ -58,7 +58,7 @@ flowchart LR
 
 - Delegates graph and wave discovery to `shared_get_modules.yml`.
 - Exposes `waves_json` as reusable-workflow output.
-- Runs `wave_0`, `wave_1`, `wave_2`, and `wave_3` jobs in dependency order.
+- Runs `wave_0` through `wave_3` jobs in dependency order.
 - Each wave only runs when its module array is non-empty.
 - Each wave fans modules out as a matrix, checks out the requested ref, configures AWS credentials once per matrix job, and invokes the repo-local Terragrunt action against `infra/live/<environment>/aws/<module>`.
 - The deprecated `changed_items_json` workflow output remains for compatibility and currently mirrors `waves_json`.
@@ -75,6 +75,9 @@ Current infra selection comes from the Terragrunt dependency graph and derived w
 - shared infra wrappers no longer accept `lambda_matrix` or `service_matrix`
 - shared infra wrappers no longer accept `code_bucket` or `bootstrap_image_uri`
 - the current graph-wave placeholder path only needs `environment`, `infra_version`, and the Terragrunt action context
+- shared infra plan/apply wrappers exclude `task_*` stacks from graph waves; code deploy owns task-definition revision registration and promotion
+- shared infra plan/apply wrappers set `TF_VAR_bootstrap=true` so ECS service stacks can create the stable service surface before the first real task revision is deployed
+- If a live environment is pruned to a smaller or differently shaped dependency closure, run `just tg-graph-waves <env>` and keep the static wave outputs/jobs aligned with the derived dependency depth for that environment.
 
 ## Code Deploy
 

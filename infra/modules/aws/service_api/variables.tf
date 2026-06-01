@@ -50,6 +50,12 @@ variable "connection_type" {
   }
 }
 
+variable "assign_public_ip" {
+  type        = bool
+  description = "Whether to place ECS tasks in public subnets and assign public IPs for direct outbound internet egress. The public API path still reaches tasks through API Gateway, VPC Link, the internal ALB, and each task's private IP."
+  default     = false
+}
+
 variable "local_tunnel" {
   type    = bool
   default = false

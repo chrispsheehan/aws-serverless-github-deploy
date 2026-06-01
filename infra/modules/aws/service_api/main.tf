@@ -10,7 +10,8 @@ module "service_api" {
   aws_region          = var.aws_region
   ecr_repository_name = var.ecr_repository_name
   vpc_id              = data.aws_vpc.this.id
-  private_subnet_ids  = data.aws_subnets.private.ids
+  subnet_ids          = var.assign_public_ip ? data.aws_subnets.public.ids : data.aws_subnets.private.ids
+  assign_public_ip    = var.assign_public_ip
 
   cluster_id            = var.cluster_id
   cluster_name          = var.cluster_name

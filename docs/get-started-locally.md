@@ -39,6 +39,7 @@ The AWS account must already have the landing-zone or StackSet network in place 
 - the Terraform in this repo reads the VPC and subnets with `data` sources rather than creating them
 - the expected VPC and subnets must therefore already exist
 - the private subnets must be tagged so the module lookups can find them, for example with names matching `*private*`
+- ECS service stacks can optionally place tasks in public subnets with public IPs; public subnets must be tagged so the lookups can find names matching `*public*`
 - if you plan to deploy the frontend custom domain, the matching Route53 hosted zone must also already exist
 - the S3 Terraform state bucket should have bucket versioning enabled, because the repo uses the [Terraform S3 backend](https://developer.hashicorp.com/terraform/language/backend/s3) lockfile path rather than DynamoDB state locking
 

@@ -50,25 +50,11 @@ dependency "messaging" {
   mock_outputs_allowed_terraform_commands = ["validate", "plan", "destroy", "init", "show", "graph-dependencies", "output-module-groups"]
 }
 
-dependency "code_bucket" {
-  config_path = "${get_original_terragrunt_dir()}/../code_bucket"
-
-  mock_outputs = {
-    bucket = "mock-code-bucket"
-  }
-
-  mock_outputs_merge_strategy_with_state  = "shallow"
-  mock_outputs_allowed_terraform_commands = ["validate", "plan", "destroy", "init", "show", "graph-dependencies", "output-module-groups"]
-}
-
 terraform {
   source = "../../../../modules//aws//lambda_api"
 }
 
 inputs = merge(
-  {
-    code_bucket = dependency.code_bucket.outputs.bucket
-  },
   {
     network_default_target_group_arn  = dependency.network.outputs.default_target_group_arn
     network_load_balancer_arn         = dependency.network.outputs.load_balancer_arn
@@ -85,14 +71,14 @@ inputs = merge(
   },
   dependency.messaging.outputs,
   {
-    api_5xx_alarm_threshold           = 20.0
-    api_5xx_alarm_evaluation_periods  = 1
-    api_5xx_alarm_datapoints_to_alarm = 1
+    api_5xx_alarm_threshold           = 5.0
+    api_5xx_alarm_evaluation_periods  = 3
+    api_5xx_alarm_datapoints_to_alarm = 3
 
     deployment_config = {
       strategy         = "canary"
       percentage       = 10
-      interval_minutes = 3
+      interval_minutes = 5
     }
 
     provisioned_config = {

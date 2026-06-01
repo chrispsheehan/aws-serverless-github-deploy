@@ -18,7 +18,7 @@ These instructions apply to the entire repository.
 
 ## Escalation (Commands That Often Need Real AWS/Network/Docker)
 
-- request escalation for `just tg <env> <module> plan|validate` and `just tg-all <op>`
+- request escalation for `just tg <env> <module> validate` and `just tg-all <env> plan|apply|destroy`
 - request escalation for Docker local-stack debugging (for example `docker compose -f docker-compose.local.yml logs|ps|exec|up|down`)
 - prefer asking for escalation up front when the task clearly depends on AWS, remote state, or the local Docker daemon
 
@@ -95,14 +95,26 @@ These instructions apply to the entire repository.
 - do not broaden the CI role to match the shared `allowed_role_actions` set unless the user explicitly asks for that contract change
 - if a task needs deploy permissions, call out that this fails the CI-role scope and name the missing AWS actions/services
 
+## Protected Live Stacks
+
+- never remove `aws/oidc`, `aws/ecr`, or `aws/code_bucket` from `infra/live/dev` or `infra/live/ci`
+- treat those stacks as protected deployment scaffolding even when pruning an environment to a smaller runtime subset
+- if a requested subset appears to exclude one of those protected stacks, keep the stack and call out that it is retained for workflow/bootstrap support
+
 ## Feasibility + Dependency Checks (When Editing Infra / Workflows)
 
 - verify runtime type (Lambda/ECS), deploy mode, and (for ECS) connection type and load-balancer shape
 - verify required infra resources exist (CodeDeploy app/deployment group, listeners/target groups, alarms, VPC link if applicable)
+- when changing ECS service subnet placement or `assign_public_ip`, reason about effective egress rather than subnet names alone: a Fargate task in a public subnet with `assign_public_ip = false` still lacks direct internet egress through the Internet Gateway
+- treat ECS direct internet egress as requiring a public-routed subnet, `assign_public_ip = true`, and outbound network policy that permits the traffic
+- if every ECS service that needs AWS or public API access has direct internet egress, suggest that ECS-only VPC endpoints may no longer be needed; if any ECS service lacks direct internet egress, suggest keeping the required VPC endpoints or NAT path
+- before suggesting VPC endpoint removal, also check whether non-ECS private runtimes still depend on those endpoints
+- do not remove VPC endpoints automatically when changing ECS egress; suggest the cleanup to the user unless explicitly asked to implement it
 - before adding a Terragrunt `dependency` or `dependencies` path, verify the target live stack actually exists in that environment/repo slice
 - when changing reusable workflow contracts, compare every caller `with:` block to the callee `workflow_call.inputs`
 - when a workflow input, output, or metadata field is no longer consumed, remove it from the shared contract and callers in the same change rather than leaving dead plumbing behind
-- when changing Terragrunt `*.hcl` dependency edges, re-check the derived infra wave count; the current shared module-discovery/workflow contract only exposes `wave_0_modules`, `wave_1_modules`, and `wave_2_modules`
+- when changing Terragrunt `*.hcl` dependency edges or pruning a live environment to a selected dependency closure, run `just tg-graph-waves <env>` for every affected live environment, count the dependency levels after applying the same module filters used by the workflow, and keep workflow wave outputs/jobs/docs aligned with that derived count
+- for shared infra plan/apply workflows, exclude `task_*` stacks from the derived wave count; task-definition stacks are owned by code deploy and must not force extra infra apply waves
 - when adding or renaming Terraform module `output` values that are intended for Terragrunt `dependency.<name>.outputs` passthrough, verify every downstream consumer wrapper declares a `variable` with the exact same name
 - if that same-name output-to-variable contract does not hold yet, do not leave it implicit: either add the matching variables, or call out the mismatch explicitly before closing the task
 - check apply/deploy/destroy, and avoid unnecessary `terraform_remote_state` coupling (especially for fast-changing outputs)
@@ -113,9 +125,9 @@ These instructions apply to the entire repository.
 
 ## Terragrunt Plan Expectation
 
-- when a change touches `*.hcl`, Terraform modules, live Terragrunt stacks, or downstream dependencies that can affect Terraform evaluation or plan output, run the relevant `just tg <env> <module> plan` command before closing the task when feasible
-- choose the smallest relevant plan surface rather than defaulting to `run-all`; for example, plan only the affected `dev`, `ci`, or `prod` stack(s)
-- when shared modules or remote-state contracts change, consider the downstream consumer stacks too and run plans for the affected dependents, not just the module wrapper you edited
+- when a change touches `*.hcl`, Terraform modules, live Terragrunt stacks, or downstream dependencies that can affect Terraform evaluation or plan output, run `just tg-all dev plan` before closing the task when feasible
+- use `just tg-all <env> plan` as the default verification surface for infra changes; run targeted `just tg <env> <module> validate` or focused plans only as additional debugging, not as the replacement for the environment plan
+- when shared modules or remote-state contracts change, rely on the environment plan to cover downstream consumers rather than planning only the module wrapper you edited
 - treat saved plans as apply-intent artifacts, not as general previews: only keep a `plan` you expect to apply, because Terraform reuses the exact planned variable values during `apply_plan`
 - be especially careful on first deploys or bootstrap-sensitive stacks that use Terragrunt `mock_outputs` for planability; if a saved plan captured mock values, discard it and create a fresh plan after the upstream real outputs exist
 - if a plan is not feasible because credentials, network, permissions, or state access are unavailable, say that explicitly in the final response and name the plan command that should be run manually

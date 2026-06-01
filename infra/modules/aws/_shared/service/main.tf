@@ -170,8 +170,8 @@ resource "aws_ecs_service" "service" {
   launch_type     = "FARGATE"
 
   network_configuration {
-    subnets          = var.private_subnet_ids
-    assign_public_ip = false
+    subnets          = var.subnet_ids
+    assign_public_ip = var.assign_public_ip
     security_groups = concat(
       [var.ecs_security_group_id],
       var.additional_security_group_ids,
@@ -203,6 +203,11 @@ resource "aws_ecs_service" "service" {
   }
 
   lifecycle {
+    precondition {
+      condition     = length(var.subnet_ids) > 0
+      error_message = "Selected ECS service subnet list must not be empty."
+    }
+
     # Deploy workflows own the live task revision. Terraform keeps the service stable without reverting the currently deployed revision.
 
     # For CODE_DEPLOY services, ECS also rejects load balancer updates through UpdateService. Terraform still owns the target group and listener-rule
