@@ -160,8 +160,27 @@ jobs:
     needs:
       - check
       - format-github
-    if: ${{ needs.check.outputs.lambdas == 'true' || needs.check.outputs.containers == 'true' || needs.check.outputs.actions == 'true' }}
+    if: ${{ needs.check.outputs.containers == 'true' || needs.check.outputs.actions == 'true' }}
     uses: ./.github/workflows/shared_directories_get.yml
+
+  lambda-build-matrix:
+    name: Lambda Build Records
+    needs:
+      - check
+      - check-lambda-manifest
+    if: ${{ needs.check.outputs.lambdas == 'true' }}
+    runs-on: ubuntu-latest
+    outputs:
+      lambda_build_matrix: ${{ steps.lambda_build_matrix.outputs.just_outputs }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Get Lambda Build Matrix
+        id: lambda_build_matrix
+        uses: ./.github/actions/just
+        with:
+          justfile_path: justfile.ci
+          just_action: lambda-get-build-matrix
 
   action-docker-unit-tests:
     name: GH Action Docker Unit Tests
@@ -229,21 +248,18 @@ jobs:
           justfile_path: justfile.ci
           just_action: tf-lint-check
 
-  check-lambda-naming:
+  check-lambda-manifest:
     needs: check
     runs-on: ubuntu-latest
     if: ${{ needs.check.outputs.lambdas == 'true' }}
-    name: Lambda Pairs
+    name: Lambda Manifest
     steps:
       - uses: actions/checkout@v6
-      - name: Fail if any lambda directory uses hyphens
-        run: |
-          bad_dirs=$(find lambdas -mindepth 1 -maxdepth 1 -type d -name '*-*')
-          if [ -n "$bad_dirs" ]; then
-            echo "::error::❌ Lambda directories must use underscores, not hyphens: $bad_dirs"
-            exit 1
-          fi
-          echo "✅ All lambda directories use underscores."
+      - name: Validate Lambda deploy manifest
+        uses: ./.github/actions/just
+        with:
+          justfile_path: justfile.ci
+          just_action: lambda-get-deploy-matrix
 
   check-ecs-module-pairs:
     needs: check
@@ -300,20 +316,21 @@ jobs:
     if: ${{ needs.check.outputs.lambdas == 'true' }}
     needs:
       - check
-      - check-lambda-naming
-      - setup
+      - check-lambda-manifest
+      - lambda-build-matrix
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        value: ${{ fromJson(needs.setup.outputs.lambda_dirs) }}
+        value: ${{ fromJson(needs.lambda-build-matrix.outputs.lambda_build_matrix) }}
     steps:
       - uses: actions/checkout@v6
 
-      - name: "Build ${{ matrix.value }} Lambda"
+      - name: "Build ${{ matrix.value.artifact_name }} Lambda"
         uses: ./.github/actions/just
         env:
-          LAMBDA_NAME: ${{ matrix.value }}
+          LAMBDA_SOURCE_DIR: ${{ matrix.value.source_dir }}
+          LAMBDA_ARTIFACT_NAME: ${{ matrix.value.artifact_name }}
         with:
           justfile_path: justfile.deploy
           just_action: lambda-build

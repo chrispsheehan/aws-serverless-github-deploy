@@ -269,3 +269,5 @@ In CI workflows, be careful whether a matrix is carrying:
 - or concrete stack names like `task_worker` / `service_worker`
 
 That distinction has caused several workflow bugs already.
+
+Lambda deploy records are derived internally from `lambdas/deploy.yml`. Wrapper workflows should not pass Lambda matrices; update the manifest instead.

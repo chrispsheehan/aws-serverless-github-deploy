@@ -21,9 +21,9 @@ Use this when editing shared workflows under `.github/workflows/shared_*.yml` or
 - Its `check` job normally runs `.github/actions/get-changes` using the PR base SHA for a PR-style `base...HEAD` diff.
 - Manual `workflow_dispatch` runs force every change flag on and rerun the full validation surface without a PR diff.
 - When `.github/actions/**` changed, it reuses `shared_directories_get.yml` to discover action directories with `Dockerfile`s and runs a Docker unit-test matrix after GitHub formatting.
-- Lambda naming checks only run when Lambda sources changed.
+- Lambda manifest validation only runs when Lambda sources changed.
 - ECS task/service pair checks run when container sources or Terragrunt live-stack directories changed.
-- Lambda naming and ECS task/service pair checks are explicit prerequisites for the corresponding build jobs.
+- Lambda manifest validation and ECS task/service pair checks are explicit prerequisites for the corresponding build jobs.
 - Terragrunt installation uses `jdx/mise-action@v4`.
 - TFLint setup uses the Node 24 `terraform-linters/setup-tflint@v6` line.
 
@@ -40,10 +40,13 @@ The local version action can also be tested outside GitHub Actions by running th
 
 `shared_build.yml` builds and publishes frontend, Lambda, and ECS artifacts.
 
-`shared_build_get.yml` resolves artifact locations and derives matrices used by downstream deploy wrappers.
+- Lambda builds are derived internally from `lambdas/deploy.yml`; callers do not pass a Lambda matrix.
+
+`shared_build_get.yml` resolves artifact locations and derives ECS matrices used by downstream deploy wrappers.
 
 - Its multi-step `images` and `lambdas` jobs configure AWS credentials once.
 - Repeated `just` calls reuse that ambient session against the same account.
+- Prod deploy resolution checks the computed Lambda zip keys from `lambdas/deploy.yml` exist in the shared code bucket.
 
 ```mermaid
 flowchart LR
@@ -84,8 +87,8 @@ Current infra selection comes from the Terragrunt dependency graph and derived w
 `shared_deploy.yml` rolls out feature code.
 
 - Publishes Lambda versions.
-- Optionally invokes the `migrations` Lambda when it is part of the Lambda deploy matrix.
-- Optionally runs reconciliation Lambdas.
+- Derives Lambda deploy records internally from `lambdas/deploy.yml`; callers do not pass a Lambda matrix.
+- Optionally invokes Lambdas whose deploy manifest entry sets `after_deploy: invoke`.
 - Registers ECS task revisions.
 - Updates ECS services.
 - Optionally deploys frontend assets.

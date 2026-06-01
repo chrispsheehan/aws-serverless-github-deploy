@@ -98,9 +98,18 @@ lambda-build:
     #!/usr/bin/env bash
     set -euo pipefail
 
-    if [[ -z "$LAMBDA_NAME" ]]; then
-        echo "❌ LAMBDA_NAME environment variable is not set."
+    if [[ -z "${LAMBDA_SOURCE_DIR:-}" && -z "${LAMBDA_NAME:-}" ]]; then
+        echo "❌ LAMBDA_SOURCE_DIR or LAMBDA_NAME environment variable is required."
         exit 1
+    fi
+
+    lambda_source_dir="${LAMBDA_SOURCE_DIR:-{{LAMBDA_DIR}}/$LAMBDA_NAME}"
+    lambda_artifact_name="${LAMBDA_ARTIFACT_NAME:-$(basename "$lambda_source_dir")}"
+
+    if [[ "$lambda_source_dir" = /* ]]; then
+        lambda_source_path="$lambda_source_dir"
+    else
+        lambda_source_path="{{PROJECT_DIR}}/$lambda_source_dir"
     fi
 
     python3 -m venv .venv
@@ -111,21 +120,21 @@ lambda-build:
     echo "🔄 Cleaning previous builds..."
     rm -rf $LAMBDA_BUILD_DIR
 
-    echo "📦 Building $LAMBDA_NAME Lambda..."
-    pip install --target "$LAMBDA_BUILD_DIR/$LAMBDA_NAME" -r "{{PROJECT_DIR}}/{{LAMBDA_DIR}}/$LAMBDA_NAME/requirements.txt"
-    cp "{{PROJECT_DIR}}/{{LAMBDA_DIR}}/$LAMBDA_NAME"/*.py "$LAMBDA_BUILD_DIR/$LAMBDA_NAME/"
-    cp "{{PROJECT_DIR}}/{{LAMBDA_DIR}}/lib/lambda_shared.py" "$LAMBDA_BUILD_DIR/$LAMBDA_NAME/"
-    cp "{{PROJECT_DIR}}/lib/db_shared.py" "$LAMBDA_BUILD_DIR/$LAMBDA_NAME/"
-    cp "{{PROJECT_DIR}}/lib/runtime_logging.py" "$LAMBDA_BUILD_DIR/$LAMBDA_NAME/"
-    if [[ -d "{{PROJECT_DIR}}/{{LAMBDA_DIR}}/$LAMBDA_NAME/database_models" ]]; then
-        cp -R "{{PROJECT_DIR}}/{{LAMBDA_DIR}}/$LAMBDA_NAME/database_models" "$LAMBDA_BUILD_DIR/$LAMBDA_NAME/"
+    echo "📦 Building $lambda_artifact_name Lambda from $lambda_source_dir..."
+    pip install --target "$LAMBDA_BUILD_DIR/$lambda_artifact_name" -r "$lambda_source_path/requirements.txt"
+    cp "$lambda_source_path"/*.py "$LAMBDA_BUILD_DIR/$lambda_artifact_name/"
+    cp "{{PROJECT_DIR}}/{{LAMBDA_DIR}}/lib/lambda_shared.py" "$LAMBDA_BUILD_DIR/$lambda_artifact_name/"
+    cp "{{PROJECT_DIR}}/lib/db_shared.py" "$LAMBDA_BUILD_DIR/$lambda_artifact_name/"
+    cp "{{PROJECT_DIR}}/lib/runtime_logging.py" "$LAMBDA_BUILD_DIR/$lambda_artifact_name/"
+    if [[ -d "$lambda_source_path/database_models" ]]; then
+        cp -R "$lambda_source_path/database_models" "$LAMBDA_BUILD_DIR/$lambda_artifact_name/"
     fi
-    find "$LAMBDA_BUILD_DIR/$LAMBDA_NAME" -type f -name '*.md' -delete
+    find "$LAMBDA_BUILD_DIR/$lambda_artifact_name" -type f -name '*.md' -delete
     (
-        cd "$LAMBDA_BUILD_DIR/$LAMBDA_NAME"
-        zip -r "../../$LAMBDA_NAME.zip" . > /dev/null
+        cd "$LAMBDA_BUILD_DIR/$lambda_artifact_name"
+        zip -r "../../$lambda_artifact_name.zip" . > /dev/null
     )
-    echo "✅ Done: lambdas/$LAMBDA_NAME.zip"
+    echo "✅ Done: lambdas/$lambda_artifact_name.zip"
 
 
 # Upload a packaged Lambda zip to the shared code bucket.
@@ -133,8 +142,8 @@ lambda-upload:
     #!/usr/bin/env bash
     set -euo pipefail
 
-    if [[ -z "$LAMBDA_NAME" ]]; then
-        echo "❌ LAMBDA_NAME environment variable is not set."
+    if [[ -z "${LAMBDA_SOURCE_DIR:-}" && -z "${LAMBDA_NAME:-}" ]]; then
+        echo "❌ LAMBDA_SOURCE_DIR or LAMBDA_NAME environment variable is required."
         exit 1
     fi
 
@@ -148,10 +157,13 @@ lambda-upload:
         exit 1
     fi
 
-    LAMBDA_ZIP="{{PROJECT_DIR}}/{{LAMBDA_DIR}}/$LAMBDA_NAME.zip"
-    echo "📤 Uploading $LAMBDA_ZIP to s3://$BUCKET_NAME/lambdas/$VERSION/$LAMBDA_NAME.zip"
+    lambda_source_dir="${LAMBDA_SOURCE_DIR:-{{LAMBDA_DIR}}/$LAMBDA_NAME}"
+    lambda_artifact_name="${LAMBDA_ARTIFACT_NAME:-$(basename "$lambda_source_dir")}"
 
-    aws s3 cp "$LAMBDA_ZIP" "s3://$BUCKET_NAME/lambdas/$VERSION/$LAMBDA_NAME.zip" \
+    LAMBDA_ZIP="{{PROJECT_DIR}}/{{LAMBDA_DIR}}/$lambda_artifact_name.zip"
+    echo "📤 Uploading $LAMBDA_ZIP to s3://$BUCKET_NAME/lambdas/$VERSION/$lambda_artifact_name.zip"
+
+    aws s3 cp "$LAMBDA_ZIP" "s3://$BUCKET_NAME/lambdas/$VERSION/$lambda_artifact_name.zip" \
         --storage-class STANDARD
 
 

@@ -3,9 +3,6 @@ name: Shared Directories Get
 on:
   workflow_call:
     outputs:
-      lambda_dirs:
-        description: "List of lambda directory names"
-        value: ${{ jobs.directories.outputs.lambda_dirs }}
       container_dirs:
         description: "List of container directory names"
         value: ${{ jobs.directories.outputs.container_dirs }}
@@ -25,7 +22,6 @@ jobs:
   directories:
     runs-on: ubuntu-latest
     outputs:
-      lambda_dirs: ${{ steps.lambda_dirs.outputs.just_outputs }}
       container_dirs: ${{ steps.container_dirs.outputs.just_outputs }}
       service_dirs: ${{ steps.service_dirs.outputs.just_outputs }}
       task_dirs: ${{ steps.task_dirs.outputs.just_outputs }}
@@ -33,13 +29,6 @@ jobs:
       action_dirs: ${{ steps.action_dirs.outputs.just_outputs }}
     steps:
       - uses: actions/checkout@v6
-
-      - name: Get Lambda Directories
-        id: lambda_dirs
-        uses: ./.github/actions/just
-        with:
-          justfile_path: justfile.ci
-          just_action: lambda-get-directories
 
       - name: Get Service Directories
         id: service_dirs

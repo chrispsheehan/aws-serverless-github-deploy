@@ -222,8 +222,101 @@ lambda-check-version:
     fi
 
 
-# List Lambda artifact basenames for a published version.
-get-version-files:
+# Render Lambda deploy manifest records as compact JSON.
+lambda-get-deploy-matrix:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    cd "{{PROJECT_DIR}}"
+
+    ruby -ryaml -rjson -rpathname -e '
+      manifest_path = ARGV.fetch(0)
+      project_dir = Pathname(ARGV.fetch(1)).realpath
+      manifest = YAML.safe_load(File.read(manifest_path), aliases: false)
+
+      unless manifest.is_a?(Hash) && manifest["version"] == 1
+        abort("Error: #{manifest_path} must declare version: 1")
+      end
+
+      lambdas = manifest["lambdas"]
+      unless lambdas.is_a?(Array) && !lambdas.empty?
+        abort("Error: #{manifest_path} must declare a non-empty lambdas list")
+      end
+
+      artifacts = {}
+      records = lambdas.each_with_index.map do |record, index|
+        unless record.is_a?(Hash)
+          abort("Error: lambdas[#{index}] must be a mapping")
+        end
+
+        stack = record["stack"]
+        source_dir = record["source_dir"]
+        after_deploy = record["after_deploy"]
+
+        unless stack.is_a?(String) && stack.start_with?("infra/live/{environment}/aws/")
+          abort("Error: lambdas[#{index}].stack must start with infra/live/{environment}/aws/")
+        end
+
+        unless source_dir.is_a?(String) && !source_dir.empty? && !Pathname(source_dir).absolute? && !source_dir.split("/").include?("..")
+          abort("Error: lambdas[#{index}].source_dir must be a repo-relative path")
+        end
+
+        source_path = project_dir.join(source_dir)
+        unless source_path.directory?
+          abort("Error: lambdas[#{index}].source_dir does not exist: #{source_dir}")
+        end
+
+        if after_deploy && after_deploy != "invoke"
+          abort("Error: lambdas[#{index}].after_deploy only supports invoke")
+        end
+
+        artifact_name = File.basename(source_dir)
+        artifact_file = "#{artifact_name}.zip"
+        prior_source_dir = artifacts[artifact_file]
+        if prior_source_dir && prior_source_dir != source_dir
+          abort("Error: Lambda artifact collision: #{prior_source_dir} and #{source_dir} both produce #{artifact_file}")
+        end
+        artifacts[artifact_file] = source_dir
+
+        output = {
+          "stack" => stack,
+          "source_dir" => source_dir,
+          "artifact_name" => artifact_name,
+          "artifact_file" => artifact_file
+        }
+        output["after_deploy"] = after_deploy if after_deploy
+        output
+      end
+
+      puts JSON.generate(records)
+    ' "{{PROJECT_DIR}}/{{LAMBDA_DIR}}/deploy.yml" "{{PROJECT_DIR}}"
+
+
+# Discover unique Lambda source directories to build from the deploy manifest.
+lambda-get-build-matrix:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    deploy_matrix="$(just --justfile "{{PROJECT_DIR}}/justfile.ci" lambda-get-deploy-matrix)"
+
+    jq -cn --argjson lambdas "$deploy_matrix" '
+      reduce $lambdas[] as $lambda
+        ([];
+         if any(.[]; .source_dir == $lambda.source_dir) then
+           .
+         else
+           . + [{
+             source_dir: $lambda.source_dir,
+             artifact_name: $lambda.artifact_name,
+             artifact_file: $lambda.artifact_file
+           }]
+         end
+        )
+    '
+
+
+# Check every Lambda artifact from the deploy manifest exists for the requested version.
+lambda-check-deploy-artifacts:
     #!/usr/bin/env bash
     set -euo pipefail
 
@@ -237,46 +330,16 @@ get-version-files:
         exit 1
     fi
 
-    FULL_BUCKET_PATH="s3://$BUCKET_NAME/lambdas/$VERSION/"
+    deploy_matrix="$(just --justfile "{{PROJECT_DIR}}/justfile.ci" lambda-get-deploy-matrix)"
 
-    aws s3api head-bucket --bucket "$BUCKET_NAME" >/dev/null
-    aws s3 ls "$FULL_BUCKET_PATH" >/dev/null
-
-    aws s3 ls "$FULL_BUCKET_PATH" --recursive \
-      | awk '{print $4}' \
-      | xargs -n1 basename \
-      | sed 's/\.[^.]*$//' \
-      | grep -v 'appspec' \
-      | jq -R . \
-      | jq -s -c .
-
-
-# List Lambda zip object keys for a published version.
-get-version-file-keys:
-    #!/usr/bin/env bash
-    set -euo pipefail
-
-    if [[ -z "$BUCKET_NAME" ]]; then
-        echo "❌ BUCKET_NAME environment variable is not set."
-        exit 1
-    fi
-
-    if [[ -z "$VERSION" ]]; then
-        echo "❌ VERSION environment variable is not set."
-        exit 1
-    fi
-
-    FULL_BUCKET_PATH="s3://$BUCKET_NAME/lambdas/$VERSION/"
-
-    aws s3api head-bucket --bucket "$BUCKET_NAME" >/dev/null
-    aws s3 ls "$FULL_BUCKET_PATH" >/dev/null
-
-    aws s3 ls "$FULL_BUCKET_PATH" --recursive \
-      | awk '{print $4}' \
-      | grep '\.zip$' \
-      | grep -v 'appspec' \
-      | jq -R . \
-      | jq -s -c .
+    jq -r '.[].artifact_file' <<< "$deploy_matrix" \
+      | sort -u \
+      | while read -r artifact_file; do
+          key="lambdas/$VERSION/$artifact_file"
+          aws s3 ls "s3://$BUCKET_NAME/$key" >/dev/null \
+            && echo "✅ $key found" \
+            || (echo "❌ $key not found in s3://$BUCKET_NAME" && exit 1)
+        done
 
 
 # Return the Lambda artifact directory name from the repo-root justfile.
@@ -340,20 +403,6 @@ get-ecr-version-tasks:
       $images
       | map(select(. != "bootstrap" and . != "debug" and . != "otel_collector"))
       '
-
-
-# Discover deployable Lambda directory names.
-lambda-get-directories:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    find "{{LAMBDA_DIR}}" -mindepth 1 -maxdepth 1 -type d \
-      | xargs -I{} basename "{}" \
-      | grep -v '^build$' \
-      | grep -v '^lib$' \
-      | grep -v '^_shared$' \
-      | tr '-' '_' \
-      | jq -R . \
-      | jq -s -c .
 
 
 # Discover deployable ECS service/container directory names.

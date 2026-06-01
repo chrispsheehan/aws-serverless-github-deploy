@@ -4,7 +4,16 @@ Use this when changing directory discovery, runtime matrices, service/container 
 
 ## Directory Discovery
 
-`shared_directories_get.yml` derives directory-based matrices used by wrapper workflows and PR action-test discovery.
+`shared_directories_get.yml` derives ECS and repo-local action matrices used by wrapper workflows and PR action-test discovery.
+
+Lambda discovery is manifest-based:
+
+- `lambdas/deploy.yml` is the source of truth for Lambda build and deploy records.
+- `shared_build.yml` derives unique Lambda source records from the manifest when it runs.
+- `shared_deploy.yml` derives every Lambda deploy record from the manifest when it runs.
+- wrapper workflows do not pass Lambda matrices; changing the Lambda deployment set is a `lambdas/deploy.yml` change.
+- `stack` values are repo-relative Terragrunt stack path templates such as `infra/live/{environment}/aws/lambda_api`.
+- `source_dir` values are repo-relative source paths; the artifact filename is computed from `basename(source_dir)`.
 
 `service_dirs` and `container_dirs` are intentionally different:
 
@@ -15,7 +24,7 @@ Use this when changing directory discovery, runtime matrices, service/container 
 
 Top-level runtime discovery rules:
 
-- top-level Lambda directories under `lambdas/` are deployable functions, excluding generated build output
+- Lambda deployability is declared in `lambdas/deploy.yml`; top-level Lambda directories are not deploy targets unless the manifest references them
 - top-level deployable ECS service directories under `containers/` are exposed through `service_dirs`
 - the broader `container_dirs` matrix includes deployable service directories plus shared sidecar image targets
 
@@ -50,7 +59,7 @@ Each wave contains only modules whose direct dependencies were satisfied by earl
 
 ## Runtime Coverage Checks
 
-- If Lambda directories are auto-detected, confirm matching live Terragrunt stacks still exist.
+- If Lambda manifest entries change, confirm each `stack` path exists for every deployed environment and each `source_dir` still builds.
 - If ECS directories are auto-detected, confirm matching `task_*` and `service_*` live Terragrunt stacks still exist.
 - For `*_code` wrappers, confirm dispatch inputs cover every runtime being deployed.
 - If ECS deploys are included, confirm `ecs_version` is exposed or intentionally derived.

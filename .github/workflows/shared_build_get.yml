@@ -40,12 +40,6 @@ on:
       ecs_service_matrix:
         description: "List of ECS service stack names for the version"
         value: ${{ jobs.images.outputs.ecs_service_matrix }}
-      lambda_version_files:
-        description: "List of lambda names"
-        value: ${{ jobs.lambdas.outputs.lambda_version_files }}
-      lambda_s3_keys:
-        description: "List of lambda S3 object keys"
-        value: ${{ jobs.lambdas.outputs.lambda_s3_keys }}
 
 concurrency: # only run one instance of workflow at any one time
   group: ${{ github.workflow }}-${{ inputs.environment }}
@@ -223,9 +217,6 @@ jobs:
   lambdas:
     needs: bucket
     runs-on: ubuntu-latest
-    outputs:
-      lambda_version_files: ${{ steps.get_build_files.outputs.just_outputs }}
-      lambda_s3_keys: ${{ steps.get_build_file_keys.outputs.just_outputs }}
 
     steps:
       - uses: actions/checkout@v6
@@ -246,22 +237,11 @@ jobs:
           justfile_path: justfile.ci
           just_action: lambda-check-version
 
-      - name: Get lambda names
-        id: get_build_files
+      - name: Check Lambda deploy artifacts exist
         uses: ./.github/actions/just
         env:
           BUCKET_NAME: ${{ needs.bucket.outputs.code_bucket_name }}
           VERSION: ${{ inputs.lambda_version }}
         with:
           justfile_path: justfile.ci
-          just_action: get-version-files
-
-      - name: Get lambda S3 keys
-        id: get_build_file_keys
-        uses: ./.github/actions/just
-        env:
-          BUCKET_NAME: ${{ needs.bucket.outputs.code_bucket_name }}
-          VERSION: ${{ inputs.lambda_version }}
-        with:
-          justfile_path: justfile.ci
-          just_action: get-version-file-keys
+          just_action: lambda-check-deploy-artifacts
