@@ -280,6 +280,12 @@ jobs:
           justfile_path: justfile.ci
           just_action: lambda-get-deploy-matrix
 
+      - name: Validate Lambda stack paths
+        uses: ./.github/actions/just
+        with:
+          justfile_path: justfile.ci
+          just_action: lambda-check-deploy-stacks
+
   check-ecs-module-pairs:
     needs: check
     runs-on: ubuntu-latest

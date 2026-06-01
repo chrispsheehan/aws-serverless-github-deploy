@@ -21,7 +21,7 @@ Use this when editing shared workflows under `.github/workflows/shared_*.yml` or
 - Its `check` job normally runs `.github/actions/get-changes` using the PR base SHA for a PR-style `base...HEAD` diff.
 - Manual `workflow_dispatch` runs force every change flag on and rerun the full validation surface without a PR diff.
 - When `.github/actions/**` changed, it reuses `shared_directories_get.yml` to discover action directories with `Dockerfile`s and runs a Docker unit-test matrix after GitHub formatting.
-- Lambda manifest validation only runs when Lambda sources changed.
+- Lambda manifest validation only runs when Lambda sources changed, and checks both the deploy manifest and matching live stack paths.
 - ECS task/service pair checks run when container sources or Terragrunt live-stack directories changed.
 - Lambda manifest validation and ECS task/service pair checks are explicit prerequisites for the corresponding build jobs.
 - Terragrunt installation uses `jdx/mise-action@v4`.

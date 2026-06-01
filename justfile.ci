@@ -313,6 +313,46 @@ lambda-get-build-matrix:
     '
 
 
+# Check every Lambda stack in the deploy manifest exists in runtime environments.
+lambda-check-deploy-stacks:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    deploy_matrix="$(just --justfile "{{PROJECT_DIR}}/justfile.ci" lambda-get-deploy-matrix)"
+
+    ruby -rjson -rpathname -e '
+      project_dir = Pathname(ARGV.fetch(0)).realpath
+      records = JSON.parse(STDIN.read)
+      stack_templates = records.map { |record| record.fetch("stack") }
+      env_dirs = project_dir.glob("infra/live/*/aws").select(&:directory?)
+      missing = []
+      checked = []
+
+      env_dirs.each do |aws_dir|
+        env_name = aws_dir.parent.basename.to_s
+        stack_paths = stack_templates.map { |template| template.gsub("{environment}", env_name) }
+        existing = stack_paths.select { |path| project_dir.join(path).directory? }
+        next if existing.empty?
+
+        checked << env_name
+        stack_paths.each do |path|
+          missing << path unless project_dir.join(path).directory?
+        end
+      end
+
+      if checked.empty?
+        abort("Error: no live environment contains any Lambda stack from lambdas/deploy.yml")
+      end
+
+      unless missing.empty?
+        missing.each { |path| warn("::error::Missing Lambda stack path: #{path}") }
+        exit 1
+      end
+
+      puts "Lambda manifest stacks are present in: #{checked.sort.join(", ")}"
+    ' "{{PROJECT_DIR}}" <<< "$deploy_matrix"
+
+
 # Check every Lambda artifact from the deploy manifest exists for the requested version.
 lambda-check-deploy-artifacts:
     #!/usr/bin/env bash
