@@ -41,6 +41,7 @@ Run these checks on every CI, workflow, or deploy-contract change.
 
 - Check apply, deploy, and destroy behavior, not just apply.
 - Verify Terragrunt dependencies and downstream consumers still exist and are ordered correctly.
+- After HCL, Terraform module, live stack dependency, or infra ordering changes, verify with `just tg-all dev plan`; use individual module plans only as extra debugging.
 - Prefer fixing avoidable cross-stack coupling instead of adding workflow serialization.
 - Keep `shared_infra.yml` as the pure graph executor and prefer handling metadata creation/recovery in dedicated plan/apply wrappers.
 

@@ -1,6 +1,4 @@
-data "aws_ecr_repository" "this" {
-  name = var.ecr_repository_name
-}
+data "aws_caller_identity" "current" {}
 
 data "aws_iam_policy_document" "assume_role" {
   statement {
@@ -49,7 +47,7 @@ data "aws_iam_policy_document" "ecr_policy" {
       "ecr:BatchCheckLayerAvailability"
     ]
     effect    = "Allow"
-    resources = [data.aws_ecr_repository.this.arn]
+    resources = [local.ecr_repository_arn]
   }
 }
 

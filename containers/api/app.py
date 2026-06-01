@@ -1,6 +1,8 @@
 import json
 import os
 import socket
+import urllib.error
+import urllib.request
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 from opentelemetry.trace import SpanKind
@@ -14,6 +16,8 @@ PORT = int(os.getenv("PORT", "80"))
 ROOT_PATH = os.getenv("ROOT_PATH", "")
 SERVICE_NAME = os.getenv("AWS_SERVICE_NAME", "ecs-service-api")
 IMAGE = os.getenv("IMAGE", "unknown")
+EGRESS_CHECK_URL = os.getenv("EGRESS_CHECK_URL", "https://api.ipify.org?format=json")
+EGRESS_CHECK_TIMEOUT_SECONDS = float(os.getenv("EGRESS_CHECK_TIMEOUT_SECONDS", "3"))
 logger = get_logger(__name__)
 
 
@@ -31,6 +35,25 @@ def route_for(path: str) -> str:
         trimmed = path[len(ROOT_PATH_PREFIX):]
         return trimmed or "/"
     return path or "/"
+
+
+def check_public_egress() -> dict:
+    request = urllib.request.Request(
+        EGRESS_CHECK_URL,
+        headers={
+            "Accept": "application/json",
+            "User-Agent": f"{SERVICE_NAME}/egress-check",
+        },
+        method="GET",
+    )
+    with urllib.request.urlopen(request, timeout=EGRESS_CHECK_TIMEOUT_SECONDS) as response:
+        raw_body = response.read(4096)
+        body = json.loads(raw_body.decode("utf-8"))
+        return {
+            "source": EGRESS_CHECK_URL,
+            "status_code": response.status,
+            "public_ip": body.get("ip"),
+        }
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -91,6 +114,68 @@ class Handler(BaseHTTPRequestHandler):
                     },
                 )
                 self._write_json(200, {"status": "ok", "service": SERVICE_NAME})
+                return
+
+            if route == "/egress":
+                try:
+                    result = check_public_egress()
+                except (OSError, TimeoutError, urllib.error.URLError, json.JSONDecodeError) as exc:
+                    span.set_attribute("http.status_code", 502)
+                    span.set_attribute("egress_check.success", False)
+                    logger.warning(
+                        "ecs_api_egress_check_failed",
+                        extra={
+                            "event": "ecs_api_egress_check_failed",
+                            "http_method": self.command,
+                            "path": path,
+                            "route": route,
+                            "status_code": 502,
+                            "request_id": request_id,
+                            "service": SERVICE_NAME,
+                            "egress_check_url": EGRESS_CHECK_URL,
+                            "error_type": type(exc).__name__,
+                            "error": str(exc),
+                        },
+                    )
+                    self._write_json(
+                        502,
+                        {
+                            "message": "Public egress check failed",
+                            "service": SERVICE_NAME,
+                            "hostname": socket.gethostname(),
+                            "source": EGRESS_CHECK_URL,
+                            "error_type": type(exc).__name__,
+                            "error": str(exc),
+                        },
+                    )
+                    return
+
+                span.set_attribute("http.status_code", 200)
+                span.set_attribute("egress_check.success", True)
+                span.set_attribute("egress_check.public_ip", result.get("public_ip") or "")
+                logger.info(
+                    "ecs_api_egress_check_succeeded",
+                    extra={
+                        "event": "ecs_api_egress_check_succeeded",
+                        "http_method": self.command,
+                        "path": path,
+                        "route": route,
+                        "status_code": 200,
+                        "request_id": request_id,
+                        "service": SERVICE_NAME,
+                        "egress_check_url": EGRESS_CHECK_URL,
+                        "public_ip": result.get("public_ip"),
+                    },
+                )
+                self._write_json(
+                    200,
+                    {
+                        "message": "Public egress check succeeded",
+                        "service": SERVICE_NAME,
+                        "hostname": socket.gethostname(),
+                        **result,
+                    },
+                )
                 return
 
             if route in ("/fail", "/error"):

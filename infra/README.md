@@ -15,11 +15,13 @@ This directory contains the Terraform and Terragrunt layout for the repo.
 ## Environments
 
 - `dev`
-  Main development environment. This repo also sets `otel_sampling_percentage = 100` there so ECS tracing is fully sampled while iterating.
+  Main development environment. It includes the deployable application stack set and keeps `aws/ecr` and `aws/code_bucket` locally for development artifact workflows. This repo also sets `otel_sampling_percentage = 100` there so ECS tracing is fully sampled while iterating.
 - `prod`
-  Production environment.
+  Production environment. It includes the deployable application stack set and reads shared code/container artifacts from the CI-owned artifact resources.
 - `ci`
   Shared CI-only infra such as ECR and code bucket where applicable. The `aws/oidc` stack here is intentionally scoped to CI artifact management only, including ECR image publishing, rather than the broader deploy permissions used in `dev` and `prod`.
+
+`aws/oidc`, `aws/ecr`, and `aws/code_bucket` are protected scaffolding in `dev` and `ci`. Keep them in place when pruning a live environment to a smaller runtime subset because local workflows, artifact builds, and bootstrap deploys rely on them.
 
 ## How State Is Named
 
@@ -84,7 +86,7 @@ stores state at:
 - `service_*`
   Own the ECS services and, when applicable, CodeDeploy resources.
 
-Current examples include:
+Current stack examples include:
 
 - `database`
   Shared Aurora PostgreSQL Serverless v2 shape for repo-managed relational data stores.
@@ -147,6 +149,7 @@ That `containers/lib` directory is helper code only and is not treated as a depl
 - prefer explicit ownership boundaries between stacks
 
 - some shared infrastructure, such as the landing-zone VPC and tagged private subnets, is discovered via `data` lookups and must already exist
+- ECS service wrappers can optionally discover tagged public subnets when `assign_public_ip = true`; those subnets must have names matching `*public*`
 
 - frontend custom-domain deploys require the matching Route53 hosted zone to already exist
 
@@ -198,7 +201,15 @@ flowchart TD
 
 ## Infra Deployment Use Cases
 
-These are good examples of infra changes that should normally be made in isolation, reviewed with a focused plan, and then applied before any separate feature-code rollout.
+These are good examples of infra changes that should normally be made in isolation, reviewed with the environment plan, and then applied before any separate feature-code rollout.
+
+For local verification after changing HCL, Terraform modules, live stack dependencies, or workflow-owned infra ordering, run the environment plan:
+
+```sh
+just tg-all dev plan
+```
+
+Use individual `just tg <env> <module> ...` commands for targeted debugging or apply steps after the wider plan has shown the environment impact.
 
 - upgrade the database
   Plan and apply the `database` stack first. If that changes outputs consumed elsewhere, such as the shared credentials secret ARN, re-plan and then apply downstream consumers like `migrations`, `task_worker`, and other stacks that read `database` remote state.
@@ -227,6 +238,8 @@ just --justfile justfile.ci tf-lint-check
 just --justfile justfile.deploy lambda-get-version
 just --justfile justfile.deploy frontend-build
 ```
+
+Deploy a real environment under `infra/live/<name>` with `just tg <env> <module> <op>` or the matching workflow.
 
 ### Terragrunt Graph Helpers
 

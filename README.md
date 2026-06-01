@@ -55,6 +55,7 @@ The AWS account must already have the landing-zone or StackSet network in place 
 - the Terraform in this repo reads the VPC and subnets with `data` sources rather than creating them
 - the expected VPC and subnets must therefore already exist
 - the private subnets must be tagged so the module lookups can find them, for example with names matching `*private*`
+- ECS service stacks can optionally place tasks in public subnets with public IPs; public subnets must be tagged so the lookups can find names matching `*public*`
 - if you plan to deploy the frontend custom domain, the matching Route53 hosted zone must also already exist
 - the S3 Terraform state bucket should have bucket versioning enabled, because the repo uses the [Terraform S3 backend](https://developer.hashicorp.com/terraform/language/backend/s3) lockfile path rather than DynamoDB state locking
 
@@ -112,15 +113,15 @@ just --justfile justfile.deploy lambda-get-version
 just --justfile justfile.deploy frontend-build
 ```
 
-### Local Plan Some Infra
+### Local Plan Infra
 
-Given a Terragrunt file is found at `infra/live/dev/aws/lambda_api/terragrunt.hcl`
+After changing HCL, Terraform modules, live stack dependencies, or infra workflow ordering, run the dev environment plan:
 
 ```sh
-just tg dev aws/lambda_api plan
+just tg-all dev plan
 ```
 
-Detailed Terragrunt graph and saved-plan helper commands live in [infra/README.md](infra/README.md#terragrunt-graph-helpers).
+Use `just tg <env> <module> ...` only for targeted debugging or focused follow-up operations. Detailed Terragrunt graph and saved-plan helper commands live in [infra/README.md](infra/README.md#terragrunt-graph-helpers).
 
 Placeholder app runtime tasks live with the code that owns them:
 

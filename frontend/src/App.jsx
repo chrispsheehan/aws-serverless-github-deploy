@@ -254,6 +254,9 @@ export default function App() {
   const [lambdaError, setLambdaError] = useState(null)
   const [ecsData, setEcsData] = useState(null)
   const [ecsError, setEcsError] = useState(null)
+  const [egressData, setEgressData] = useState(null)
+  const [egressError, setEgressError] = useState(null)
+  const [egressPending, setEgressPending] = useState(false)
   const [publishData, setPublishData] = useState(null)
   const [publishError, setPublishError] = useState(null)
   const [publishPending, setPublishPending] = useState(false)
@@ -401,6 +404,25 @@ export default function App() {
     }
   }
 
+  async function checkEgress() {
+    if (!session) {
+      return
+    }
+
+    setEgressPending(true)
+    setEgressError(null)
+    setEgressData(null)
+
+    try {
+      const data = await fetchJson('/api/ecs/egress', session.tokens?.access_token)
+      setEgressData(data)
+    } catch (error) {
+      setEgressError(error)
+    } finally {
+      setEgressPending(false)
+    }
+  }
+
   return (
     <div style={{ fontFamily: 'monospace', padding: '2rem' }}>
       <h1>Serverless App</h1>
@@ -449,6 +471,13 @@ export default function App() {
       {ecsError && <p style={{ color: 'red' }}>Error: {String(ecsError)}</p>}
       {ecsData && renderTable(ecsData)}
       {!ecsData && !ecsError && <p>Loading ECS response...</p>}
+      <div style={{ marginTop: '1rem' }}>
+        <button type="button" onClick={checkEgress} disabled={egressPending || !session}>
+          {egressPending ? 'Checking egress...' : 'Check ECS public egress'}
+        </button>
+      </div>
+      {egressError && <p style={{ color: 'red' }}>Egress error: {String(egressError)}</p>}
+      {egressData && renderTable(egressData)}
     </div>
   )
 }

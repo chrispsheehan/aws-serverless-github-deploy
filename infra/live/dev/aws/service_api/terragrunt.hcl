@@ -2,10 +2,6 @@ include "root" {
   path = find_in_parent_folders("root.hcl")
 }
 
-dependencies {
-  paths = ["../database", "../messaging"]
-}
-
 dependency "security" {
   config_path = "${get_original_terragrunt_dir()}/../security"
 
@@ -63,6 +59,7 @@ terraform {
 inputs = merge(
   {
     ecs_security_group_id = dependency.security.outputs.ecs_sg
+    assign_public_ip      = true
   },
   {
     cluster_id   = dependency.cluster.outputs.cluster_id

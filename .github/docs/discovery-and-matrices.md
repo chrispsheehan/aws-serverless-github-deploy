@@ -26,11 +26,12 @@ Top-level runtime discovery rules:
 - Renders the Terragrunt graph for the target environment.
 - Converts that graph into compact JSON.
 - Derives dependency-safe waves.
-- Exposes `waves_json`, `wave_0_modules`, `wave_1_modules`, `wave_2_modules`, and `wave_3_modules` as reusable-workflow outputs.
+- Exposes `waves_json` and `wave_0_modules` through `wave_3_modules` as reusable-workflow outputs.
+- The static workflow wave outputs/jobs must be kept aligned with the dependency depth required by the live environment subset being deployed.
 
 Filtering inputs:
 
-- `ignore_task_modules: true` excludes `task_*` modules from emitted rollout waves for the current bootstrap-oriented infra path.
+- `ignore_task_modules: true` excludes `task_*` modules from emitted waves. Infra plan/apply callers use this because task-definition stacks belong to code deploy, not shared infra rollout.
 - `ignore_shared_artifact_modules: true` omits shared artifact stacks such as `code_bucket` and `ecr`.
 - `ignore_oidc_module: true` excludes `oidc` entirely.
 - `show_wave_summary: false` suppresses the raw wave matrix step summary when a caller provides a more focused summary.

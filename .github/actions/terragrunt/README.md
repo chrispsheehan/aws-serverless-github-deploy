@@ -13,6 +13,7 @@ This GitHub Action sets up **Terraform** and **Terragrunt** and runs a specified
 - Supports `graph` mode for raw `terragrunt run-all graph-dependencies` output capture
 - Writes saved plan files into the live stack directory so workflows can upload and download them with GitHub artifacts
 - Exports Terragrunt outputs as compact JSON when state exists
+- Refuses to run against `infra/live/_catalog`; create a real environment under `infra/live/<name>` from the catalog before planning or applying.
 
 The Terragrunt install step is kept in this repo-local action rather than hidden behind a third-party Terragrunt wrapper action so the repo can control the exact setup-action revision and react quickly to GitHub Actions runtime deprecations or nested dependency warnings.
 
