@@ -23,7 +23,7 @@ ECS discovery is manifest-based:
 - wrapper workflows do not pass ECS or task matrices; changing the ECS deployment set is a `containers/deploy.yml` change.
 - `task_stack` and `service_stack` values are repo-relative Terragrunt stack path templates such as `infra/live/{environment}/aws/task_api`.
 - `image` is the ECR tag prefix and maps to the default Docker service source directory `containers/<image>`.
-- shared support images such as `debug` and `otel_collector` are still built with ECS images because task definitions require them.
+- `support_images` lists shared images such as `debug` and `otel_collector` that are built with ECS images because task definitions require them.
 
 Top-level runtime discovery rules:
 

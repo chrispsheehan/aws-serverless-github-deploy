@@ -8,10 +8,10 @@ module "task_api" {
   cpu                 = var.cpu
   memory              = var.memory
 
-  image_uri                    = var.image_uri
-  debug_image_uri              = var.debug_image_uri
-  aws_otel_collector_image_uri = var.aws_otel_collector_image_uri
-  otel_sampling_percentage     = var.otel_sampling_percentage
+  image_uri                = var.image_uri
+  debug_uri                = var.debug_uri
+  otel_collector_uri       = var.otel_collector_uri
+  otel_sampling_percentage = var.otel_sampling_percentage
 
   local_tunnel = var.local_tunnel
   xray_enabled = var.xray_enabled

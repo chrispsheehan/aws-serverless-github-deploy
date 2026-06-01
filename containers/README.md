@@ -23,7 +23,7 @@ Container source directories for this boilerplate.
 - `image` is the ECR image tag prefix and maps to the default source directory `containers/<image>`
 - build workflows deduplicate by `image`; deploy workflows keep every manifest entry so the same image can roll out to multiple ECS services
 - wrapper workflows do not pass ECS or task matrices; update this manifest to add, remove, or remap deployed ECS services
-- shared support images such as `debug` and `otel_collector` are built alongside manifest images because task definitions require them
+- `support_images` lists shared images such as `debug` and `otel_collector` that are built alongside service images because task definitions require them
 - container images copy only the files referenced by the Dockerfile for the selected service shape, including shared helpers from `lib/` and `containers/lib/`
 - markdown files in `containers/` are documentation only and are not included in container image artifacts
 - manifest detection alone is not enough: the runtime still needs the declared Terragrunt task and service stacks

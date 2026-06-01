@@ -8,7 +8,6 @@ FRONTEND_DIR := `just --justfile justfile --evaluate FRONTEND_DIR`
 APPSPEC_DIR := `just --justfile justfile --evaluate APPSPEC_DIR`
 CONTAINERS_DIR := `just --justfile justfile --evaluate CONTAINERS_DIR`
 INFRA_PLAN_DIR := `just --justfile justfile --evaluate INFRA_PLAN_DIR`
-EXTRA_CONTAINER_DIRECTORIES := `just --justfile justfile --evaluate EXTRA_CONTAINER_DIRECTORIES`
 
 
 # Convert raw Terragrunt graph output from TG_GRAPH_OUTPUT into compact JSON.
@@ -377,6 +376,11 @@ ecs-get-deploy-matrix:
         abort("Error: #{manifest_path} must declare version: 1")
       end
 
+      support_images = manifest["support_images"] || []
+      unless support_images.is_a?(Array) && support_images.all? { |image| image.is_a?(String) && image.match?(/\A[a-z0-9_][a-z0-9_-]*\z/) }
+        abort("Error: #{manifest_path} support_images must be a list of simple image names")
+      end
+
       services = manifest["services"]
       unless services.is_a?(Array) && !services.empty?
         abort("Error: #{manifest_path} must declare a non-empty services list")
@@ -428,10 +432,10 @@ ecs-get-build-matrix:
 
     jq -cn \
       --argjson services "$deploy_matrix" \
-      --argjson extra '{{EXTRA_CONTAINER_DIRECTORIES}}' \
+      --argjson manifest "$(ruby -ryaml -rjson -e 'puts JSON.generate(YAML.safe_load(File.read(ARGV.fetch(0)), aliases: false))' "{{PROJECT_DIR}}/{{CONTAINERS_DIR}}/deploy.yml")" \
       '
       (
-        ($services | map(.image)) + $extra
+        ($services | map(.image)) + ($manifest.support_images // [])
         | unique
         | map({image: .})
       )
@@ -501,8 +505,8 @@ ecs-task-get-image-uris:
         exit 1
     fi
 
-    if [[ -z "${TASK_NAME:-}" ]]; then
-        echo "❌ TASK_NAME environment variable is not set."
+    if [[ -z "${ECS_IMAGE_NAME:-}" && -z "${TASK_NAME:-}" ]]; then
+        echo "❌ ECS_IMAGE_NAME or TASK_NAME environment variable is required."
         exit 1
     fi
 
@@ -514,12 +518,12 @@ ecs-task-get-image-uris:
       '
       {
         service_image_uri: ($image_uris | map(select(test(":" + $service_name + "-")))[0] // ""),
-        debug_image_uri: ($image_uris | map(select(test(":debug-")))[0] // ""),
-        otel_image_uri: ($image_uris | map(select(test(":otel_collector-")))[0] // "")
+        debug_uri: ($image_uris | map(select(test(":debug-")))[0] // ""),
+        otel_collector_uri: ($image_uris | map(select(test(":otel_collector-")))[0] // "")
       }
       | if .service_image_uri == "" then error("Missing ECS image URI for " + $service_name) else . end
-      | if .debug_image_uri == "" then error("Missing debug image URI") else . end
-      | if .otel_image_uri == "" then error("Missing otel_collector image URI") else . end
+      | if .debug_uri == "" then error("Missing debug image URI") else . end
+      | if .otel_collector_uri == "" then error("Missing otel_collector image URI") else . end
       '
 
 

@@ -1,5 +1,9 @@
 version: 1
 
+support_images:
+  - debug
+  - otel_collector
+
 services:
   - task_stack: infra/live/{environment}/aws/task_api
     service_stack: infra/live/{environment}/aws/service_api

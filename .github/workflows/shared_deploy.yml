@@ -287,8 +287,8 @@ jobs:
           IMAGE_URIS_JSON: ${{ steps.image_uris.outputs.just_outputs }}
         run: |
           echo "service_image_uri=$(echo "$IMAGE_URIS_JSON" | jq -r '.service_image_uri')" >> "$GITHUB_OUTPUT"
-          echo "debug_image_uri=$(echo "$IMAGE_URIS_JSON" | jq -r '.debug_image_uri')" >> "$GITHUB_OUTPUT"
-          echo "otel_image_uri=$(echo "$IMAGE_URIS_JSON" | jq -r '.otel_image_uri')" >> "$GITHUB_OUTPUT"
+          echo "debug_uri=$(echo "$IMAGE_URIS_JSON" | jq -r '.debug_uri')" >> "$GITHUB_OUTPUT"
+          echo "otel_collector_uri=$(echo "$IMAGE_URIS_JSON" | jq -r '.otel_collector_uri')" >> "$GITHUB_OUTPUT"
 
       - name: Set ECS stack paths
         id: ecs_paths
@@ -307,8 +307,8 @@ jobs:
         uses: ./.github/actions/terragrunt
         env:
           TF_VAR_image_uri: ${{ steps.task_inputs.outputs.service_image_uri }}
-          TF_VAR_debug_image_uri: ${{ steps.task_inputs.outputs.debug_image_uri }}
-          TF_VAR_aws_otel_collector_image_uri: ${{ steps.task_inputs.outputs.otel_image_uri }}
+          TF_VAR_debug_uri: ${{ steps.task_inputs.outputs.debug_uri }}
+          TF_VAR_otel_collector_uri: ${{ steps.task_inputs.outputs.otel_collector_uri }}
         with:
           tg_directory: ${{ steps.ecs_paths.outputs.task_stack_path }}
 

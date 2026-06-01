@@ -1,11 +1,11 @@
 locals {
-  cloudwatch_log_name          = "/ecs/${var.service_name}"
-  cloudwatch_otel_log_name     = "/ecs/${var.service_name}/otel"
-  image_uri                    = var.image_uri
-  aws_otel_collector_image_uri = var.aws_otel_collector_image_uri
-  debug_image_uri              = var.debug_image_uri
-  ecr_repository_arn           = "arn:aws:ecr:${var.aws_region}:${data.aws_caller_identity.current.account_id}:repository/${var.ecr_repository_name}"
-  root_path_prefix             = var.root_path != "" ? "/${var.root_path}" : ""
+  cloudwatch_log_name      = "/ecs/${var.service_name}"
+  cloudwatch_otel_log_name = "/ecs/${var.service_name}/otel"
+  image_uri                = var.image_uri
+  otel_collector_uri       = var.otel_collector_uri
+  debug_uri                = var.debug_uri
+  ecr_repository_arn       = "arn:aws:ecr:${var.aws_region}:${data.aws_caller_identity.current.account_id}:repository/${var.ecr_repository_name}"
+  root_path_prefix         = var.root_path != "" ? "/${var.root_path}" : ""
 
   shared_environment = [
     {
@@ -105,7 +105,7 @@ locals {
 
   otel-collector = {
     name  = "${var.service_name}-otel-collector"
-    image = local.aws_otel_collector_image_uri
+    image = local.otel_collector_uri
 
     portMappings = [
       {
@@ -134,7 +134,7 @@ locals {
 
   debug-container = {
     name  = "${var.service_name}-debug"
-    image = local.debug_image_uri
+    image = local.debug_uri
 
     command = ["sleep", "infinity"]
 

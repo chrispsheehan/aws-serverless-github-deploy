@@ -39,7 +39,7 @@ variable "image_uri" {
   type = string
 }
 
-variable "aws_otel_collector_image_uri" {
+variable "otel_collector_uri" {
   type = string
 }
 
@@ -49,7 +49,7 @@ variable "otel_sampling_percentage" {
   default     = 10.0
 }
 
-variable "debug_image_uri" {
+variable "debug_uri" {
   type = string
 }
 
