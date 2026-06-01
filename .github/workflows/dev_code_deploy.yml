@@ -18,16 +18,6 @@ jobs:
       frontend_version: ${{ github.sha }}
       ecs_version: ${{ github.sha }}
 
-  get_build:
-    name: Resolve
-    needs: build
-    uses: ./.github/workflows/shared_build_get.yml
-    with:
-      environment: dev
-      lambda_version: ${{ needs.build.outputs.lambda_version }}
-      frontend_version: ${{ needs.build.outputs.frontend_version }}
-      ecs_version: ${{ needs.build.outputs.ecs_version }}
-
   deploy:
     name: Deploy
     uses: ./.github/workflows/shared_deploy.yml
