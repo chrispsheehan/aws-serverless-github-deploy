@@ -33,11 +33,10 @@ jobs:
     uses: ./.github/workflows/shared_deploy.yml
     needs:
       - build
-      - get_build
     with:
       environment: dev
       lambda_version: ${{ needs.build.outputs.lambda_version }}
       frontend_version: ${{ needs.build.outputs.frontend_version }}
       ecs_version: ${{ needs.build.outputs.ecs_version }}
-      code_bucket: ${{ needs.get_build.outputs.code_bucket }}
-      repository_url: ${{ needs.get_build.outputs.repository_url }}
+      code_bucket: ${{ needs.build.outputs.code_bucket }}
+      repository_url: ${{ needs.build.outputs.repository_url }}
