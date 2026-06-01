@@ -46,6 +46,55 @@ stores state at:
 
 `dev/aws/task_worker/terraform.tfstate`
 
+## Clearing State Locks
+
+This repo uses the Terraform S3 backend `use_lockfile = true` setting rather than DynamoDB locking.
+That means each live stack lock is an S3 object next to the state key:
+
+```text
+<environment>/<provider>/<module>/terraform.tfstate.tflock
+```
+
+Only clear a lock after confirming no Terraform or Terragrunt command is still running for that stack.
+Do not remove a lock just to bypass an active apply, plan, or destroy.
+
+The `infra/root.hcl` init hook prints both values during Terragrunt init:
+
+```text
+STATE:<bucket>/<state-key> LOCKFILE:<state-key>.tflock
+```
+
+For example, the dev security stack lock is:
+
+```text
+s3://700060376888-eu-west-2-aws-serverless-github-deploy-tfstate/dev/aws/security/terraform.tfstate.tflock
+```
+
+Check whether the lock exists:
+
+```sh
+aws s3api head-object \
+  --bucket 700060376888-eu-west-2-aws-serverless-github-deploy-tfstate \
+  --key dev/aws/security/terraform.tfstate.tflock \
+  --region eu-west-2
+```
+
+If the command returns `404 Not Found`, there is no lock object to clear.
+If the lock is stale and no Terragrunt/Terraform process is active, remove it:
+
+```sh
+aws s3api delete-object \
+  --bucket 700060376888-eu-west-2-aws-serverless-github-deploy-tfstate \
+  --key dev/aws/security/terraform.tfstate.tflock \
+  --region eu-west-2
+```
+
+For another stack, keep the same bucket pattern and replace the key with:
+
+```text
+<environment>/aws/<module>/terraform.tfstate.tflock
+```
+
 ## Module Types
 
 - `_shared/*`
