@@ -82,6 +82,7 @@ jobs:
           just_action: ecs-get-deploy-matrix
 
   lambdas:
+    name: "lambda · ${{ matrix.value.artifact_name }}"
     needs: lambda-matrix
     runs-on: ubuntu-latest
     strategy:
@@ -164,6 +165,7 @@ jobs:
           just_action: lambda-upload-bundle lambda-set-code-deploy-alarms lambda-deploy lambda-prune
 
   invoke-lambdas:
+    name: "invoke · ${{ matrix.value.artifact_name }}"
     runs-on: ubuntu-latest
     needs:
       - lambdas
@@ -257,6 +259,7 @@ jobs:
           just_action: frontend-deploy frontend-invalidate
 
   tasks:
+    name: "task · ${{ matrix.value.image }}"
     runs-on: ubuntu-latest
     needs: ecs-matrix
     strategy:
@@ -310,6 +313,7 @@ jobs:
           tg_directory: ${{ steps.ecs_paths.outputs.task_stack_path }}
 
   ecs:
+    name: "service · ${{ matrix.value.image }}"
     runs-on: ubuntu-latest
     needs:
       - tasks
