@@ -526,62 +526,6 @@ ecs-check-deploy-images:
         done
 
 
-# Build full ECS image URIs from the deploy manifest for a published version.
-ecs-get-version-image-uris:
-    #!/usr/bin/env bash
-    set -euo pipefail
-
-    if [[ -z "${REPOSITORY_URL:-}" ]]; then
-        echo "❌ REPOSITORY_URL environment variable is not set."
-        exit 1
-    fi
-
-    if [[ -z "${VERSION:-}" ]]; then
-        echo "❌ VERSION environment variable is not set."
-        exit 1
-    fi
-
-    build_matrix="$(just --justfile "{{PROJECT_DIR}}/justfile.ci" ecs-get-build-matrix)"
-
-    jq -cn \
-      --arg repo "$REPOSITORY_URL" \
-      --arg version "$VERSION" \
-      --argjson images "$build_matrix" \
-      '$images | map("\($repo):\(.image)-\($version)")'
-
-
-# Resolve per-task ECS image URIs from the published image set.
-ecs-task-get-image-uris:
-    #!/usr/bin/env bash
-    set -euo pipefail
-
-    if [[ -z "${ECS_IMAGE_URIS:-}" ]]; then
-        echo "❌ ECS_IMAGE_URIS environment variable is not set."
-        exit 1
-    fi
-
-    if [[ -z "${ECS_IMAGE_NAME:-}" && -z "${TASK_NAME:-}" ]]; then
-        echo "❌ ECS_IMAGE_NAME or TASK_NAME environment variable is required."
-        exit 1
-    fi
-
-    service_name="${ECS_IMAGE_NAME:-${TASK_NAME#task_}}"
-
-    jq -cn \
-      --argjson image_uris "$ECS_IMAGE_URIS" \
-      --arg service_name "$service_name" \
-      '
-      {
-        service_image_uri: ($image_uris | map(select(test(":" + $service_name + "-")))[0] // ""),
-        debug_uri: ($image_uris | map(select(test(":debug-")))[0] // ""),
-        otel_collector_uri: ($image_uris | map(select(test(":otel_collector-")))[0] // "")
-      }
-      | if .service_image_uri == "" then error("Missing ECS image URI for " + $service_name) else . end
-      | if .debug_uri == "" then error("Missing debug image URI") else . end
-      | if .otel_collector_uri == "" then error("Missing otel_collector image URI") else . end
-      '
-
-
 # Discover repo-local Docker-based GitHub action directories.
 action-get-directories:
     #!/usr/bin/env bash

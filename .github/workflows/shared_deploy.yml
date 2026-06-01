@@ -25,11 +25,11 @@ on:
         description: "Bucket containing lambda and frontend zips"
         required: true
         type: string
-      ecs_image_uris:
-        description: "List of full ECS image URIs"
+      repository_url:
+        description: "ECR repository URL hosting the ECS images"
         required: false
         type: string
-        default: "[]"
+        default: ""
       lambda_keep:
         description: "Number of lambda versions to keep"
         default: '5'
@@ -272,23 +272,20 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Resolve image URIs
-        id: image_uris
-        env:
-          ECS_IMAGE_URIS: ${{ inputs.ecs_image_uris }}
-          ECS_IMAGE_NAME: ${{ matrix.value.image }}
-        uses: ./.github/actions/just
-        with:
-          justfile_path: justfile.ci
-          just_action: ecs-task-get-image-uris
-
-      - name: Set image outputs
         id: task_inputs
+        shell: bash
         env:
-          IMAGE_URIS_JSON: ${{ steps.image_uris.outputs.just_outputs }}
+          REPOSITORY_URL: ${{ inputs.repository_url }}
+          ECS_VERSION: ${{ inputs.ecs_version != '' && inputs.ecs_version || inputs.lambda_version }}
+          ECS_IMAGE_NAME: ${{ matrix.value.image }}
         run: |
-          echo "service_image_uri=$(echo "$IMAGE_URIS_JSON" | jq -r '.service_image_uri')" >> "$GITHUB_OUTPUT"
-          echo "debug_uri=$(echo "$IMAGE_URIS_JSON" | jq -r '.debug_uri')" >> "$GITHUB_OUTPUT"
-          echo "otel_collector_uri=$(echo "$IMAGE_URIS_JSON" | jq -r '.otel_collector_uri')" >> "$GITHUB_OUTPUT"
+          if [ -z "$REPOSITORY_URL" ]; then
+            echo "::error::repository_url input is required to resolve ECS image URIs"
+            exit 1
+          fi
+          echo "service_image_uri=${REPOSITORY_URL}:${ECS_IMAGE_NAME}-${ECS_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "debug_uri=${REPOSITORY_URL}:debug-${ECS_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "otel_collector_uri=${REPOSITORY_URL}:otel_collector-${ECS_VERSION}" >> "$GITHUB_OUTPUT"
 
       - name: Set ECS stack paths
         id: ecs_paths

@@ -31,9 +31,6 @@ on:
       repository_url:
         description: "Resolved ECR repository URL"
         value: ${{ jobs.ecr.outputs.repository_url }}
-      ecs_image_uris:
-        description: "List of full ECS image URIs"
-        value: ${{ jobs.images.outputs.ecs_image_uris }}
 
 concurrency: # only run one instance of workflow at any one time
   group: ${{ github.workflow }}-${{ inputs.environment }}
@@ -129,8 +126,6 @@ jobs:
   images:
     needs: ecr
     runs-on: ubuntu-latest
-    outputs:
-      ecs_image_uris: ${{ steps.image_uris.outputs.just_outputs }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -149,16 +144,6 @@ jobs:
         with:
           justfile_path: justfile.ci
           just_action: ecs-check-deploy-images
-
-      - name: Build full image URIs
-        id: image_uris
-        uses: ./.github/actions/just
-        env:
-          REPOSITORY_URL: ${{ needs.ecr.outputs.repository_url }}
-          VERSION: ${{ inputs.ecs_version != '' && inputs.ecs_version || inputs.lambda_version }}
-        with:
-          justfile_path: justfile.ci
-          just_action: ecs-get-version-image-uris
 
   frontend:
     needs: bucket

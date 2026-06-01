@@ -40,4 +40,4 @@ jobs:
       frontend_version: ${{ needs.build.outputs.frontend_version }}
       ecs_version: ${{ needs.build.outputs.ecs_version }}
       code_bucket: ${{ needs.get_build.outputs.code_bucket }}
-      ecs_image_uris: ${{ needs.get_build.outputs.ecs_image_uris }}
+      repository_url: ${{ needs.get_build.outputs.repository_url }}

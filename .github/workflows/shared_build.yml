@@ -31,9 +31,6 @@ on:
       repository_url:
         description: "ECR repository url"
         value: ${{ jobs.ecr.outputs.repository_url }}
-      ecs_image_uris:
-        description: "List of full ECS image URIs built by this workflow"
-        value: ${{ jobs.ecs-image-uris.outputs.ecs_image_uris }}
 
 concurrency: # only run one instance of workflow at any one time
   group: build-${{ inputs.environment }}
@@ -178,29 +175,6 @@ jobs:
         with:
           justfile_path: justfile.deploy
           just_action: docker-build docker-push
-
-  ecs-image-uris:
-    needs:
-      - ecr
-      - ecs-matrix
-      - containers
-    runs-on: ubuntu-latest
-    outputs:
-      ecs_image_uris: ${{ steps.image_uris.outputs.ecs_image_uris }}
-    steps:
-      - name: Build ECS image URI list
-        id: image_uris
-        shell: bash
-        env:
-          REPOSITORY_URL: ${{ needs.ecr.outputs.repository_url }}
-          ECS_VERSION: ${{ inputs.ecs_version }}
-          ECS_BUILD_MATRIX: ${{ needs.ecs-matrix.outputs.ecs_build_matrix }}
-        run: |
-          echo "ecs_image_uris=$(jq -cn \
-            --arg repo "$REPOSITORY_URL" \
-            --arg version "$ECS_VERSION" \
-            --argjson images "$ECS_BUILD_MATRIX" \
-            '$images | map("\($repo):\(.image)-\($version)")')" >> "$GITHUB_OUTPUT"
 
   lambdas:
     needs:
