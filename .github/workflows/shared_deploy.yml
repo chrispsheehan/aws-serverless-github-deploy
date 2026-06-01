@@ -146,7 +146,7 @@ jobs:
           justfile_path: justfile.deploy
           just_action: lambda-upload-bundle lambda-set-code-deploy-alarms lambda-deploy lambda-prune
 
-  run-lambda-after-deploy:
+  invoke-lambdas:
     runs-on: ubuntu-latest
     needs:
       - lambdas
