@@ -242,6 +242,7 @@ lambda-get-deploy-matrix:
       end
 
       artifacts = {}
+      stacks = {}
       records = lambdas.each_with_index.map do |record, index|
         unless record.is_a?(Hash)
           abort("Error: lambdas[#{index}] must be a mapping")
@@ -254,6 +255,11 @@ lambda-get-deploy-matrix:
         unless stack.is_a?(String) && stack.start_with?("infra/live/{environment}/aws/")
           abort("Error: lambdas[#{index}].stack must start with infra/live/{environment}/aws/")
         end
+
+        if stacks.key?(stack)
+          abort("Error: lambdas[#{index}].stack duplicates lambdas[#{stacks[stack]}].stack: #{stack}")
+        end
+        stacks[stack] = index
 
         unless source_dir.is_a?(String) && !source_dir.empty? && !Pathname(source_dir).absolute? && !source_dir.split("/").include?("..")
           abort("Error: lambdas[#{index}].source_dir must be a repo-relative path")
@@ -426,6 +432,7 @@ ecs-get-deploy-matrix:
         abort("Error: #{manifest_path} must declare a non-empty services list")
       end
 
+      stacks = {}
       records = services.each_with_index.map do |record, index|
         unless record.is_a?(Hash)
           abort("Error: services[#{index}] must be a mapping")
@@ -441,6 +448,14 @@ ecs-get-deploy-matrix:
 
         unless service_stack.is_a?(String) && service_stack.start_with?("infra/live/{environment}/aws/")
           abort("Error: services[#{index}].service_stack must start with infra/live/{environment}/aws/")
+        end
+
+        [["task_stack", task_stack], ["service_stack", service_stack]].each do |field, value|
+          if stacks.key?(value)
+            prior = stacks[value]
+            abort("Error: services[#{index}].#{field} duplicates services[#{prior[:index]}].#{prior[:field]}: #{value}")
+          end
+          stacks[value] = { index: index, field: field }
         end
 
         unless image.is_a?(String) && image.match?(/\A[a-z0-9_][a-z0-9_-]*\z/)
