@@ -296,6 +296,18 @@ lambda-get-deploy-matrix:
     ' "{{PROJECT_DIR}}/{{LAMBDA_DIR}}/deploy.yml" "{{PROJECT_DIR}}"
 
 
+# Filter the Lambda deploy manifest to entries that invoke after deploy.
+lambda-get-invoke-matrix:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    deploy_matrix="$(just --justfile "{{PROJECT_DIR}}/justfile.ci" lambda-get-deploy-matrix)"
+
+    jq -cn --argjson lambdas "$deploy_matrix" '
+      [$lambdas[] | select(.after_deploy == "invoke")]
+    '
+
+
 # Discover unique Lambda source directories to build from the deploy manifest.
 lambda-get-build-matrix:
     #!/usr/bin/env bash

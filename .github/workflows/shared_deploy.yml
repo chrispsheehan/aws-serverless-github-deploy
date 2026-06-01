@@ -53,6 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       lambda_deploy_matrix: ${{ steps.lambda_deploy_matrix.outputs.just_outputs }}
+      lambda_invoke_matrix: ${{ steps.lambda_invoke_matrix.outputs.just_outputs }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -64,6 +65,13 @@ jobs:
         with:
           justfile_path: justfile.ci
           just_action: lambda-get-deploy-matrix
+
+      - name: Get Lambda Invoke Matrix
+        id: lambda_invoke_matrix
+        uses: ./.github/actions/just
+        with:
+          justfile_path: justfile.ci
+          just_action: lambda-get-invoke-matrix
 
   ecs-matrix:
     runs-on: ubuntu-latest
@@ -173,18 +181,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        value: ${{ fromJson(needs.lambda-matrix.outputs.lambda_deploy_matrix) }}
+        value: ${{ fromJson(needs.lambda-matrix.outputs.lambda_invoke_matrix) }}
     steps:
       - uses: actions/checkout@v6
 
       - uses: aws-actions/configure-aws-credentials@v6
-        if: ${{ matrix.value.after_deploy == 'invoke' }}
         with:
           role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Set Lambda stack path
-        if: ${{ matrix.value.after_deploy == 'invoke' }}
         id: lambda_paths
         shell: bash
         env:
@@ -194,7 +200,6 @@ jobs:
           echo "stack_path=${STACK_TEMPLATE//\{environment\}/$ENVIRONMENT}" >> "$GITHUB_OUTPUT"
 
       - name: Get Lambda infra
-        if: ${{ matrix.value.after_deploy == 'invoke' }}
         uses: ./.github/actions/terragrunt
         id: get-infra
         with:
@@ -202,7 +207,6 @@ jobs:
           tg_action: init
 
       - name: Get Lambda function name
-        if: ${{ matrix.value.after_deploy == 'invoke' }}
         id: get_infra_detail
         env:
           TG_OUTPUTS: ${{ steps.get-infra.outputs.tg_outputs }}
@@ -210,7 +214,6 @@ jobs:
           echo "lambda_function_name=$(echo "$TG_OUTPUTS" | jq -r '.lambda_function_name.value')" >> "$GITHUB_OUTPUT"
 
       - name: Invoke Lambda
-        if: ${{ matrix.value.after_deploy == 'invoke' }}
         uses: ./.github/actions/just
         env:
           LAMBDA_NAME: ${{ steps.get_infra_detail.outputs.lambda_function_name }}
