@@ -236,9 +236,9 @@ lambda-get-deploy-matrix:
         abort("Error: #{manifest_path} must declare version: 1")
       end
 
-      lambdas = manifest["lambdas"]
-      unless lambdas.is_a?(Array) && !lambdas.empty?
-        abort("Error: #{manifest_path} must declare a non-empty lambdas list")
+      lambdas = manifest["lambdas"] || []
+      unless lambdas.is_a?(Array)
+        abort("Error: #{manifest_path} lambdas must be a list when present")
       end
 
       artifacts = {}
@@ -341,6 +341,12 @@ lambda-check-deploy-stacks:
     ruby -rjson -rpathname -e '
       project_dir = Pathname(ARGV.fetch(0)).realpath
       records = JSON.parse(STDIN.read)
+
+      if records.empty?
+        puts "Lambda manifest declares no entries; skipping stack-path check."
+        exit 0
+      end
+
       stack_templates = records.map { |record| record.fetch("stack") }
       env_dirs = project_dir.glob("infra/live/*/aws").select(&:directory?)
       missing = []
@@ -439,9 +445,9 @@ ecs-get-deploy-matrix:
         abort("Error: #{manifest_path} support_images must be a list of simple image names")
       end
 
-      services = manifest["services"]
-      unless services.is_a?(Array) && !services.empty?
-        abort("Error: #{manifest_path} must declare a non-empty services list")
+      services = manifest["services"] || []
+      unless services.is_a?(Array)
+        abort("Error: #{manifest_path} services must be a list when present")
       end
 
       stacks = {}
