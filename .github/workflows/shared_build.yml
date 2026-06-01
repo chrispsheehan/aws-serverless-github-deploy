@@ -151,7 +151,7 @@ jobs:
           echo "repository_url=$(echo $TG_OUTPUTS | jq -r '.repository_url.value')" >> $GITHUB_OUTPUT
 
   containers:
-    name: "container · ${{ matrix.value.image }}"
+    name: "${{ matrix.value.image }}"
     needs:
       - ecr
       - ecs-matrix
@@ -178,7 +178,7 @@ jobs:
           just_action: docker-build docker-push
 
   lambdas:
-    name: "lambda · ${{ matrix.value.artifact_name }}"
+    name: "${{ matrix.value.artifact_name }}"
     needs:
       - bucket
       - lambda-matrix
