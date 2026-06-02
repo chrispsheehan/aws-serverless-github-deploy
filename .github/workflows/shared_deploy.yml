@@ -101,11 +101,6 @@ jobs:
         run: |
           set -euo pipefail
 
-          frontend_status="skipped"
-          if [[ -n "$FRONTEND_VERSION" ]]; then
-            frontend_status="deploy"
-          fi
-
           repository="${REPOSITORY_URL:-not provided}"
           frontend_version="${FRONTEND_VERSION:-not provided}"
 
@@ -118,48 +113,6 @@ jobs:
             echo "- \`frontend_version\`: \`$frontend_version\`"
             echo "- \`code_bucket\`: \`$CODE_BUCKET\`"
             echo "- \`repository_url\`: \`$repository\`"
-            echo
-            echo "| Track | Count | Version |"
-            echo "| --- | ---: | --- |"
-            echo "| Lambda | $(jq -r 'length' <<<"$LAMBDA_DEPLOY_MATRIX") | \`$LAMBDA_VERSION\` |"
-            echo "| ECS | $(jq -r 'length' <<<"$ECS_DEPLOY_MATRIX") | \`$ECS_VERSION\` |"
-            echo "| Frontend | $([[ -n "$FRONTEND_VERSION" ]] && echo 1 || echo 0) | \`$frontend_version\` |"
-            echo
-            echo "### Lambda"
-            echo
-            echo "| Artifact | Stack | After Deploy |"
-            echo "| --- | --- | --- |"
-            jq -r '
-              if length == 0 then
-                ["| none | none | none |"]
-              else
-                map(
-                  "| `" + .artifact_name + "` | `" + (.stack | split("/") | last) + "` | `" + (.after_deploy // "none") + "` |"
-                )
-              end
-              | .[]
-            ' <<<"$LAMBDA_DEPLOY_MATRIX"
-            echo
-            echo "### ECS"
-            echo
-            echo "| Image | Task Stack | Service Stack |"
-            echo "| --- | --- | --- |"
-            jq -r '
-              if length == 0 then
-                ["| none | none | none |"]
-              else
-                map(
-                  "| `" + .image + "` | `" + (.task_stack | split("/") | last) + "` | `" + (.service_stack | split("/") | last) + "` |"
-                )
-              end
-              | .[]
-            ' <<<"$ECS_DEPLOY_MATRIX"
-            echo
-            echo "### Frontend"
-            echo
-            echo "| Status | Version |"
-            echo "| --- | --- |"
-            echo "| \`$frontend_status\` | \`$frontend_version\` |"
           } >> "$GITHUB_STEP_SUMMARY"
 
   lambdas:
