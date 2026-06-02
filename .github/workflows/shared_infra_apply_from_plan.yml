@@ -27,6 +27,7 @@ env:
 
 jobs:
   metadata:
+    name: Saved Plan
     runs-on: ubuntu-latest
     outputs:
       infra_version: ${{ steps.read_metadata.outputs.infra_version }}

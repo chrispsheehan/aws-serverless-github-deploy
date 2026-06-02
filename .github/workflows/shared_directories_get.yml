@@ -8,6 +8,7 @@ on:
         value: ${{ jobs.directories.outputs.action_dirs }}
 jobs:
   directories:
+    name: Directories
     runs-on: ubuntu-latest
     outputs:
       action_dirs: ${{ steps.action_dirs.outputs.just_outputs }}

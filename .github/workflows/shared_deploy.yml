@@ -50,6 +50,7 @@ env:
 
 jobs:
   lambda-matrix:
+    name: Lambda Matrix
     runs-on: ubuntu-latest
     outputs:
       lambda_deploy_matrix: ${{ steps.lambda_deploy_matrix.outputs.just_outputs }}
@@ -74,6 +75,7 @@ jobs:
           just_action: lambda-get-invoke-matrix
 
   ecs-matrix:
+    name: ECS Matrix
     runs-on: ubuntu-latest
     outputs:
       ecs_deploy_matrix: ${{ steps.ecs_deploy_matrix.outputs.just_outputs }}
@@ -222,6 +224,7 @@ jobs:
           just_action: lambda-invoke
 
   frontend:
+    name: Frontend
     runs-on: ubuntu-latest
     if: ${{ inputs.frontend_version != '' }}
     needs: 

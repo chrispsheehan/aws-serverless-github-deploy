@@ -33,6 +33,7 @@ env:
 
 jobs:
   ecr:
+    name: ECR
     runs-on: ubuntu-latest
     outputs:
       repository_url: ${{ steps.get_repository_url.outputs.repository_url }}
@@ -60,6 +61,7 @@ jobs:
           echo "repository_url=$(echo "$TG_OUTPUTS" | jq -r '.repository_url.value')" >> "$GITHUB_OUTPUT"
 
   bucket:
+    name: Code Bucket
     runs-on: ubuntu-latest
     outputs:
       bucket_name: ${{ steps.get_bucket_name.outputs.bucket }}

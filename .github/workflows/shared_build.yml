@@ -47,6 +47,7 @@ env:
 
 jobs:
   lambda-matrix:
+    name: Lambda Matrix
     runs-on: ubuntu-latest
     outputs:
       lambda_build_matrix: ${{ steps.lambda_build_matrix.outputs.just_outputs }}
@@ -63,6 +64,7 @@ jobs:
           just_action: lambda-get-build-matrix
 
   ecs-matrix:
+    name: ECS Matrix
     runs-on: ubuntu-latest
     outputs:
       ecs_build_matrix: ${{ steps.ecs_build_matrix.outputs.just_outputs }}
@@ -79,6 +81,7 @@ jobs:
           just_action: ecs-get-build-matrix
 
   bucket:
+    name: Code Bucket
     runs-on: ubuntu-latest
     outputs:
       code_bucket_name: ${{ steps.get_bucket_name.outputs.bucket }}
@@ -105,6 +108,7 @@ jobs:
           echo "bucket=$(echo $TG_OUTPUTS | jq -r '.bucket.value')" >> $GITHUB_OUTPUT
 
   frontend:
+    name: Frontend
     needs: bucket
     runs-on: ubuntu-latest
     steps:
@@ -125,6 +129,7 @@ jobs:
           just_action: frontend-build frontend-upload
 
   ecr:
+    name: ECR
     runs-on: ubuntu-latest
     outputs:
       repository_url: ${{ steps.get_repository_url.outputs.repository_url }}

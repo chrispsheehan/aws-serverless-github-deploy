@@ -32,6 +32,7 @@ env:
 
 jobs:
   generate_waves:
+    name: Waves
     uses: ./.github/workflows/shared_get_modules.yml
     with:
       environment: ${{ inputs.environment }}
@@ -40,6 +41,7 @@ jobs:
       show_wave_summary: false
 
   metadata:
+    name: Save Plan Metadata
     needs: generate_waves
     runs-on: ubuntu-latest
     steps:

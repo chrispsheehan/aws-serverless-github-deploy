@@ -79,6 +79,7 @@ env:
 
 jobs:
   generate_waves:
+    name: Summary
     runs-on: ubuntu-latest
     outputs:
       waves_json: ${{ steps.filtered_waves.outputs.waves_json }}
@@ -162,7 +163,7 @@ jobs:
           echo "wave_2_modules=$(jq -c '.[2].modules // []' <<<"$WAVES_JSON")" >> "$GITHUB_OUTPUT"
           echo "wave_3_modules=$(jq -c '.[3].modules // []' <<<"$WAVES_JSON")" >> "$GITHUB_OUTPUT"
 
-      - name: Write Terragrunt wave summary
+      - name: Summary
         if: ${{ inputs.show_wave_summary }}
         shell: bash
         env:

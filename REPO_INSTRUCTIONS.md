@@ -113,6 +113,7 @@ These instructions apply to the entire repository.
 - before adding a Terragrunt `dependency` or `dependencies` path, verify the target live stack actually exists in that environment/repo slice
 - when changing reusable workflow contracts, compare every caller `with:` block to the callee `workflow_call.inputs`
 - when a workflow input, output, or metadata field is no longer consumed, remove it from the shared contract and callers in the same change rather than leaving dead plumbing behind
+- in GitHub Actions workflows, give every job a short human-readable `name:` so nested reusable workflow UI paths read clearly; avoid exposing implementation ids such as `generate_waves`, `lambda-matrix`, or `metadata` in the run UI
 - when changing Terragrunt `*.hcl` dependency edges or pruning a live environment to a selected dependency closure, run `just tg-graph-waves <env>` for every affected live environment, count the dependency levels after applying the same module filters used by the workflow, and keep workflow wave outputs/jobs/docs aligned with that derived count
 - for shared infra plan/apply workflows, exclude `task_*` stacks from the derived wave count; task-definition stacks are owned by code deploy and must not force extra infra apply waves
 - when adding or renaming Terraform module `output` values that are intended for Terragrunt `dependency.<name>.outputs` passthrough, verify every downstream consumer wrapper declares a `variable` with the exact same name
