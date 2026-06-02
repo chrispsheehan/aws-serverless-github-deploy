@@ -35,13 +35,16 @@ env:
 
 jobs:
   generate_waves:
-    name: Discover Waves
+    name: Waves
     uses: ./.github/workflows/shared_get_modules.yml
     with:
       environment: ${{ inputs.environment }}
       infra_version: ${{ github.sha }}
       ignore_shared_artifact_modules: ${{ ! inputs.allow_cleanup }}
       ignore_oidc_module: true
+      wave_summary_title: Destroy Wave Summary
+      wave_summary_note: Destroy runs dependency waves in reverse order. OIDC is excluded; shared artifact modules are included only when cleanup is enabled.
+      wave_summary_order: reverse
 
   wave_2:
     name: 2 / ${{ matrix.module }}

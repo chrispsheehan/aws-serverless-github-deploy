@@ -27,10 +27,30 @@ on:
         type: boolean
         default: false
       show_wave_summary:
-        description: "Whether to write the Terragrunt wave matrix to the GitHub step summary"
+        description: "Whether to write a Terragrunt wave overview to the GitHub step summary"
         required: false
         type: boolean
         default: true
+      wave_summary_title:
+        description: "Title for the Terragrunt wave step summary"
+        required: false
+        type: string
+        default: "Terragrunt Wave Summary"
+      wave_summary_note:
+        description: "Optional note to include below the Terragrunt wave step summary heading"
+        required: false
+        type: string
+        default: ""
+      wave_summary_order:
+        description: "Display order for wave summary rows: forward or reverse"
+        required: false
+        type: string
+        default: "forward"
+      show_wave_json:
+        description: "Whether to include the raw wave JSON in the GitHub step summary"
+        required: false
+        type: boolean
+        default: false
     outputs:
       waves_json:
         description: "Dependency-safe Terragrunt wave matrix JSON"
@@ -59,6 +79,7 @@ env:
 
 jobs:
   generate_waves:
+    name: Summary
     runs-on: ubuntu-latest
     outputs:
       waves_json: ${{ steps.filtered_waves.outputs.waves_json }}
@@ -142,18 +163,63 @@ jobs:
           echo "wave_2_modules=$(jq -c '.[2].modules // []' <<<"$WAVES_JSON")" >> "$GITHUB_OUTPUT"
           echo "wave_3_modules=$(jq -c '.[3].modules // []' <<<"$WAVES_JSON")" >> "$GITHUB_OUTPUT"
 
-      - name: Print Terragrunt wave matrix
+      - name: Summary
         if: ${{ inputs.show_wave_summary }}
         shell: bash
         env:
+          ENVIRONMENT: ${{ inputs.environment }}
+          INFRA_VERSION: ${{ inputs.infra_version }}
+          SUMMARY_TITLE: ${{ inputs.wave_summary_title }}
+          SUMMARY_NOTE: ${{ inputs.wave_summary_note }}
+          SUMMARY_ORDER: ${{ inputs.wave_summary_order }}
+          SHOW_WAVE_JSON: ${{ inputs.show_wave_json }}
           WAVES_JSON: ${{ steps.filtered_waves.outputs.waves_json }}
         run: |
-          printf '%s\n' "$WAVES_JSON" | tee waves.json
+          set -euo pipefail
+
+          waves_json="${WAVES_JSON:-[]}"
+          if [[ "$SUMMARY_ORDER" == "reverse" ]]; then
+            summary_waves_json="$(jq -c 'reverse' <<<"$waves_json")"
+          else
+            summary_waves_json="$waves_json"
+          fi
+
           {
-            echo "## Terragrunt Wave Matrix"
+            echo "## $SUMMARY_TITLE"
             echo
-            echo '```json'
-            jq . waves.json
+            echo "- \`environment\`: \`$ENVIRONMENT\`"
+            echo "- \`infra_version\`: \`$INFRA_VERSION\`"
+            echo "- \`waves\`: \`$(jq -r 'length' <<<"$waves_json")\`"
+            echo "- \`modules\`: \`$(jq -r 'map(.modules | length) | add // 0' <<<"$waves_json")\`"
             echo
-            echo '```'
+            if [[ -n "$SUMMARY_NOTE" ]]; then
+              echo "$SUMMARY_NOTE"
+              echo
+            fi
+            echo "| Wave | Modules |"
+            echo "| --- | --- |"
+            jq -r '
+              if length == 0 then
+                ["| none | No modules selected |"]
+              else
+                map(
+                  .wave as $wave
+                  | (.modules | map("`" + . + "`") | join(", ")) as $modules
+                  | "| \($wave) | \($modules) |"
+                )
+              end
+              | .[]
+            ' <<<"$summary_waves_json"
+
+            if [[ "$SHOW_WAVE_JSON" == "true" ]]; then
+              echo
+              echo "<details>"
+              echo "<summary>Wave JSON</summary>"
+              echo
+              echo '```json'
+              jq . <<<"$waves_json"
+              echo '```'
+              echo
+              echo "</details>"
+            fi
           } >> "$GITHUB_STEP_SUMMARY"

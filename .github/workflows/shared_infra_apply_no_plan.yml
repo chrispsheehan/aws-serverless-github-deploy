@@ -29,6 +29,7 @@ env:
 
 jobs:
   generate_waves:
+    name: Waves
     uses: ./.github/workflows/shared_get_modules.yml
     with:
       environment: ${{ inputs.environment }}

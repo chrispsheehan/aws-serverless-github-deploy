@@ -46,6 +46,7 @@ env:
 
 jobs:
   bucket:
+    name: Code Bucket
     runs-on: ubuntu-latest
     outputs:
       code_bucket_name: ${{ steps.get_bucket_name.outputs.bucket }}
@@ -85,6 +86,7 @@ jobs:
           echo "bucket=$bucket" >> "$GITHUB_OUTPUT"
 
   ecr:
+    name: ECR
     runs-on: ubuntu-latest
     outputs:
       repository_url: ${{ steps.get_repository_url.outputs.repository_url }}
@@ -124,6 +126,7 @@ jobs:
           echo "repository_url=$repository_url" >> "$GITHUB_OUTPUT"
 
   images:
+    name: Images
     needs: ecr
     runs-on: ubuntu-latest
     steps:
@@ -146,6 +149,7 @@ jobs:
           just_action: ecs-check-deploy-images
 
   frontend:
+    name: Frontend
     needs: bucket
     runs-on: ubuntu-latest
     steps:
@@ -168,6 +172,7 @@ jobs:
           just_action: frontend-check-version
 
   lambdas:
+    name: Lambdas
     needs: bucket
     runs-on: ubuntu-latest
 

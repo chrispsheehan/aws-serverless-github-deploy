@@ -10,6 +10,7 @@ Use this before editing `destroy.yml`, `justfile.destroy`, or post-destroy clean
 - Derives current module waves through `shared_get_modules.yml`.
 - Uses filtering inputs to omit `oidc` entirely.
 - Omits `code_bucket` and `ecr` unless `allow_cleanup` is enabled.
+- Writes the shared module-discovery wave summary in reverse order so the run page matches destroy execution order.
 - Runs `wave_3` through `wave_0` in reverse dependency order, skipping empty waves.
 - The only remaining module-specific destroy placeholder vars are required ECS task image inputs for `task_*`.
 - Frontend, service, and database stacks rely on Terragrunt dependency mocks instead of workflow-injected destroy placeholders.
