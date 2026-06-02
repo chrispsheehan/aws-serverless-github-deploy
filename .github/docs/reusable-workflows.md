@@ -88,6 +88,7 @@ Current infra selection comes from the Terragrunt dependency graph and derived w
 
 `shared_deploy.yml` rolls out feature code.
 
+- Its `Summary` job derives Lambda and ECS deploy matrices, writes a code deploy step summary, and exposes matrix outputs to downstream rollout jobs.
 - Publishes Lambda versions.
 - Derives Lambda deploy records internally from `lambdas/deploy.yml`; callers do not pass a Lambda matrix.
 - Optionally invokes Lambdas whose deploy manifest entry sets `after_deploy: invoke`.

@@ -49,12 +49,13 @@ env:
   AWS_REGION: ${{ vars.AWS_REGION }}
 
 jobs:
-  lambda-matrix:
-    name: Lambda Matrix
+  summary:
+    name: Summary
     runs-on: ubuntu-latest
     outputs:
       lambda_deploy_matrix: ${{ steps.lambda_deploy_matrix.outputs.just_outputs }}
       lambda_invoke_matrix: ${{ steps.lambda_invoke_matrix.outputs.just_outputs }}
+      ecs_deploy_matrix: ${{ steps.ecs_deploy_matrix.outputs.just_outputs }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -74,12 +75,6 @@ jobs:
           justfile_path: justfile.ci
           just_action: lambda-get-invoke-matrix
 
-  ecs-matrix:
-    name: ECS Matrix
-    runs-on: ubuntu-latest
-    outputs:
-      ecs_deploy_matrix: ${{ steps.ecs_deploy_matrix.outputs.just_outputs }}
-    steps:
       - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.ecs_version != '' && inputs.ecs_version || inputs.lambda_version }}
@@ -91,14 +86,90 @@ jobs:
           justfile_path: justfile.ci
           just_action: ecs-get-deploy-matrix
 
+      - name: Write deploy summary
+        shell: bash
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+          LAMBDA_VERSION: ${{ inputs.lambda_version }}
+          ECS_VERSION: ${{ inputs.ecs_version != '' && inputs.ecs_version || inputs.lambda_version }}
+          FRONTEND_VERSION: ${{ inputs.frontend_version }}
+          CODE_BUCKET: ${{ inputs.code_bucket }}
+          REPOSITORY_URL: ${{ inputs.repository_url }}
+          LAMBDA_DEPLOY_MATRIX: ${{ steps.lambda_deploy_matrix.outputs.just_outputs }}
+          LAMBDA_INVOKE_MATRIX: ${{ steps.lambda_invoke_matrix.outputs.just_outputs }}
+          ECS_DEPLOY_MATRIX: ${{ steps.ecs_deploy_matrix.outputs.just_outputs }}
+        run: |
+          set -euo pipefail
+
+          frontend_status="skipped"
+          if [[ -n "$FRONTEND_VERSION" ]]; then
+            frontend_status="deploy"
+          fi
+
+          repository="${REPOSITORY_URL:-not provided}"
+          frontend_version="${FRONTEND_VERSION:-not provided}"
+
+          {
+            echo "## Code Deploy Summary"
+            echo
+            echo "- \`environment\`: \`$ENVIRONMENT\`"
+            echo "- \`lambda_version\`: \`$LAMBDA_VERSION\`"
+            echo "- \`ecs_version\`: \`$ECS_VERSION\`"
+            echo "- \`frontend_version\`: \`$frontend_version\`"
+            echo "- \`code_bucket\`: \`$CODE_BUCKET\`"
+            echo "- \`repository_url\`: \`$repository\`"
+            echo
+            echo "| Track | Count | Version |"
+            echo "| --- | ---: | --- |"
+            echo "| Lambda | $(jq -r 'length' <<<"$LAMBDA_DEPLOY_MATRIX") | \`$LAMBDA_VERSION\` |"
+            echo "| ECS | $(jq -r 'length' <<<"$ECS_DEPLOY_MATRIX") | \`$ECS_VERSION\` |"
+            echo "| Frontend | $([[ -n "$FRONTEND_VERSION" ]] && echo 1 || echo 0) | \`$frontend_version\` |"
+            echo
+            echo "### Lambda"
+            echo
+            echo "| Artifact | Stack | After Deploy |"
+            echo "| --- | --- | --- |"
+            jq -r '
+              if length == 0 then
+                ["| none | none | none |"]
+              else
+                map(
+                  "| `" + .artifact_name + "` | `" + (.stack | split("/") | last) + "` | `" + (.after_deploy // "none") + "` |"
+                )
+              end
+              | .[]
+            ' <<<"$LAMBDA_DEPLOY_MATRIX"
+            echo
+            echo "### ECS"
+            echo
+            echo "| Image | Task Stack | Service Stack |"
+            echo "| --- | --- | --- |"
+            jq -r '
+              if length == 0 then
+                ["| none | none | none |"]
+              else
+                map(
+                  "| `" + .image + "` | `" + (.task_stack | split("/") | last) + "` | `" + (.service_stack | split("/") | last) + "` |"
+                )
+              end
+              | .[]
+            ' <<<"$ECS_DEPLOY_MATRIX"
+            echo
+            echo "### Frontend"
+            echo
+            echo "| Status | Version |"
+            echo "| --- | --- |"
+            echo "| \`$frontend_status\` | \`$frontend_version\` |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
   lambdas:
     name: "${{ matrix.value.artifact_name }}"
-    needs: lambda-matrix
+    needs: summary
     runs-on: ubuntu-latest
     strategy:
       fail-fast: true
       matrix:
-        value: ${{ fromJson(needs.lambda-matrix.outputs.lambda_deploy_matrix) }}
+        value: ${{ fromJson(needs.summary.outputs.lambda_deploy_matrix) }}
     steps:
       - uses: actions/checkout@v6
 
@@ -179,11 +250,11 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - lambdas
-      - lambda-matrix
+      - summary
     strategy:
       fail-fast: false
       matrix:
-        value: ${{ fromJson(needs.lambda-matrix.outputs.lambda_invoke_matrix) }}
+        value: ${{ fromJson(needs.summary.outputs.lambda_invoke_matrix) }}
     steps:
       - uses: actions/checkout@v6
 
@@ -267,11 +338,11 @@ jobs:
   tasks:
     name: "${{ matrix.value.image }}"
     runs-on: ubuntu-latest
-    needs: ecs-matrix
+    needs: summary
     strategy:
       fail-fast: false
       matrix:
-        value: ${{ fromJson(needs.ecs-matrix.outputs.ecs_deploy_matrix) }}
+        value: ${{ fromJson(needs.summary.outputs.ecs_deploy_matrix) }}
     steps:
       - uses: actions/checkout@v6
 
@@ -323,11 +394,11 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - tasks
-      - ecs-matrix
+      - summary
     strategy:
       fail-fast: false
       matrix:
-        value: ${{ fromJson(needs.ecs-matrix.outputs.ecs_deploy_matrix) }}
+        value: ${{ fromJson(needs.summary.outputs.ecs_deploy_matrix) }}
     steps:
       - uses: actions/checkout@v6
 
