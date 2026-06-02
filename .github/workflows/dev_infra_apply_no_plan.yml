@@ -9,20 +9,8 @@ permissions:
   actions: read
 
 jobs:
-  code:
-    name: Artifacts
-    uses: ./.github/workflows/shared_infra_releases.yml
-    permissions:
-      id-token: write
-      contents: write
-    with:
-      environment: dev
-      infra_version: ${{ github.sha }}
-
   infra:
     name: Apply
-    needs:
-      - code
     uses: ./.github/workflows/shared_infra_apply_no_plan.yml
     with:
       environment: dev
