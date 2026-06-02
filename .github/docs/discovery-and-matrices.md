@@ -45,7 +45,7 @@ Filtering inputs:
 - `ignore_task_modules: true` excludes `task_*` modules from emitted waves. Infra plan/apply callers use this because task-definition stacks belong to code deploy, not shared infra rollout.
 - `ignore_shared_artifact_modules: true` omits shared artifact stacks such as `code_bucket` and `ecr`.
 - `ignore_oidc_module: true` excludes `oidc` entirely.
-- `show_wave_summary: false` suppresses the raw wave matrix step summary when a caller provides a more focused summary.
+- `show_wave_summary: false` suppresses the wave overview step summary when a caller provides a more focused summary.
 
 ## Graph To Waves Helper
 

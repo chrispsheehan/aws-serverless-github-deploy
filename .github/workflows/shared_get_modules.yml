@@ -27,7 +27,7 @@ on:
         type: boolean
         default: false
       show_wave_summary:
-        description: "Whether to write the Terragrunt wave matrix to the GitHub step summary"
+        description: "Whether to write a Terragrunt wave overview to the GitHub step summary"
         required: false
         type: boolean
         default: true
@@ -142,18 +142,35 @@ jobs:
           echo "wave_2_modules=$(jq -c '.[2].modules // []' <<<"$WAVES_JSON")" >> "$GITHUB_OUTPUT"
           echo "wave_3_modules=$(jq -c '.[3].modules // []' <<<"$WAVES_JSON")" >> "$GITHUB_OUTPUT"
 
-      - name: Print Terragrunt wave matrix
+      - name: Write Terragrunt wave summary
         if: ${{ inputs.show_wave_summary }}
         shell: bash
         env:
+          ENVIRONMENT: ${{ inputs.environment }}
+          INFRA_VERSION: ${{ inputs.infra_version }}
           WAVES_JSON: ${{ steps.filtered_waves.outputs.waves_json }}
         run: |
-          printf '%s\n' "$WAVES_JSON" | tee waves.json
+          waves_json="${WAVES_JSON:-[]}"
           {
-            echo "## Terragrunt Wave Matrix"
+            echo "## Terragrunt Wave Summary"
             echo
-            echo '```json'
-            jq . waves.json
+            echo "- \`environment\`: \`$ENVIRONMENT\`"
+            echo "- \`infra_version\`: \`$INFRA_VERSION\`"
+            echo "- \`waves\`: \`$(jq -r 'length' <<<"$waves_json")\`"
+            echo "- \`modules\`: \`$(jq -r 'map(.modules | length) | add // 0' <<<"$waves_json")\`"
             echo
-            echo '```'
+            echo "| Wave | Modules |"
+            echo "| --- | --- |"
+            jq -r '
+              if length == 0 then
+                ["| none | No modules selected |"]
+              else
+                map(
+                  .wave as $wave
+                  | (.modules | map("`" + . + "`") | join(", ")) as $modules
+                  | "| \($wave) | \($modules) |"
+                )
+              end
+              | .[]
+            ' <<<"$waves_json"
           } >> "$GITHUB_STEP_SUMMARY"

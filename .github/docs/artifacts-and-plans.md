@@ -21,7 +21,8 @@ Use this when changing saved plans, apply-from-plan behavior, plan metadata, art
 `shared_infra_apply_no_plan.yml` is the direct-input apply wrapper.
 
 - Takes resolved workflow inputs directly.
-- Calls `shared_infra.yml` with `tg_action: apply`.
+- Derives current graph waves and runs direct Terragrunt `apply` jobs.
+- Uses the module-discovery wave summary so the run page shows environment, infra version, selected module count, and modules grouped by wave before apply jobs run.
 
 `shared_infra_apply_from_plan.yml` is the apply-from-plan wrapper.
 
