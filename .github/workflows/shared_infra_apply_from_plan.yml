@@ -97,21 +97,53 @@ jobs:
           echo "wave_2_modules=$(jq -c '.[2].modules // []' <<<"$filtered_waves_json")" >> "$GITHUB_OUTPUT"
           echo "wave_3_modules=$(jq -c '.[3].modules // []' <<<"$filtered_waves_json")" >> "$GITHUB_OUTPUT"
 
-      - name: Print filtered apply waves
+      - name: Print filtered apply waves and write summary
         shell: bash
         env:
+          ENVIRONMENT: ${{ inputs.environment }}
+          PLAN_ARTIFACT_RUN_ID: ${{ inputs.plan_artifact_run_id }}
+          INFRA_VERSION: ${{ steps.read_metadata.outputs.infra_version }}
           WAVES_JSON: ${{ steps.read_metadata.outputs.waves_json }}
           WAVE_0_MODULES: ${{ steps.read_metadata.outputs.wave_0_modules }}
           WAVE_1_MODULES: ${{ steps.read_metadata.outputs.wave_1_modules }}
           WAVE_2_MODULES: ${{ steps.read_metadata.outputs.wave_2_modules }}
           WAVE_3_MODULES: ${{ steps.read_metadata.outputs.wave_3_modules }}
         run: |
+          set -euo pipefail
+
           echo "=== filtered apply waves ==="
           printf '%s\n' "$WAVES_JSON" | jq .
           echo "wave_0_modules=$WAVE_0_MODULES"
           echo "wave_1_modules=$WAVE_1_MODULES"
           echo "wave_2_modules=$WAVE_2_MODULES"
           echo "wave_3_modules=$WAVE_3_MODULES"
+
+          {
+            echo "## Apply From Plan Summary"
+            echo
+            echo "- \`environment\`: \`$ENVIRONMENT\`"
+            echo "- \`infra_version\`: \`$INFRA_VERSION\`"
+            echo "- \`plan_artifact_run_id\`: \`$PLAN_ARTIFACT_RUN_ID\`"
+            echo "- \`waves\`: \`$(jq -r 'length' <<<"$WAVES_JSON")\`"
+            echo "- \`modules_to_apply\`: \`$(jq -r 'map(.modules | length) | add // 0' <<<"$WAVES_JSON")\`"
+            echo
+            echo "Filtered to modules whose saved plan metadata reported changes."
+            echo
+            echo "| Wave | Modules To Apply |"
+            echo "| --- | --- |"
+            jq -r '
+              if length == 0 then
+                ["| none | No modules selected |"]
+              else
+                map(
+                  .wave as $wave
+                  | (.modules | map("`" + . + "`") | join(", ")) as $modules
+                  | "| \($wave) | \($modules) |"
+                )
+              end
+              | .[]
+            ' <<<"$WAVES_JSON"
+          } >> "$GITHUB_STEP_SUMMARY"
 
   wave_0:
     needs: metadata

@@ -46,6 +46,8 @@ Filtering inputs:
 - `ignore_shared_artifact_modules: true` omits shared artifact stacks such as `code_bucket` and `ecr`.
 - `ignore_oidc_module: true` excludes `oidc` entirely.
 - `show_wave_summary: false` suppresses the wave overview step summary when a caller provides a more focused summary.
+- `wave_summary_title`, `wave_summary_note`, and `wave_summary_order` let callers label the overview and render rows in forward or reverse execution order.
+- `show_wave_json: true` includes the raw wave JSON below the overview for debugging.
 
 ## Graph To Waves Helper
 

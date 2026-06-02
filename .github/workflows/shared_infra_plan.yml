@@ -268,12 +268,28 @@ jobs:
           fi
 
           {
-            echo "## Infra Plan Detected Changes"
+            echo "## Infra Plan Summary"
             echo
             echo "- \`environment\`: \`$ENVIRONMENT\`"
+            echo "- \`waves\`: \`$(jq -r 'length' <<<"$WAVES_JSON")\`"
             echo "- \`planned_modules\`: \`$(jq -r 'map(.modules | length) | add // 0' <<<"$WAVES_JSON")\`"
             echo "- \`modules_to_apply\`: \`$(jq -r 'length' <<<"$changed_modules_json")\`"
             echo "- Saved plan artifacts are time-limited. Apply from this plan before the metadata artifact expires after 14 days."
+            echo
+            echo "| Wave | Planned Modules |"
+            echo "| --- | --- |"
+            jq -r '
+              if length == 0 then
+                ["| none | No modules selected |"]
+              else
+                map(
+                  .wave as $wave
+                  | (.modules | map("`" + . + "`") | join(", ")) as $modules
+                  | "| \($wave) | \($modules) |"
+                )
+              end
+              | .[]
+            ' <<<"$WAVES_JSON"
             echo
 
             if [[ "$(jq -r 'length' <<<"$changed_modules_json")" -eq 0 ]]; then
