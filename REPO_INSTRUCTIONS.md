@@ -57,7 +57,7 @@ These instructions apply to the entire repository.
 ## AI Context Summaries
 
 - for broad orientation, read `AI_CONTEXT.md` after this file and the root `README.md`
-- for navigation, read `REPO_MAP.md`, `TERRAFORM_INDEX.md`, or `WORKFLOW_INDEX.md` before loading full source files
+- for navigation, read `REPO_MAP.md` before loading full source files
 - after edits, prefer `git diff` and targeted `rg` checks over full-file rereads unless the owning contract is unclear
 - escalate to deeper repository inspection when summaries, diffs, and owning README files do not explain dependencies, workflow behavior, graph ordering, or security boundaries
 
@@ -67,8 +67,8 @@ Use indexes to choose files before loading source.
 
 | Task touches | Read next |
 | --- | --- |
-| workflows, actions, CI, deploy, release, or destroy | `WORKFLOW_INDEX.md`, then `.github/docs/README.md` |
-| Terraform, Terragrunt, live stacks, or AWS modules | `TERRAFORM_INDEX.md`, then `infra/README.md` |
+| workflows, actions, CI, deploy, release, or destroy | `REPO_MAP.md#workflow-route-map`, then `.github/docs/README.md` |
+| Terraform, Terragrunt, live stacks, or AWS modules | `REPO_MAP.md#terraform-route-map`, then `infra/README.md` |
 | Lambda runtime | `lambdas/README.md`, then matching infra module README when config changes |
 | ECS runtime | `containers/README.md`, then matching `task_*` / `service_*` module READMEs when config changes |
 | frontend runtime, auth, or hosting | `frontend/README.md`, plus `cognito` / `frontend` infra docs when deployed auth or hosting changes |

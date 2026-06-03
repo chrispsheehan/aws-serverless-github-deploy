@@ -31,12 +31,11 @@ Example: "Explain how dev deploys work" usually needs Level 0 plus
 Load when choosing exact files:
 
 - `REPO_MAP.md`
-- `TERRAFORM_INDEX.md`
-- `WORKFLOW_INDEX.md`
 - the owning README named by `REPO_INSTRUCTIONS.md`
 
-Example: a task about `service_api` should read `TERRAFORM_INDEX.md`,
-`infra/README.md`, `infra/modules/aws/service_api/README.md`, and
+Example: a task about `service_api` should read
+`REPO_MAP.md#terraform-route-map`, `infra/README.md`,
+`infra/modules/aws/service_api/README.md`, and
 `infra/modules/aws/_shared/service/README.md` before inspecting Terraform.
 
 ## Level 3: Implementation

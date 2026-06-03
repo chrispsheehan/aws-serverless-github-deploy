@@ -93,8 +93,8 @@ in `infra/live/global_vars.hcl`.
 - `infra/modules/aws/<module>`: repo-specific wrappers or concrete stack
   modules.
 
-Use `TERRAFORM_INDEX.md` for compact module routing, then read the owning
-module README before editing a module.
+Use `REPO_MAP.md#terraform-route-map` for compact module routing, then read the
+owning module README before editing a module.
 
 ## Workflow Layout
 
@@ -104,5 +104,5 @@ module README before editing a module.
 - Repo-local actions: `.github/actions/get-changes`, `get-next-version`,
   `just`, and `terragrunt`
 
-Use `WORKFLOW_INDEX.md` for compact workflow routing, then read
+Use `REPO_MAP.md#workflow-route-map` for compact workflow routing, then read
 `.github/docs/README.md` and the focused workflow doc before editing.
