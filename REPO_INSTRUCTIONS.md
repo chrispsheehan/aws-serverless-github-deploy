@@ -89,20 +89,12 @@ After routing, inspect only impacted implementation files.
 
 ## Runtime Network Placement
 
-- do not assume ECS services must run in private subnets
-- when a service needs outbound internet access, explicitly ask whether the runtime should run in public subnets or private subnets before recommending NAT gateways
-- only recommend NAT gateways when private subnet placement is required, explicitly chosen, or otherwise necessary for the selected security model
-- if a service can safely run in public subnets, call out that public subnet placement with task public IPs may be the lower-cost deployment shape and explain the security implications
-- for public-subnet ECS services, require a clear ingress model before implementation: public load balancer or API Gateway path, security group restrictions, authentication requirements, and whether tasks should receive public IPs
-- for scraper, polling, webhook, or external-API-heavy services, treat subnet placement as an explicit architecture decision because outbound connectivity affects architecture, cost, and security
-- do not list NAT as an AWS prerequisite unless the selected runtime placement uses private subnets and needs outbound internet access
+- when changing ECS subnet placement, `assign_public_ip`, NAT, VPC endpoints, or runtime egress, read `infra/README.md#runtime-network-placement` before recommending or editing network changes
 
 ## CI OIDC Scope
 
-- treat `infra/live/ci/aws/oidc/terragrunt.hcl` as intentionally narrow
-- the CI OIDC role is for artifact management only: shared code bucket access, current IAM interactions required by CI, and ECR image publishing
-- do not broaden the CI role to match the shared `allowed_role_actions` set unless the user explicitly asks for that contract change
-- if a task needs deploy permissions, call out that this fails the CI-role scope and name the missing AWS actions/services
+- when changing CI OIDC roles, deploy permissions, artifact permissions, or `infra/live/ci/aws/oidc/terragrunt.hcl`, read `infra/modules/aws/_shared/oidc/README.md` and `.github/docs/repo-local-actions.md` before editing
+- treat the CI OIDC role as artifact-scoped unless the user explicitly asks to change that contract
 
 ## Protected Live Stacks
 

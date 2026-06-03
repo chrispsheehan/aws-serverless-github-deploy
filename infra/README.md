@@ -202,6 +202,17 @@ That `containers/lib` directory is helper code only and is not treated as a depl
 
 - frontend custom-domain deploys require the matching Route53 hosted zone to already exist
 
+## Runtime Network Placement
+
+Do not assume ECS services must run in private subnets.
+
+- when a service needs outbound internet access, explicitly choose whether the runtime should run in public subnets or private subnets before recommending NAT gateways
+- only use NAT gateways when private subnet placement is required, explicitly chosen, or otherwise necessary for the selected security model
+- if a service can safely run in public subnets, public subnet placement with task public IPs may be the lower-cost deployment shape; document the security implications
+- for public-subnet ECS services, require a clear ingress model before implementation: public load balancer or API Gateway path, security group restrictions, authentication requirements, and whether tasks should receive public IPs
+- for scraper, polling, webhook, or external-API-heavy services, treat subnet placement as an explicit architecture decision because outbound connectivity affects architecture, cost, and security
+- do not list NAT as an AWS prerequisite unless the selected runtime placement uses private subnets and needs outbound internet access
+
 ## Deployment Model
 
 Infra applies create the stable runtime shape. Code deploy workflows publish and roll out feature code into that pre-created surface.
