@@ -16,6 +16,7 @@ build/
 venv
 __pycache__
 frontend/public/data/*/*.json
-tmp
+tmp/*
+!tmp/.gitkeep
 data
 output.json

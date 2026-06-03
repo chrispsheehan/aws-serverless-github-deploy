@@ -117,9 +117,10 @@ After routing, inspect only impacted implementation files.
 
 ## Terragrunt Plan Expectation
 
-- for changes that can affect Terraform evaluation or plan output, run `just tg-all dev plan` before closing when feasible
-- use `just tg-all <env> plan` as the default infra verification surface; targeted `just tg <env> <module> validate` or focused plans are debugging aids, not replacements
-- for shared modules or cross-stack contracts, rely on the environment plan to cover downstream consumers
+- for a change scoped to one concrete live stack/module, run the targeted plan, for example `just tg dev aws/service_api plan`
+- for changes touching multiple stacks, shared modules, Terragrunt dependency edges, workflow ordering, or cross-stack contracts, run the environment plan, for example `just tg-all dev plan`
+- do not run both targeted and environment plans unless the first plan exposes a reason to broaden verification
+- for noisy plans or logs, write command output under ignored `tmp/` and return only filtered summary lines such as `No changes`, `Plan:`, `Error:`, `Failed`, or relevant `WARN`
 - treat saved plans as apply-intent artifacts; do not apply plans that captured bootstrap/mock values
 - if credentials, network, permissions, or state access block planning, say so and name the exact manual plan command
 - for saved-plan and mock-output details, read `infra/README.md`, `infra/docs/deployment-model.md`, and `.github/docs/artifacts-and-plans.md`
