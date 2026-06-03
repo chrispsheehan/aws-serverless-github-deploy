@@ -5,11 +5,10 @@ documentation hierarchy. `REPO_INSTRUCTIONS.md` remains authoritative.
 
 ## Level 0: Always
 
-Load these before any repo work:
+Use the startup wrapper files only to find the authoritative repo guidance.
+For active context loading, start with:
 
 - `REPO_INSTRUCTIONS.md`
-- `AGENTS.md`
-- `CLAUDE.md`
 
 Then confirm whether the task touches workflows, infrastructure, runtime code,
 frontend, or docs.
