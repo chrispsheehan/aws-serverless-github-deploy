@@ -41,11 +41,12 @@ just tg prod aws/oidc apply
 Role scope in this repo:
 
 - `ci`
-  intentionally narrow; used for shared artifact management, current CI IAM interactions, and ECR image publishing
+  intentionally narrow; used for shared artifact management, shared code bucket access, current CI IAM interactions, and ECR image publishing
 - `dev` and `prod`
   broader deploy roles; include the database, Cognito, certificate, and Route53 access needed by the repo's runtime stacks
 
 The `ci` role is not the repo's general deploy role. If a workflow needs deploy permissions, treat that as a contract change and document the exact additional AWS actions.
+Do not broaden the `ci` role to match the shared `allowed_role_actions` set unless that contract change is explicitly requested.
 
 ## Inputs That Change Behavior
 

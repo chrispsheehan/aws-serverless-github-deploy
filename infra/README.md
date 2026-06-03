@@ -169,6 +169,15 @@ That `containers/lib` directory is helper code only and is not treated as a depl
 - treat saved `plan` artifacts as apply-intent only: Terraform will reuse the exact variable values captured in the plan file during `apply_plan`
 - for first deploys or other bootstrap-sensitive stacks, do not reuse a saved plan that captured `mock_outputs`; re-plan after the upstream real outputs exist before running `apply_plan`
 
+### Output Passthrough Contract
+
+When wiring `dependency.<name>.outputs.<output>` into Terraform inputs:
+
+- the producer stack must expose the output explicitly
+- the consuming Terragrunt stack must reference that exact output name
+- the downstream Terraform module must declare a matching input variable
+- `mock_outputs` names must match the real producer output names
+
 ### When to Use Remote State
 
 - avoid using `data.terraform_remote_state` as the default mechanism for passing values between stacks
@@ -201,6 +210,27 @@ That `containers/lib` directory is helper code only and is not treated as a depl
 - ECS service wrappers can optionally discover tagged public subnets when `assign_public_ip = true`; those subnets must have names matching `*public*`
 
 - frontend custom-domain deploys require the matching Route53 hosted zone to already exist
+
+### AWS Name Length And Project Naming
+
+Before adding a new environment or changing generated AWS names, check whether derived names can exceed AWS service limits.
+
+- include the environment, project name, stack suffix, and any module-added suffix such as IAM role, policy, CodeDeploy, log group, alarm, or EventBridge suffixes
+- watch IAM role and policy names in particular because several modules derive secondary resource names from the Lambda or service name
+- if a longer environment name makes generated names too long, raise it to the human before adding per-resource overrides
+- prefer asking whether `project_name` should be shortened in HCL for that environment or repo shape, instead of patching around the issue with many narrow name overrides
+- if per-resource overrides are still needed, keep them explicit, local to the affected live stack, and documented in the owning module README
+
+## Runtime Network Placement
+
+Do not assume ECS services must run in private subnets.
+
+- when a service needs outbound internet access, explicitly choose whether the runtime should run in public subnets or private subnets before recommending NAT gateways
+- only use NAT gateways when private subnet placement is required, explicitly chosen, or otherwise necessary for the selected security model
+- if a service can safely run in public subnets, public subnet placement with task public IPs may be the lower-cost deployment shape; document the security implications
+- for public-subnet ECS services, require a clear ingress model before implementation: public load balancer or API Gateway path, security group restrictions, authentication requirements, and whether tasks should receive public IPs
+- for scraper, polling, webhook, or external-API-heavy services, treat subnet placement as an explicit architecture decision because outbound connectivity affects architecture, cost, and security
+- do not list NAT as an AWS prerequisite unless the selected runtime placement uses private subnets and needs outbound internet access
 
 ## Deployment Model
 
