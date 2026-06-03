@@ -211,6 +211,16 @@ When wiring `dependency.<name>.outputs.<output>` into Terraform inputs:
 
 - frontend custom-domain deploys require the matching Route53 hosted zone to already exist
 
+### AWS Name Length And Project Naming
+
+Before adding a new environment or changing generated AWS names, check whether derived names can exceed AWS service limits.
+
+- include the environment, project name, stack suffix, and any module-added suffix such as IAM role, policy, CodeDeploy, log group, alarm, or EventBridge suffixes
+- watch IAM role and policy names in particular because several modules derive secondary resource names from the Lambda or service name
+- if a longer environment name makes generated names too long, raise it to the human before adding per-resource overrides
+- prefer asking whether `project_name` should be shortened in HCL for that environment or repo shape, instead of patching around the issue with many narrow name overrides
+- if per-resource overrides are still needed, keep them explicit, local to the affected live stack, and documented in the owning module README
+
 ## Runtime Network Placement
 
 Do not assume ECS services must run in private subnets.

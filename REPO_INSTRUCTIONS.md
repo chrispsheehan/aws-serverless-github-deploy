@@ -107,6 +107,7 @@ After routing, inspect only impacted implementation files.
 - verify the runtime/deploy shape and required backing resources before changing infra or workflow ordering
 - for ECS network changes, reason about effective egress; do not infer internet access from subnet names alone
 - do not remove VPC endpoints automatically when changing ECS egress; suggest cleanup only after checking all private runtime dependencies
+- before adding environments or changing generated AWS names, check `infra/README.md#aws-name-length-and-project-naming`
 - before adding Terragrunt dependency edges, verify the target live stack exists in that environment and keep graph waves aligned with `just tg-graph-waves <env>`
 - when changing reusable workflows, compare caller `with:` blocks to `workflow_call.inputs`, remove dead contract fields, and keep job `name:` values human-readable
 - for shared infra plan/apply workflows, keep `task_*` stacks out of infra waves because code deploy owns task-definition rollout
