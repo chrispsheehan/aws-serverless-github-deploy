@@ -110,7 +110,7 @@ After routing, inspect only impacted implementation files.
 - before adding Terragrunt dependency edges, verify the target live stack exists in that environment and keep graph waves aligned with `just tg-graph-waves <env>`
 - when changing reusable workflows, compare caller `with:` blocks to `workflow_call.inputs`, remove dead contract fields, and keep job `name:` values human-readable
 - for shared infra plan/apply workflows, keep `task_*` stacks out of infra waves because code deploy owns task-definition rollout
-- for cross-stack output passthroughs, ensure downstream Terraform variables match the consumed Terragrunt dependency outputs
+- for cross-stack output passthroughs, follow `infra/README.md#output-passthrough-contract`
 - prefer Terragrunt `dependency` inputs plus `mock_outputs` over `terraform_remote_state`; if remote state is intentional, add a `# remote_state_reason: ...` comment
 - when introducing or expanding bootstrap/mock-output behavior, update the nearest owning human-facing README
 - for detailed checks, read `infra/README.md`, `.github/docs/feasibility-checks.md`, `.github/docs/discovery-and-matrices.md`, and `.github/docs/reusable-workflows.md`

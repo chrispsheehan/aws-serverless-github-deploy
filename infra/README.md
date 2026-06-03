@@ -169,6 +169,15 @@ That `containers/lib` directory is helper code only and is not treated as a depl
 - treat saved `plan` artifacts as apply-intent only: Terraform will reuse the exact variable values captured in the plan file during `apply_plan`
 - for first deploys or other bootstrap-sensitive stacks, do not reuse a saved plan that captured `mock_outputs`; re-plan after the upstream real outputs exist before running `apply_plan`
 
+### Output Passthrough Contract
+
+When wiring `dependency.<name>.outputs.<output>` into Terraform inputs:
+
+- the producer stack must expose the output explicitly
+- the consuming Terragrunt stack must reference that exact output name
+- the downstream Terraform module must declare a matching input variable
+- `mock_outputs` names must match the real producer output names
+
 ### When to Use Remote State
 
 - avoid using `data.terraform_remote_state` as the default mechanism for passing values between stacks
