@@ -128,11 +128,15 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Execute repo-local get-next-version action
+      - name: Execute get-release-version action
         id: get_next_version
-        uses: ./.github/actions/get-next-version
+        uses: chrispsheehan/get-release-version@0.1.0
         with:
           subjects: ${{ github.event.pull_request.title || inputs.pr_title }}
+          major_prefixes: breaking,feat,!feat
+          minor_prefixes: minor,fix,patch
+          patch_prefixes: chore,docs
+          release_bumps: major,minor
 
       - name: Show action outputs
         run: |

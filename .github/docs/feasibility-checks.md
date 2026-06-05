@@ -59,7 +59,7 @@ Run these checks on every CI, workflow, or deploy-contract change.
 
 ## Release And Docker Action Checks
 
-- If `release.yml` uses the local version action, keep configured commit prefixes aligned with team commit conventions.
+- Keep the `release.yml` and `pull_request.yml` `get-release-version` prefix inputs aligned with team commit conventions.
 - If allowed PR title prefixes change, update `pull_request.yml` in the same change.
 - Ensure release jobs read plain semver tags from repo history in the same format they create.
 - If a repo-local Docker action needs git state, resolve checkout from `GITHUB_WORKSPACE` first or walk up to the nearest `.git` root for local harnesses.

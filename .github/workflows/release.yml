@@ -49,8 +49,11 @@ jobs:
       # Patch subjects still create tags, but release_bumps controls the full artifact build and release path.
       - name: Get next version
         id: get_next_version
-        uses: ./.github/actions/get-next-version
+        uses: chrispsheehan/get-release-version@0.1.0
         with:
+          major_prefixes: breaking,feat,!feat
+          minor_prefixes: minor,fix,patch
+          patch_prefixes: chore,docs
           release_bumps: major,minor
 
       - name: Show the next version
