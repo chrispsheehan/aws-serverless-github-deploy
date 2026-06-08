@@ -13,7 +13,7 @@ Infrastructure apply and feature-code rollout are intentionally decoupled in thi
 - saved `plan` / `apply_plan` artifacts live in GitHub Actions artifacts keyed by workflow run id, with one run-level metadata artifact plus one per-stack plan artifact
 - saved plan artifacts are time-limited; the run-level metadata artifact is retained for 14 days, so apply-from-plan must happen before artifact expiry
 - each saved-plan stack always uploads `terragrunt.plan.meta.json`; the binary `terragrunt.tfplan` and rendered `terragrunt.plan.txt` are uploaded only when the plan contains real changes
-- Code artifact retention and infra-plan retention are configured separately in the shared code bucket module
+- Code artifact retention is configured in the shared code bucket module
 - rerunning infrastructure apply does not roll out new feature code
 - the shared Lambda and ECS module READMEs are the canonical source for bootstrap, rollout, and rollback details for each runtime shape
 - detailed workflow contracts, reusable-workflow inputs, repo-local action behavior, and `justfile_path` rules live in [CI docs](../../.github/docs/README.md)

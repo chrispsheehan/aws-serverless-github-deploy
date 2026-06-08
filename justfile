@@ -72,7 +72,6 @@ LAMBDA_DIR := "lambdas"
 FRONTEND_DIR := "frontend"
 CONTAINERS_DIR := "containers"
 APPSPEC_DIR := "appspec"
-INFRA_PLAN_DIR := "terragrunt_plan"
 NON_SERVICE_CONTAINER_DIRECTORIES := "[\"lib\",\"_shared\"]"
 
 
@@ -84,11 +83,6 @@ code-bucket-get-lambda-artifact-dir:
 # Return the frontend artifact directory name.
 code-bucket-get-frontend-artifact-dir:
     @echo {{FRONTEND_DIR}}
-
-
-# Return the infra plan artifact directory name.
-code-bucket-get-infra-plan-dir:
-    @echo {{INFRA_PLAN_DIR}}
 
 
 # Return the AppSpec artifact directory name.

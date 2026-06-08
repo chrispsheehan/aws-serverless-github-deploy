@@ -25,10 +25,6 @@ locals {
       days   = var.code_artifact_expiration_days
       prefix = "${var.appspec_artifact_dir}/"
     }
-    terragrunt_plans = {
-      days   = var.infra_plan_artifact_expiration_days
-      prefix = "${var.infra_plan_dir}/"
-    }
   }
 }
 
