@@ -10,18 +10,6 @@ Lambda + ECS with CodeDeploy rollouts, plus provisioned concurrency controls for
 - shared deployment patterns for Lambda and ECS, with repo-local `just` commands for local and CI operations
 - runtime and infrastructure layouts designed to be extended without having to rediscover the whole repo each time
 
-## Using This As A Reference Template
-
-To bootstrap another repo from this one, use the `repo-reference-scaffold` skill.
-
-Placeholder prompt:
-
-```text
-Use $repo-reference-scaffold with this repo as the reference.
-```
-
-The local repo instructions live in [REPO_INSTRUCTIONS.md](REPO_INSTRUCTIONS.md).
-
 ## Bootstrap-Friendly Plans
 
 This repo uses Terragrunt `dependency` wiring and plan-time mocks for bootstrap-sensitive cross-stack contracts.
