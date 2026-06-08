@@ -23,20 +23,8 @@ variable "appspec_artifact_dir" {
   default     = "appspec"
 }
 
-variable "infra_plan_dir" {
-  description = "Top-level S3 prefix used for saved Terragrunt plan artifacts"
-  type        = string
-  default     = "terragrunt_plan"
-}
-
 variable "code_artifact_expiration_days" {
   description = "Number of days before deployable code artifacts under lambdas/, frontend/, and appspec/ are deleted (set to 0 to disable)"
-  type        = number
-  default     = 0
-}
-
-variable "infra_plan_artifact_expiration_days" {
-  description = "Number of days before saved Terragrunt plan artifacts under terragrunt_plan/ are deleted (set to 0 to disable)"
   type        = number
   default     = 0
 }

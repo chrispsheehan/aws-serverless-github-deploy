@@ -7,7 +7,6 @@ LAMBDA_DIR := `just --justfile justfile --evaluate LAMBDA_DIR`
 FRONTEND_DIR := `just --justfile justfile --evaluate FRONTEND_DIR`
 APPSPEC_DIR := `just --justfile justfile --evaluate APPSPEC_DIR`
 CONTAINERS_DIR := `just --justfile justfile --evaluate CONTAINERS_DIR`
-INFRA_PLAN_DIR := `just --justfile justfile --evaluate INFRA_PLAN_DIR`
 
 
 # Convert raw Terragrunt graph output from TG_GRAPH_OUTPUT into compact JSON.
@@ -412,11 +411,6 @@ code-bucket-get-lambda-artifact-dir:
 # Return the frontend artifact directory name from the repo-root justfile.
 code-bucket-get-frontend-artifact-dir:
     @just --justfile "{{PROJECT_DIR}}/justfile" code-bucket-get-frontend-artifact-dir
-
-
-# Return the infra plan artifact directory name from the repo-root justfile.
-code-bucket-get-infra-plan-dir:
-    @just --justfile "{{PROJECT_DIR}}/justfile" code-bucket-get-infra-plan-dir
 
 
 # Return the AppSpec artifact directory name from the repo-root justfile.

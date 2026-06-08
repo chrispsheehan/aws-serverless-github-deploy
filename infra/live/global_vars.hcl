@@ -29,15 +29,13 @@ locals {
     "cognito-idp:*",
     "tag:GetResources",
   ]
-  code_artifact_expiration_days       = 0
-  infra_plan_artifact_expiration_days = 30
+  code_artifact_expiration_days = 0
 }
 
 inputs = {
-  vpc_name                            = local.vpc_name
-  aws_region                          = local.aws_region
-  domain_name                         = local.domain_name
-  allowed_role_actions                = local.allowed_role_actions
-  code_artifact_expiration_days       = local.code_artifact_expiration_days
-  infra_plan_artifact_expiration_days = local.infra_plan_artifact_expiration_days
+  vpc_name                      = local.vpc_name
+  aws_region                    = local.aws_region
+  domain_name                   = local.domain_name
+  allowed_role_actions          = local.allowed_role_actions
+  code_artifact_expiration_days = local.code_artifact_expiration_days
 }
