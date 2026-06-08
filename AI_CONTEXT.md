@@ -101,8 +101,8 @@ owning module README before editing a module.
 - Environment entry points: `dev_*`, `prod_*`, and `destroy.yml`
 - Reusable build/deploy/infra wrappers: `shared_*.yml`
 - Validation and release: `pull_request.yml`, `release.yml`
-- Repo-local actions: `.github/actions/get-changes`, `get-next-version`,
-  `just`, and `terragrunt`
+- Repo-local actions: `.github/actions/get-changes`, `just`, and
+  `terragrunt`
 
 Use `REPO_MAP.md#workflow-route-map` for compact workflow routing, then read
 `.github/docs/README.md` and the focused workflow doc before editing.

@@ -4,9 +4,8 @@ Use this when changing `.github/actions/**`, OIDC role ARN construction, release
 
 ## Local Action Ownership
 
-The repo vendors internal GitHub Actions under `.github/actions`, so workflow `uses:` references point at local paths rather than external action tags.
+The repo vendors internal GitHub Actions under `.github/actions`, so those workflow `uses:` references point at local paths rather than external action tags.
 
-- [get-next-version](../actions/get-next-version/README.md) is the repo-local Docker action used by release/version checks.
 - [get-changes](../actions/get-changes/README.md) is the repo-local Docker action used by the change-detection path.
 - [just](../actions/just/README.md) is the repo-local composite action for installing and running `just`.
 - [terragrunt](../actions/terragrunt/README.md) is the repo-local composite action for installing Terraform/Terragrunt and running Terragrunt operations.
@@ -51,7 +50,7 @@ If unsure, the live `aws/oidc` stack in the target environment is the source of 
 
 ## Release Tagging Checks
 
-- If `release.yml` uses the local version action, keep configured commit prefixes aligned with the team's commit convention.
+- `release.yml` uses `chrispsheehan/get-release-version`; keep configured commit prefixes aligned with the team's commit convention.
 - If allowed PR title prefixes change, update `pull_request.yml` in the same change so the PR gate matches release bump inputs.
 - Ensure the release job still reads plain semver tags from repo history in the same format it creates.
 

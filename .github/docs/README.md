@@ -29,7 +29,6 @@ This README is the router. The contract details live in focused docs so humans a
 
 ## Repo-Local Actions
 
-- [get-next-version](../actions/get-next-version/README.md)
 - [get-changes](../actions/get-changes/README.md)
 - [just](../actions/just/README.md)
 - [terragrunt](../actions/terragrunt/README.md)
